@@ -463,6 +463,22 @@
         </div>
       </div>
 
+      <!-- 파일 관리 모달 -->
+      <div id="exhFileModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div style="background:#fff;border-radius:16px;padding:24px;width:680px;max-width:95vw;max-height:80vh;overflow-y:auto;position:relative">
+          <button onclick="document.getElementById('exhFileModal').style.display='none'"
+            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:14px;font-weight:900;color:var(--t);margin-bottom:16px" id="exhFileModalTitle">파일 목록</div>
+          <div id="exhFileModalBody"></div>
+          <div style="margin-top:16px;text-align:right">
+            <button onclick="uploadExhFile(document.getElementById('exhFileModal').dataset.exhId, document.getElementById('exhFileModal').dataset.fileType)"
+              style="padding:7px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">
+              ⬆ 파일 추가 업로드
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- 추가/수정 모달 -->
       <div id="exhModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:28px;width:580px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
@@ -2447,17 +2463,23 @@ async function uploadExhFile(exhId, fileType) {
         }
       }
 
-      // exhSchedule에 파일 정보 저장
+      // SP 실시간 목록으로 동기화 (업로드 후 바로 반영)
       const fileKey = fileType==="prep" ? "prepFiles" : "resultFiles";
       if(!evt[fileKey]) evt[fileKey]=[];
       evt[fileKey].push(...uploaded);
 
-      // SP exhibitions.json 업데이트
       await saveExhToSP();
       renderExhSched();
 
-      if(statusEl) statusEl.textContent = "✅ "+uploaded.length+"개 파일 업로드 완료 ("+subFolder+" 폴더)";
-      alert("✅ "+uploaded.length+"개 파일이 업로드됐어요!\n폴더: "+spPath);
+      if(statusEl) statusEl.textContent = "✅ "+uploaded.length+"개 파일 업로드 완료";
+
+      // 파일 모달 열려있으면 목록 새로고침
+      const fileModal = document.getElementById("exhFileModal");
+      if(fileModal && fileModal.style.display==="flex") {
+        await openExhFolder(exhId, fileType);
+      } else {
+        alert("✅ "+uploaded.length+"개 파일 업로드 완료!\n폴더: "+spPath);
+      }
     } catch(e) {
       console.error("파일 업로드 실패:", e);
       if(statusEl) statusEl.textContent = origTxt;
@@ -2467,16 +2489,86 @@ async function uploadExhFile(exhId, fileType) {
   input.click();
 }
 
-// SP 폴더 열기 (브라우저에서 SharePoint 폴더로 이동)
+// SP 파일 목록 실시간 조회 + 파일 관리 모달
 async function openExhFolder(exhId, fileType) {
   const evt = exhSchedule.find(e=>e.id===exhId);
   if(!evt) return;
   const folderName = getExhFolderName(evt);
   const subFolder = fileType==="prep" ? "준비" : "결과";
-  // SharePoint 웹 URL 생성
-  const spBaseUrl = "https://enjetco.sharepoint.com/sites/06.BackOffice/Shared%20Documents/";
-  const folderPath = encodeURIComponent("📦영업/6. 마케팅/전시회/"+folderName+"/"+subFolder).replace(/%2F/g,"/");
-  window.open(spBaseUrl+folderPath, "_blank");
+  const spPath = EXH_FOLDER_BASE+"/"+folderName+"/"+subFolder;
+  const label = fileType==="prep" ? "📁 준비 파일" : "📁 결과 파일";
+
+  // 파일 관리 모달 열기
+  const modal = document.getElementById("exhFileModal");
+  const modalTitle = document.getElementById("exhFileModalTitle");
+  const modalBody = document.getElementById("exhFileModalBody");
+  if(!modal) return;
+
+  modalTitle.textContent = evt.name+" - "+label;
+  modalBody.innerHTML = '<div class="sw"><div class="spr"></div></div>';
+  modal.style.display = "flex";
+  modal.dataset.exhId = exhId;
+  modal.dataset.fileType = fileType;
+
+  try {
+    await getIds();
+    const encoded = spPath.split("/").map(encodeURIComponent).join("/");
+    const fd = await gGet("/drives/"+spDrive+"/root:/"+encoded+":/children?$orderby=lastModifiedDateTime desc");
+    const files = (fd.value||[]).filter(f=>!f.folder);
+
+    // exhibitions.json의 파일 목록도 SP 실시간 목록으로 동기화
+    const fileKey = fileType==="prep" ? "prepFiles" : "resultFiles";
+    evt[fileKey] = files.map(f=>({
+      name: f.name, size: f.size,
+      url: f.webUrl, uploadedAt: f.lastModifiedDateTime,
+      spId: f.id
+    }));
+    await saveExhToSP();
+    renderExhSched(); // 테이블 업데이트
+
+    if(!files.length) {
+      modalBody.innerHTML = '<div class="empty"><div class="ei">📂</div><div class="et">파일 없음</div><div style="font-size:11px;color:var(--t3);margin-top:4px">업로드 버튼으로 파일을 추가하세요</div></div>';
+      return;
+    }
+
+    // SP URL 생성
+    const spWebUrl = "https://enjetco.sharepoint.com/sites/06.BackOffice/_layouts/15/onedrive.aspx?id="+
+      encodeURIComponent("/sites/06.BackOffice/Shared Documents/"+spPath);
+
+    modalBody.innerHTML = `
+      <div style="margin-bottom:10px;display:flex;justify-content:flex-end">
+        <a href="${spWebUrl}" target="_blank"
+          style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;text-decoration:none;font-weight:700">
+          🔗 SharePoint에서 열기
+        </a>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th style="text-align:center">열기</th></tr></thead>
+        <tbody>
+          ${files.map(f=>`<tr>
+            <td><span class="tn" style="font-size:11px">📄 ${f.name}</span></td>
+            <td style="font-size:10px;color:var(--t3)">${Math.round(f.size/1024)}KB</td>
+            <td style="font-size:10px;color:var(--t3)">${f.lastModifiedDateTime?.substring(0,10)||"-"}</td>
+            <td style="text-align:center">
+              <a href="${f.webUrl}" target="_blank"
+                style="font-size:10px;color:var(--p);cursor:pointer;text-decoration:none">열기 →</a>
+            </td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+      <div style="margin-top:10px;font-size:10px;color:var(--t3)">
+        파일 삭제는 SharePoint에서 직접 해주세요 (🔗 SharePoint에서 열기)
+      </div>`;
+
+  } catch(e) {
+    console.error("파일 목록 조회 실패:", e.message);
+    // SP 폴더 없으면 빈 상태
+    const fileKey = fileType==="prep" ? "prepFiles" : "resultFiles";
+    evt[fileKey] = [];
+    await saveExhToSP();
+    renderExhSched();
+    modalBody.innerHTML = '<div class="empty"><div class="ei">📂</div><div class="et">파일 없음</div></div>';
+  }
 }
 
 // 파일 목록 모달 표시
