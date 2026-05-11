@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ENJET | 영업 대시보드 v3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js">
+// ── 월별 상세 데이터 (매출기록부 기준)
+const monthlyDetail = {
+  2024: {
+    1:{tax:1.022,income:0.0,unpaid:1.121},
+    2:{tax:0.679,income:0.0,unpaid:0.742},
+    3:{tax:23.451,income:0.0,unpaid:25.793},
+    4:{tax:7.679,income:0.0,unpaid:8.445},
+    5:{tax:0.873,income:0.0,unpaid:0.958},
+    6:{tax:2.264,income:0.0,unpaid:2.488},
+    7:{tax:2.963,income:0.0,unpaid:3.257},
+    8:{tax:11.822,income:0.0,unpaid:13.002},
+    9:{tax:1.991,income:0.0,unpaid:2.185},
+    10:{tax:1.239,income:0.0,unpaid:1.361},
+    11:{tax:1.801,income:1.166,unpaid:0.813},
+    12:{tax:2.952,income:1.166,unpaid:2.079}
+  },
+  2025: {
+    1:{tax:0.491,income:0.281,unpaid:0.105},
+    2:{tax:2.055,income:2.084,unpaid:0.0},
+    3:{tax:13.349,income:13.475,unpaid:0.0},
+    4:{tax:2.429,income:0.812,unpaid:0.0},
+    5:{tax:2.553,income:1.705,unpaid:0.0},
+    6:{tax:2.327,income:2.169,unpaid:0.0},
+    7:{tax:1.487,income:1.258,unpaid:0.0},
+    8:{tax:9.128,income:0.866,unpaid:0.0},
+    9:{tax:7.372,income:1.737,unpaid:0.0},
+    10:{tax:0.489,income:0.434,unpaid:0.0},
+    11:{tax:2.958,income:2.718,unpaid:0.018},
+    12:{tax:5.980,income:3.398,unpaid:0.046}
+  },
+  2026: {
+    1:{tax:1.792,income:1.729,unpaid:0.096},
+    2:{tax:5.810,income:3.577,unpaid:0.055},
+    3:{tax:0.567,income:0.282,unpaid:0.105},
+    4:{tax:1.254,income:0.046,unpaid:1.165}
+  }
+};
+
+// 분기 범위
+const quarterMonths = {1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]};
+// 반기 범위
+const halfMonths = {1:[1,2,3,4,5,6],2:[7,8,9,10,11,12]};
+
+function sumMonths(yr, months) {
+  const d = monthlyDetail[yr] || {};
+  let tax=0, income=0, unpaid=0;
+  months.forEach(m => {
+    if(d[m]){ tax+=d[m].tax; income+=d[m].income; unpaid+=d[m].unpaid; }
+  });
+  return {tax:Math.round(tax*1000)/1000, income:Math.round(income*1000)/1000, unpaid:Math.round(unpaid*1000)/1000};
+}
+
+function toggleDrop(type, el) {
+  // 다른 드롭다운 닫기
+  document.querySelectorAll('.drop-menu').forEach(d => {
+    if(d.id !== 'drop-'+type) d.classList.remove('open');
+  });
+  document.getElementById('drop-'+type).classList.toggle('open');
+  // ppill 활성화
+  document.querySelectorAll('.ppill-wrap .ppill').forEach(p => {
+    if(p !== el) { p.classList.remove('active','has-selection'); }
+  });
+  el.classList.add('active');
+  event.stopPropagation();
+}
+
+// 외부 클릭시 드롭다운 닫기
+document.addEventListener('click', () => {
+  document.querySelectorAll('.drop-menu').forEach(d => d.classList.remove('open'));
+});
+
+function selectPeriod(type, yr, sub, label, el) {
+  event.stopPropagation();
+
+  // 모든 드롭아이템 선택 해제
+  document.querySelectorAll('.drop-item').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+
+  // 드롭다운 닫기
+  document.querySelectorAll('.drop-menu').forEach(d => d.classList.remove('open'));
+
+  // ppill 상태
+  document.querySelectorAll('.ppill-wrap .ppill, .ppill').forEach(p => {
+    p.classList.remove('active','has-selection');
+  });
+  const parentPill = el.closest('.ppill-wrap')?.querySelector('.ppill');
+  if(parentPill) parentPill.classList.add('active','has-selection');
+
+  document.getElementById('periodRange').textContent = label;
+
+  let d = {tax:0, income:0, unpaid:0, unbilled:1.453};
+
+  if(type === 'monthly') {
+    const m = parseInt(sub);
+    const data = (monthlyDetail[yr]||{})[m] || {tax:0,income:0,unpaid:0};
+    d = {tax:data.tax, income:data.income, unpaid:data.unpaid, unbilled: yr==2026&&m>=4?1.453:0};
+  } else if(type === 'quarterly') {
+    const q = parseInt(sub);
+    const s = sumMonths(parseInt(yr), quarterMonths[q]);
+    d = {tax:s.tax, income:s.income, unpaid:s.unpaid, unbilled: yr==2026&&q>=1?1.453:0};
+  } else if(type === 'half') {
+    const h = parseInt(sub);
+    const s = sumMonths(parseInt(yr), halfMonths[h]);
+    d = {tax:s.tax, income:s.income, unpaid:s.unpaid, unbilled: yr==2026?1.453:0};
+  } else if(type === 'annual') {
+    const y = yearly[parseInt(yr)];
+    d = {tax:y.tax, income:y.income, unpaid:y.unpaid, unbilled:y.unbilled||0};
+  } else if(type === 'total') {
+    d = {tax:825.6, income:273.2, unpaid:11.596, unbilled:1.453};
+  }
+
+  // KPI 업데이트
+  document.getElementById('kpi-tax').textContent = d.tax.toFixed(2);
+  document.getElementById('kpi-income').textContent = d.income.toFixed(2);
+  document.getElementById('kpi-unpaid').textContent = d.unpaid.toFixed(2);
+  document.getElementById('kpi-unbilled').textContent = d.unbilled.toFixed(2);
+  document.getElementById('kpi-tax-badge').textContent = label;
+  document.getElementById('kpi-tax-sub').textContent = type === 'total' ? '전체누적' : label;
+  const rate = d.tax > 0 ? Math.round(d.income/d.tax*100) : 0;
+  document.getElementById('kpi-income-sub').textContent = rate + '%';
+  document.getElementById('kpi-unpaid-sub').textContent = label + ' 기준';
+  document.getElementById('kpi-unbilled-sub').textContent = '청구 필요';
+}
+
+// 전체누적 pill도 클릭 가능하게
+document.querySelector('.ppill:not(.ppill-wrap .ppill)')?.addEventListener('click', function(){
+  document.querySelectorAll('.ppill-wrap .ppill').forEach(p=>p.classList.remove('active','has-selection'));
+  this.classList.add('active');
+});
+
+
+// ── MSAL 인증 (Microsoft 365) ──
+const MSAL_CONFIG = {
+  clientId: '76793776-3330-496f-97f1-9f0c034f3f07',
+  tenantId: '58b310e1-9278-47ab-8e49-792728818c9e',
+  redirectUri: (window.location.protocol === 'file:') ? 'http://localhost' : (window.location.origin + window.location.pathname),
+};
+
+// SharePoint 사이트 정보
+const SP_CONFIG = {
+  hostname: 'enjetco.sharepoint.com',
+  siteName: '06.BackOffice',
+  folderPath: '📦영업',
+};
+
+// MSAL 인스턴스
+let msalInstance = null;
+let currentAccount = null;
+const isConfigured = MSAL_CONFIG.clientId !== 'YOUR_CLIENT_ID_HERE';
+
+function initMSAL() {
+  if (typeof msal === 'undefined') {
+    console.error('MSAL library failed to load from all CDNs');
+    document.getElementById('auth-label').textContent = 'MSAL 로딩 실패';
+    document.getElementById('auth-status').className = 'auth-status error';
+    // btn-sync 없음
+    const cw = document.getElementById('config-warning');
+    if(cw) cw.innerHTML = '⚠️ <b>MSAL 라이브러리 로딩 실패</b>: 네트워크에서 MSAL CDN이 차단되었습니다. IT팀에 다음 도메인 허용 요청: <code>cdn.jsdelivr.net</code>, <code>unpkg.com</code>, <code>alcdn.msauth.net</code>. 일단 <b>[📤 업로드]</b> 버튼으로 수동 작업 가능합니다.';
+    if(cw) cw.classList.add('active');
+    return false;
+  }
+  if (!isConfigured) {
+    document.getElementById('config-warning').classList.add('active');
+    document.getElementById('auth-label').textContent = '설정 필요';
+    document.getElementById('auth-status').className = 'auth-status error';
+    // btn-sync 없음
+    return false;
+  }
+  msalInstance = new msal.PublicClientApplication({
+    auth: {
+      clientId: MSAL_CONFIG.clientId,
+      authority: `https://login.microsoftonline.com/${MSAL_CONFIG.tenantId}`,
+      redirectUri: MSAL_CONFIG.redirectUri,
+    },
+    cache: {
+      cacheLocation: 'localStorage',
+      storeAuthStateInCookie: false,
+    }
+  });
+  msalInstance.initialize().catch(e => console.warn("MSAL init:", e));
+  return true;
+}
+
+const GRAPH_SCOPES = ['Files.Read.All', 'Sites.Read.All', 'User.Read'];
+
+async function checkAuthState() {
+  if (!msalInstance) return false;
+  await msalInstance.initialize();
+  // 리디렉션 응답 처리
+  try {
+    const response = await msalInstance.handleRedirectPromise();
+    if (response) {
+      currentAccount = response.account;
+    }
+  } catch (e) {
+    console.error('Redirect handling error:', e);
+  }
+  // 캐시된 계정
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    currentAccount = accounts[0];
+    updateAuthUI(true);
+    return true;
+  }
+  updateAuthUI(false);
+  return false;
+}
+
+function updateAuthUI(loggedIn) {
+  const status = document.getElementById('auth-status');
+  const label = document.getElementById('auth-label');
+  const logoutBtn = document.getElementById('btn-logout');
+  const modal = document.getElementById('login-modal');
+  const sync = document.getElementById('btn-sync'); // null ok
+  
+  if (loggedIn && currentAccount) {
+    status.className = 'auth-status logged-in';
+    label.textContent = currentAccount.name || currentAccount.username;
+    logoutBtn.style.display = 'inline-flex';
+    if(modal) modal.classList.remove('active');
+    if(sync) sync.disabled = false;
+  } else {
+    status.className = 'auth-status logged-out';
+    label.textContent = '로그인 필요';
+    logoutBtn.style.display = 'none';
+    if(sync) sync.disabled = true;
+  }
+}
+
+// 로그인 처리
+async function handleLogin() {
+  if (!msalInstance) { alert('MSAL 초기화 실패. 네트워크를 확인해주세요.'); return; }
+  try {
+    const result = await msalInstance.loginPopup({
+      scopes: ['User.Read', 'Sites.Read.All'],
+      prompt: 'select_account',
+    });
+    currentAccount = result.account;
+    updateAuthUI(true);
+    document.getElementById('dashboard-main').classList.remove('dashboard-locked');
+  } catch(e) {
+    console.error('로그인 실패:', e);
+    alert('로그인에 실패했습니다. 다시 시도해주세요.');
+  }
+}
+
+// 로그아웃
+function handleLogout() {
+  if (!msalInstance || !currentAccount) return;
+  msalInstance.logoutPopup({ account: currentAccount });
+  currentAccount = null;
+  updateAuthUI(false);
+  document.getElementById('dashboard-main').classList.add('dashboard-locked');
+}
+
+
+async function checkLoginStatus() {
+  if (!msalInstance) return false;
+  try {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      currentAccount = accounts[0];
+      updateAuthUI(true);
+      return true;
+    }
+    updateAuthUI(false);
+    return false;
+  } catch(e) {
+    console.error('checkLoginStatus 오류:', e);
+    return false;
+  }
+}
+
+// 앱 초기화
+
+// 전역 함수 노출 (인라인 onclick 대비)
+window.handleLogin = handleLogin;
+window.handleLogout = handleLogout;
+
+window.addEventListener('DOMContentLoaded', async () => {
+  // 로그인 버튼 이벤트 바인딩
+  const loginBtn = document.getElementById('btn-login-action');
+  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+  const logoutBtn2 = document.getElementById('btn-logout');
+  if (logoutBtn2) logoutBtn2.addEventListener('click', handleLogout);
+
+  initMSAL();
+  // MSAL v3: initialize 완료 대기
+  if (msalInstance && msalInstance.initialize) {
+    try { await msalInstance.initialize(); } catch(e) {}
+  }
+  const loggedIn = await checkLoginStatus();
+  if (loggedIn) {
+    document.getElementById('dashboard-main').classList.remove('dashboard-locked');
+  }
+});
+
+</script><link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #f4f6fa;
+  --bg2:    #ffffff;
+  --bg3:    #eef0f5;
+  --card:   #ffffff;
+  --card2:  #e8ecf4;
+  --border: rgba(0,0,0,0.07);
+  --border2:rgba(0,0,0,0.13);
+  --primary:#1a6fd4;
+  --primary-dim:rgba(26,111,212,0.08);
+  --green:  #00875a;
+  --green-dim:rgba(0,135,90,0.08);
+  --accent: #d95f00;
+  --accent-dim:rgba(217,95,0,0.08);
+  --red:    #c8201e;
+  --red-dim:rgba(200,32,30,0.08);
+  --yellow: #9a6400;
+  --yellow-dim:rgba(154,100,0,0.09);
+  --purple: #6b35b8;
+  --purple-dim:rgba(107,53,184,0.08);
+  --text:   #111827;
+  --text2:  #4b5563;
+  --text3:  #9ca3af;
+  --mono:   'JetBrains Mono',monospace;
+  --sans:   'Pretendard',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* LAYOUT */
+.layout{display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:210px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0;}
+.sb-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);}
+.sb-logo-mark{font-size:18px;font-weight:900;color:var(--primary);letter-spacing:3px;font-family:var(--mono);}
+.sb-logo-sub{font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
+.sb-nav{padding:12px 10px;flex:1;overflow-y:auto;}
+.sb-sec{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);padding:12px 8px 5px;font-weight:700;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s;font-weight:500;margin-bottom:1px;border:1px solid transparent;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--primary-dim);color:var(--primary);border-color:rgba(26,111,212,0.15);font-weight:700;}
+.nav-badge{margin-left:auto;background:var(--red-dim);color:var(--red);font-size:9px;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:700;}
+.sb-footer{padding:12px 18px;border-top:1px solid var(--border);}
+.sb-time{font-size:10px;color:var(--text3);font-family:var(--mono);display:flex;align-items:center;gap:6px;}
+.sb-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:10;}
+.tb-title{font-size:14px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;}
+.tb-pills{display:flex;gap:5px;}
+.pill{padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;border:1.5px solid var(--border2);background:transparent;color:var(--text2);}
+.pill.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.pill:hover:not(.active){border-color:var(--primary);color:var(--primary);}
+.tb-note{font-size:10px;color:var(--text3);font-family:var(--mono);}
+
+/* CONTENT */
+.content{padding:20px 24px;flex:1;}
+
+/* PERIOD BAR */
+.period-bar{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px 16px;margin-bottom:16px;flex-wrap:wrap;}
+.period-label{font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;}
+.period-pills{display:flex;gap:4px;}
+.ppill{padding:4px 12px;border-radius:16px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;border:1.5px solid var(--border2);background:transparent;color:var(--text2);}
+.ppill.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.ppill:hover:not(.active){border-color:var(--primary);color:var(--primary);}
+.period-range{margin-left:auto;font-size:10px;color:var(--text3);font-family:var(--mono);}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;transition:box-shadow .15s;}
+.kpi:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08);}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.kpi.c1::before{background:var(--primary);}
+.kpi.c2::before{background:var(--green);}
+.kpi.c3::before{background:var(--red);}
+.kpi.c4::before{background:var(--accent);}
+.kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px;}
+.kpi-val{font-size:26px;font-weight:900;font-family:var(--mono);line-height:1;margin-bottom:6px;}
+.kpi.c1 .kpi-val{color:var(--primary);}
+.kpi.c2 .kpi-val{color:var(--green);}
+.kpi.c3 .kpi-val{color:var(--red);}
+.kpi.c4 .kpi-val{color:var(--accent);}
+.kpi-sub{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:5px;}
+.badge{font-size:9px;padding:2px 6px;border-radius:5px;font-weight:800;font-family:var(--mono);}
+.badge.up{background:var(--green-dim);color:var(--green);}
+.badge.down{background:var(--red-dim);color:var(--red);}
+.badge.warn{background:var(--yellow-dim);color:var(--yellow);}
+.badge.info{background:var(--primary-dim);color:var(--primary);}
+.kpi-bg{position:absolute;right:14px;top:12px;font-size:32px;opacity:.07;}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.g2b{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.card:hover{box-shadow:0 2px 12px rgba(0,0,0,0.06);}
+.card-hd{padding:13px 18px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.card-title{font-size:12px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:7px;}
+.card-ico{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.card-ico.c1{background:var(--primary-dim);color:var(--primary);}
+.card-ico.c2{background:var(--green-dim);color:var(--green);}
+.card-ico.c3{background:var(--red-dim);color:var(--red);}
+.card-ico.c4{background:var(--accent-dim);color:var(--accent);}
+.card-ico.c5{background:var(--purple-dim);color:var(--purple);}
+.card-act{font-size:10px;color:var(--primary);cursor:pointer;font-weight:700;}
+.card-bd{padding:14px 18px;}
+.card-note{font-size:9px;color:var(--text3);font-family:var(--mono);padding:6px 18px;border-top:1px solid var(--border);background:var(--bg3);}
+
+/* STACKED BAR LEGEND */
+.legend-row{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);font-weight:600;}
+.legend-dot{width:8px;height:8px;border-radius:2px;}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;padding:0 8px 8px;text-align:left;border-bottom:1px solid var(--border);}
+.tbl th.r{text-align:right;}
+.tbl td{padding:9px 8px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--bg3);}
+.tbl-name{color:var(--text);font-weight:700;font-size:12px;}
+.tbl-mono{font-family:var(--mono);font-weight:600;}
+.tbl-mono.red{color:var(--red);}
+.tbl-mono.green{color:var(--green);}
+.tbl-mono.blue{color:var(--primary);}
+
+/* PROGRESS BAR */
+.prog-wrap{display:flex;align-items:center;gap:8px;}
+.prog-bg{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;}
+
+/* FLOW STEP */
+.flow-row{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:center;gap:4px;padding:14px 0;}
+.flow-item{text-align:center;padding:10px 8px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);}
+.flow-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:5px;}
+.flow-val{font-size:16px;font-weight:900;font-family:var(--mono);}
+.flow-arrow{font-size:16px;color:var(--text3);text-align:center;}
+
+/* UNPAID LIST */
+.unpaid-list{display:flex;flex-direction:column;gap:7px;}
+.unpaid-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);}
+.unpaid-rank{font-size:10px;font-family:var(--mono);color:var(--text3);width:16px;font-weight:700;}
+.unpaid-rank.top{color:var(--red);}
+.unpaid-info{flex:1;min-width:0;}
+.unpaid-name{font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.unpaid-rate{font-size:10px;color:var(--text3);margin-top:2px;}
+.unpaid-bar-bg{width:60px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden;}
+.unpaid-bar-fill{height:100%;border-radius:2px;background:var(--green);}
+.unpaid-amt{font-family:var(--mono);font-size:12px;color:var(--red);font-weight:700;white-space:nowrap;}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--card2);border-radius:2px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.kpi{animation:fadeUp .35s ease both;}
+.kpi:nth-child(1){animation-delay:.04s}.kpi:nth-child(2){animation-delay:.08s}
+.kpi:nth-child(3){animation-delay:.12s}.kpi:nth-child(4){animation-delay:.16s}
+
+/* ── DROPDOWN ── */
+.ppill-wrap { position: relative; }
+.drop-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 999;
+  min-width: 150px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+.drop-menu.open { display: block; }
+.drop-section {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 14px 4px;
+}
+.drop-item {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background .1s;
+  white-space: nowrap;
+}
+.drop-item:hover { background: var(--primary-dim); color: var(--primary); }
+.drop-item.selected { background: var(--primary-dim); color: var(--primary); font-weight: 700; }
+.ppill.has-selection { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ── MSAL 로그인 ── */
+.login-modal {
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,0.5);
+  z-index: 9999; display: none;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(8px);
+}
+.login-modal.active { display: flex; }
+.login-box {
+  background: #fff; border-radius: 16px;
+  padding: 40px; width: 420px; max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.login-logo { font-size: 26px; font-weight: 900; color: var(--primary); letter-spacing: 2px; font-family: var(--mono); margin-bottom: 6px; }
+.login-subtitle { color: var(--text2); font-size: 12px; margin-bottom: 24px; }
+.login-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+.login-desc { color: var(--text2); font-size: 13px; line-height: 1.6; margin-bottom: 24px; }
+.btn-login-ms {
+  background: #2f2f2f; color: #fff; border: none;
+  width: 100%; padding: 13px; font-size: 14px; font-weight: 600;
+  font-family: var(--sans); border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: background .18s;
+}
+.btn-login-ms:hover { background: #111; }
+.ms-logo {
+  width: 20px; height: 20px;
+  background-image:
+    linear-gradient(to right, #f25022 50%, #7fba00 50%),
+    linear-gradient(to right, #00a4ef 50%, #ffb900 50%);
+  background-size: 100% 50%; background-repeat: no-repeat;
+  background-position: top, bottom;
+}
+.login-footer { margin-top: 18px; font-size: 11px; color: var(--text3); line-height: 1.6; }
+.auth-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; }
+.auth-status.logged-in { color: var(--green); }
+.auth-status.logged-out { color: var(--text3); }
+.auth-status.error { color: var(--red); }
+.btn-logout {
+  display: none; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--border2); background: transparent;
+  font-size: 11px; color: var(--text2); cursor: pointer;
+  font-family: var(--sans); transition: all .15s;
+}
+.btn-logout:hover { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+.dashboard-locked { filter: blur(6px); pointer-events: none; user-select: none; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.10.0/lib/msal-browser.min.js"></script>
+<script>
+  if (typeof msal === 'undefined') {
+    document.write('<script src="https://unpkg.com/@azure/msal-browser@3.10.0/lib/msal-browser.min.js"><\/script>');
+  }
+</script>
+</head>
+<body>
+
+<div class="login-modal active" id="login-modal">
+  <div class="login-box">
+    <div class="login-logo">ENJET</div>
+    <div class="login-subtitle">영업 대시보드</div>
+    <div class="login-title">🔒 접근 권한 인증 필요</div>
+    <div class="login-desc">
+      이 대시보드는 ENJET 영업·관리팀 전용입니다.<br>
+      Microsoft 365 계정으로 로그인하여 권한을 확인합니다.
+    </div>
+    <button class="btn-login-ms" id="btn-do-login" id="btn-login-action">
+      <div class="ms-logo"></div>
+      Microsoft 계정으로 로그인
+    </button>
+    <div class="login-footer">
+      🔒 ENJET Microsoft 365 계정만 접근 가능합니다.<br>
+      데이터는 SharePoint와 연동되어 자동 업데이트됩니다.
+    </div>
+  </div>
+</div>
+<div class="layout dashboard-locked" id="dashboard-main">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-mark">ENJET</div>
+    <div class="sb-logo-sub">Sales Dashboard</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-sec">영업</div>
+    <div class="nav-item active">📊 매출 현황</div>
+    <div class="nav-item">💰 현금흐름 <span class="nav-badge">미수96억</span></div>
+    <div class="nav-item">🔄 파이프라인</div>
+    <div class="nav-item">🏭 고객사 관리</div>
+    <div class="nav-item">📋 견적 관리</div>
+    <div class="sb-sec">마케팅</div>
+    <div class="nav-item">📣 마케팅 활동</div>
+    <div class="nav-item">📝 미팅 로그</div>
+    <div class="nav-item">🌏 에이전트</div>
+    <div class="sb-sec">연동</div>
+    <div class="nav-item">📁 SharePoint</div>
+    <div class="nav-item">💬 Teams</div>
+    <div class="nav-item">📊 영림원 ERP</div>
+  </nav>
+  <div class="sb-footer">
+    <div class="sb-time"><span class="sb-dot"></span><span id="clock">--:--:--</span></div>
+    <div style="font-size:9px;color:var(--text3);margin-top:3px;">매출기록부 기준</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-title">📊 ENJET 매출·수금 대시보드</div>
+    <div class="tb-pills">
+      <div class="pill active" onclick="setYear('all',this)">전체</div>
+      <div class="pill" onclick="setYear(2023,this)">2023</div>
+      <div class="pill" onclick="setYear(2024,this)">2024</div>
+      <div class="pill" onclick="setYear(2025,this)">2025</div>
+      <div class="pill" onclick="setYear(2026,this)">2026</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="auth-status" class="auth-status logged-out">
+        <span class="sb-dot" style="width:7px;height:7px;"></span>
+        <span id="auth-label">로그인 확인 중...</span>
+      </span>
+      <button class="btn-logout" id="btn-logout" >로그아웃</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- 기간 필터 -->
+    <div class="period-bar">
+      <div class="period-label">📅 조회 기간</div>
+      <div class="period-pills">
+        <div class="ppill-wrap">
+          <div class="ppill active" onclick="toggleDrop('monthly',this)">월간 ▾</div>
+          <div class="drop-menu" id="drop-monthly">
+            <div class="drop-section">2026년</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2026','4','2026년 4월',this)">4월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2026','3','2026년 3월',this)">3월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2026','2','2026년 2월',this)">2월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2026','1','2026년 1월',this)">1월</div>
+            <div class="drop-section">2025년</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','12','2025년 12월',this)">12월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','11','2025년 11월',this)">11월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','10','2025년 10월',this)">10월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','9','2025년 9월',this)">9월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','8','2025년 8월',this)">8월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','7','2025년 7월',this)">7월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','6','2025년 6월',this)">6월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','5','2025년 5월',this)">5월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','4','2025년 4월',this)">4월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','3','2025년 3월',this)">3월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','2','2025년 2월',this)">2월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2025','1','2025년 1월',this)">1월</div>
+            <div class="drop-section">2024년</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','12','2024년 12월',this)">12월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','11','2024년 11월',this)">11월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','10','2024년 10월',this)">10월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','9','2024년 9월',this)">9월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','8','2024년 8월',this)">8월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','7','2024년 7월',this)">7월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','6','2024년 6월',this)">6월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','5','2024년 5월',this)">5월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','4','2024년 4월',this)">4월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','3','2024년 3월',this)">3월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','2','2024년 2월',this)">2월</div>
+            <div class="drop-item" onclick="selectPeriod('monthly','2024','1','2024년 1월',this)">1월</div>
+          </div>
+        </div>
+        <div class="ppill-wrap">
+          <div class="ppill" onclick="toggleDrop('quarterly',this)">분기 ▾</div>
+          <div class="drop-menu" id="drop-quarterly">
+            <div class="drop-section">2026년</div>
+            <div class="drop-item" onclick="selectPeriod('quarterly','2026','1','2026년 Q1',this)">Q1 (1~3월)</div>
+            <div class="drop-section">2025년</div>
+            <div class="drop-item" onclick="selectPeriod('quarterly','2025','4','2025년 Q4',this)">Q4 (10~12월)</div>
+            <div class="drop-item" onclick="selectPeriod('quarterly','2025','3','2025년 Q3',this)">Q3 (7~9월)</div>
+            <div class="drop-item" onclick="selectPeriod('quarterly','2025','2','2025년 Q2',this)">Q2 (4~6월)</div>
+            <div class="drop-item" onclick="selectPeriod('quarterly','2025','1','2025년 Q1',this)">Q1 (1~3월)</div>
+            <div class="drop-section">2024년</div>
+            <div class="drop-item" onclick="selectPeriod('quarterly','2024','4','2024년 Q4',this)">Q4 (10~12월)</div>
+            <div class="drop-item" onclick="selectPeriod('quarterly','2024','3','2024년 Q3',this)">Q3 (7~9월)</div>
+            <div class="drop-item" onclick="selectPeriod('quarterly','2024','2','2024년 Q2',this)">Q2 (4~6월)</div>
+            <div class="drop-item" onclick="selectPeriod('quarterly','2024','1','2024년 Q1',this)">Q1 (1~3월)</div>
+          </div>
+        </div>
+        <div class="ppill-wrap">
+          <div class="ppill" onclick="toggleDrop('half',this)">반기 ▾</div>
+          <div class="drop-menu" id="drop-half">
+            <div class="drop-section">2026년</div>
+            <div class="drop-item" onclick="selectPeriod('half','2026','1','2026년 상반기',this)">상반기 (1~6월)</div>
+            <div class="drop-section">2025년</div>
+            <div class="drop-item" onclick="selectPeriod('half','2025','2','2025년 하반기',this)">하반기 (7~12월)</div>
+            <div class="drop-item" onclick="selectPeriod('half','2025','1','2025년 상반기',this)">상반기 (1~6월)</div>
+            <div class="drop-section">2024년</div>
+            <div class="drop-item" onclick="selectPeriod('half','2024','2','2024년 하반기',this)">하반기 (7~12월)</div>
+            <div class="drop-item" onclick="selectPeriod('half','2024','1','2024년 상반기',this)">상반기 (1~6월)</div>
+          </div>
+        </div>
+        <div class="ppill-wrap">
+          <div class="ppill" onclick="toggleDrop('annual',this)">연간 ▾</div>
+          <div class="drop-menu" id="drop-annual">
+            <div class="drop-item" onclick="selectPeriod('annual','2026','0','2026년 연간',this)">2026년 (~4월)</div>
+            <div class="drop-item" onclick="selectPeriod('annual','2025','0','2025년 연간',this)">2025년</div>
+            <div class="drop-item" onclick="selectPeriod('annual','2024','0','2024년 연간',this)">2024년</div>
+            <div class="drop-item" onclick="selectPeriod('annual','2023','0','2023년 연간',this)">2023년</div>
+          </div>
+        </div>
+        <div class="ppill" onclick="selectPeriod('total','all','0','전체 누적 (2023~2026)',this)">전체누적</div>
+      </div>
+      <div class="period-range" id="periodRange">2026년 4월 기준</div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-row">
+      <div class="kpi c1">
+        <div class="kpi-bg">📄</div>
+        <div class="kpi-label">공급가액(매출기록부)</div>
+        <div class="kpi-val"><span id="kpi-tax">47.1</span><span style="font-size:13px;font-weight:500;color:var(--text2)">억</span></div>
+        <div class="kpi-sub"><span class="badge info" id="kpi-tax-badge">2025 H2</span><span id="kpi-tax-sub">190건 발행</span></div>
+      </div>
+      <div class="kpi c2">
+        <div class="kpi-bg">✅</div>
+        <div class="kpi-label">실제 수금 완료</div>
+        <div class="kpi-val"><span id="kpi-income">32.4</span><span style="font-size:13px;font-weight:500;color:var(--text2)">억</span></div>
+        <div class="kpi-sub"><span class="badge up" id="kpi-income-badge">수금률</span><span id="kpi-income-sub">68.9%</span></div>
+      </div>
+      <div class="kpi c3">
+        <div class="kpi-bg">⚠️</div>
+        <div class="kpi-label">미수금 (수금 미완료)</div>
+        <div class="kpi-val"><span id="kpi-unpaid">18.1</span><span style="font-size:13px;font-weight:500;color:var(--text2)">억</span></div>
+        <div class="kpi-sub"><span class="badge warn">요주의</span><span id="kpi-unpaid-sub">수금 필요</span></div>
+      </div>
+      <div class="kpi c4">
+        <div class="kpi-bg">📋</div>
+        <div class="kpi-label">미청구 (발행 전)</div>
+        <div class="kpi-val"><span id="kpi-unbilled">0.0</span><span style="font-size:13px;font-weight:500;color:var(--text2)">억</span></div>
+        <div class="kpi-sub"><span class="badge warn">PO확보</span><span id="kpi-unbilled-sub">청구 필요</span></div>
+      </div>
+    </div>
+
+    <!-- ROW1: 발주→세금계산서→수금 흐름 + 연도별 차트 -->
+    <div class="g2">
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title"><div class="card-ico c1">📈</div>연도별 세금계산서·수금·미수금</div>
+          <span class="card-act" id="chart-year-label">전체 누적</span>
+        </div>
+        <div class="card-bd">
+          <div class="legend-row">
+            <div class="legend-item"><div class="legend-dot" style="background:#1a6fd4"></div>공급가액(매출기록부)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#00875a"></div>입금 완료</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#c8201e"></div>미수금</div>
+          </div>
+          <div style="height:220px"><canvas id="mainChart"></canvas></div>
+        </div>
+        <div class="card-note">※ 매출기록부(Excel) 기준 · 공급가액/입금/잔금 직접 반영</div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title"><div class="card-ico c3">⚠️</div>미수금 상위 거래처</div>
+          <span style="font-size:10px;font-family:var(--mono);font-weight:700;color:var(--red)">총 10.4억 (확정 미수금)</span>
+        </div>
+        <div class="card-bd">
+          <div class="unpaid-list">
+            <div class="unpaid-item">
+              <div class="unpaid-rank top">01</div>
+              <div class="unpaid-info">
+                <div class="unpaid-name">에이치비솔루션 (BM26001)</div>
+                <div class="unpaid-rate">세금계산서 미발행 · 공급가액 5.26억</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                <div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:0%"></div></div>
+                <div class="unpaid-amt">5.256억</div>
+              </div>
+            </div>
+            <div class="unpaid-item">
+              <div class="unpaid-rank top">02</div>
+              <div class="unpaid-info">
+                <div class="unpaid-name">울산과학기술원</div>
+                <div class="unpaid-rate">수금률 74% · 공급가액 4.1억</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                <div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:74%"></div></div>
+                <div class="unpaid-amt">1.473억</div>
+              </div>
+            </div>
+            <div class="unpaid-item">
+              <div class="unpaid-rank top">03</div>
+              <div class="unpaid-info">
+                <div class="unpaid-name">㈜인벤티지랩</div>
+                <div class="unpaid-rate">수금률 79% · 공급가액 4.5억</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                <div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:79%"></div></div>
+                <div class="unpaid-amt">1.386억</div>
+              </div>
+            </div>
+            <div class="unpaid-item">
+              <div class="unpaid-rank">04</div>
+              <div class="unpaid-info">
+                <div class="unpaid-name">㈜아이마켓코리아</div>
+                <div class="unpaid-rate">미수금 확정 · 2025~2026년분</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                <div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:85%"></div></div>
+                <div class="unpaid-amt">0.603억</div>
+              </div>
+            </div>
+            <div class="unpaid-item">
+              <div class="unpaid-rank">05</div>
+              <div class="unpaid-info">
+                <div class="unpaid-name">세종산업㈜ (BM26002)</div>
+                <div class="unpaid-rate">수금률 0% · 2026년 4월 발행</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                <div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:0%"></div></div>
+                <div class="unpaid-amt">0.800억</div>
+              </div>
+            </div>
+            <div class="unpaid-item">
+              <div class="unpaid-rank">06</div>
+              <div class="unpaid-info">
+                <div class="unpaid-name">서울시립대학교 산학협력단</div>
+                <div class="unpaid-rate">수금률 99% · 잔금 소액</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                <div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:99%"></div></div>
+                <div class="unpaid-amt">0.361억</div>
+              </div>
+            </div>
+            <div class="unpaid-item">
+              <div class="unpaid-rank">07</div>
+              <div class="unpaid-info">
+                <div class="unpaid-name">가천대학교 산학협력단</div>
+                <div class="unpaid-rate">수금률 99.8% · 잔금 소액</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                <div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:99%"></div></div>
+                <div class="unpaid-amt">0.316억</div>
+              </div>
+            </div>
+            <div class="unpaid-item">
+              <div class="unpaid-rank">08</div>
+              <div class="unpaid-info">
+                <div class="unpaid-name">㈜에이치비테크놀로지</div>
+                <div class="unpaid-rate">수금률 94% · 잔금 소액</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                <div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:94%"></div></div>
+                <div class="unpaid-amt">0.110억</div>
+              </div>
+            </div>
+            <div class="unpaid-item" style="opacity:0.6;">
+              <div class="unpaid-rank">✅</div>
+              <div class="unpaid-info">
+                <div class="unpaid-name">㈜아이센스원주공장</div>
+                <div class="unpaid-rate">2025년 완납 확인 → 미수금 제외</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                <div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:100%;background:var(--green)"></div></div>
+                <div class="unpaid-amt" style="color:var(--green)">완납</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW2: 발주→발행→수금→미수금 파이프 + 월별 차트 -->
+    <div class="g2b">
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title"><div class="card-ico c1">🔄</div>매출 흐름 (발주 → 수금)</div>
+          <span class="card-act">전체 누적</span>
+        </div>
+        <div class="card-bd">
+          <!-- 연도별 흐름 테이블 -->
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>연도</th>
+                <th class="r">세금계산서</th>
+                <th class="r">수금 완료</th>
+                <th class="r">미수금</th>
+                <th class="r">미청구</th>
+                <th class="r">수금률</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="tbl-name">2023</span></td>
+                <td class="r"><span class="tbl-mono blue">362.3억</span></td>
+                <td class="r"><span class="tbl-mono green">132.7억</span></td>
+                <td class="r"><span class="tbl-mono red">4.6억</span></td>
+                <td class="r"><span class="tbl-mono" style="color:var(--accent)">-</span></td>
+                <td class="r"><span class="badge warn">36.6%</span></td>
+              </tr>
+              <tr>
+                <td><span class="tbl-name">2024</span></td>
+                <td class="r"><span class="tbl-mono blue">238.0억</span></td>
+                <td class="r"><span class="tbl-mono green">64.4억</span></td>
+                <td class="r"><span class="tbl-mono red">2.7억</span></td>
+                <td class="r"><span class="tbl-mono" style="color:var(--accent)">-</span></td>
+                <td class="r"><span class="badge down">27.1%</span></td>
+              </tr>
+              <tr>
+                <td><span class="tbl-name">2025</span></td>
+                <td class="r"><span class="tbl-mono blue">160.3억</span></td>
+                <td class="r"><span class="tbl-mono green">57.9억</span></td>
+                <td class="r"><span class="tbl-mono red">1.7억</span></td>
+                <td class="r"><span class="tbl-mono" style="color:var(--accent)">-</span></td>
+                <td class="r"><span class="badge warn">36.1%</span></td>
+              </tr>
+              <tr style="background:var(--primary-dim);">
+                <td><span class="tbl-name" style="color:var(--primary)">2026</span><br><span style="font-size:9px;color:var(--text3)">~4월</span></td>
+                <td class="r"><span class="tbl-mono blue">65.1억</span></td>
+                <td class="r"><span class="tbl-mono green">18.2억</span></td>
+                <td class="r"><span class="tbl-mono red">2.6억</span></td>
+                <td class="r"><span class="tbl-mono" style="color:var(--accent)">1.5억</span></td>
+                <td class="r"><span class="badge info">28.0%</span></td>
+              </tr>
+              <tr style="font-weight:800;background:var(--bg3);">
+                <td><span class="tbl-name">합계</span></td>
+                <td class="r"><span class="tbl-mono blue">825.6억</span></td>
+                <td class="r"><span class="tbl-mono green">273.2억</span></td>
+                <td class="r"><span class="tbl-mono red">11.6억</span></td>
+                <td class="r"><span class="tbl-mono" style="color:var(--accent)">1.5억</span></td>
+                <td class="r"><span class="badge warn">33.1%</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:12px;padding:10px;background:var(--red-dim);border-radius:8px;border:1px solid rgba(200,32,30,0.15);">
+            <div style="font-size:10px;font-weight:800;color:var(--yellow);margin-bottom:4px;">⚠️ 에이치비솔루션 BM26001 (5.26억) 세금계산서 발행 필요</div>
+            <div style="font-size:10px;color:var(--text2)">세종산업 BM26002 (0.8억) · 아이센스 완납 확인 · 총 확정 미수금 10.4억</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title"><div class="card-ico c2">📅</div>월별 세금계산서·수금 추이</div>
+          <div class="tb-pills" style="gap:4px;">
+            <div class="pill active" style="padding:3px 10px;font-size:10px;" onclick="setMonthYear(2025,this)">2025</div>
+            <div class="pill" style="padding:3px 10px;font-size:10px;" onclick="setMonthYear(2024,this)">2024</div>
+            <div class="pill" style="padding:3px 10px;font-size:10px;" onclick="setMonthYear(2026,this)">2026</div>
+          </div>
+        </div>
+        <div class="card-bd">
+          <div style="height:240px"><canvas id="monthChart"></canvas></div>
+        </div>
+        <div class="card-note">※ 공급가액(파랑) vs 입금액(초록) · 매출기록부 기준</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+// ── CLOCK
+setInterval(()=>{
+  const n=new Date();
+  document.getElementById('clock').textContent=
+    [n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+},1000);
+
+Chart.defaults.color='#6b7280';
+Chart.defaults.font.family="'Pretendard',sans-serif";
+Chart.defaults.font.size=10;
+const tt={backgroundColor:'#1f2937',borderColor:'rgba(0,0,0,0.1)',borderWidth:1,padding:10,callbacks:{label:ctx=>` ${ctx.parsed.y??ctx.parsed.x}억`}};
+
+// ── 실데이터 (매출기록부 기준 · 검증완료)
+const yearly = {
+  2023:{tax:362.282, income:132.691, unpaid:4.583,  unbilled:0.0, cnt:'-'},
+  2024:{tax:237.975, income:64.398,  unpaid:2.674,  unbilled:0.0, cnt:'-'},
+  2025:{tax:160.262, income:57.896,  unpaid:1.709,  unbilled:0.0, cnt:'-'},
+  2026:{tax:65.068,  income:18.208,  unpaid:2.630,  unbilled:1.453, cnt:42},
+};
+
+const monthly = {
+  2024:{},
+  2025:{
+    1:{t:0.491,i:0.281},2:{t:2.055,i:2.084},3:{t:13.349,i:13.475},
+    4:{t:2.429,i:0.812},5:{t:2.553,i:1.705},6:{t:2.327,i:2.169},
+    7:{t:1.487,i:1.258},8:{t:9.128,i:0.866},9:{t:7.372,i:1.737},
+    10:{t:0.489,i:0.434},11:{t:2.958,i:2.718},12:{t:5.980,i:3.398}
+  },
+  2026:{
+    1:{t:1.792,i:1.729},2:{t:5.810,i:3.577},
+    3:{t:0.567,i:0.282},4:{t:1.254,i:0.046}
+  },
+};
+
+// 기간 필터 데이터
+const periodData = {
+  monthly:  {tax:1.254, income:0.046, unpaid:1.165, unbilled:1.453, label:'2026년 4월 기준', badge:'4월', sub:'최근 월'},
+  quarterly:{tax:8.423, income:5.634, unpaid:1.421, unbilled:1.453, label:'2026년 Q1 (1~3월)', badge:'Q1', sub:'1분기'},
+  half:     {tax:160.262,income:57.896,unpaid:1.709,unbilled:0.0,   label:'2025년 전체', badge:'2025', sub:'연간'},
+  annual:   {tax:65.068, income:18.208,unpaid:2.630,unbilled:1.453, label:'2026년 누적 (~4월)', badge:'2026', sub:'진행중'},
+  total:    {tax:825.587,income:273.193,unpaid:11.596,unbilled:1.453,label:'전체 누적 (2023~2026)', badge:'누적', sub:'매출기록부 기준'},
+};
+
+function setPeriod(key, el){
+  document.querySelectorAll('.ppill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  const d=periodData[key];
+  document.getElementById('periodRange').textContent=d.label;
+  document.getElementById('kpi-tax').textContent=d.tax.toFixed(1);
+  document.getElementById('kpi-income').textContent=d.income.toFixed(1);
+  document.getElementById('kpi-unpaid').textContent=d.unpaid.toFixed(1);
+  document.getElementById('kpi-unbilled').textContent=d.unbilled.toFixed(1);
+  document.getElementById('kpi-tax-badge').textContent=d.badge;
+  document.getElementById('kpi-tax-sub').textContent=d.sub;
+  const rate=d.tax>0?Math.round(d.income/d.tax*100):0;
+  document.getElementById('kpi-income-badge').textContent='수금률';
+  document.getElementById('kpi-income-sub').textContent=rate+'%';
+  document.getElementById('kpi-unpaid-sub').textContent=d.label;
+  document.getElementById('kpi-unbilled-sub').textContent='청구 필요';
+}
+setPeriod('half', document.querySelector('.ppill.active'));
+
+// ── 연도별 메인 차트
+const mCtx=document.getElementById('mainChart').getContext('2d');
+const mainChart=new Chart(mCtx,{
+  type:'bar',
+  data:{
+    labels:['2023','2024','2025','2026(~4월)'],
+    datasets:[
+      {label:'공급가액',data:[362.282,237.975,160.262,65.068],backgroundColor:'rgba(26,111,212,0.75)',borderRadius:4,borderSkipped:false},
+      {label:'입금완료',data:[132.691,64.398,57.896,18.208],backgroundColor:'rgba(0,135,90,0.75)',borderRadius:4,borderSkipped:false},
+      {label:'미수금',data:[4.583,2.674,1.709,2.630],backgroundColor:'rgba(200,32,30,0.65)',borderRadius:4,borderSkipped:false},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}억`}}},
+    scales:{
+      x:{grid:{display:false},border:{display:false}},
+      y:{grid:{color:'rgba(0,0,0,0.05)'},border:{display:false},ticks:{callback:v=>v+'억'}}
+    }
+  }
+});
+
+function setYear(yr,el){
+  document.querySelectorAll('.tb-pills .pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  if(yr==='all'){
+    mainChart.data.labels=['2023(10~12)','2024','2025','2026(~3월)'];
+    mainChart.data.datasets[0].data=[12.209,58.738,47.097,6.031];
+    mainChart.data.datasets[1].data=[0.0,2.332,32.431,3.458];
+    mainChart.data.datasets[2].data=[13.417,62.244,18.10,3.166];
+    document.getElementById('chart-year-label').textContent='전체 누적';
+  } else {
+    const d=yearly[yr];
+    mainChart.data.labels=[yr+'년'];
+    mainChart.data.datasets[0].data=[d.tax];
+    mainChart.data.datasets[1].data=[d.income];
+    mainChart.data.datasets[2].data=[d.unpaid];
+    mainChart.data.datasets[0].label='공급가액';
+    mainChart.data.datasets[1].label='입금완료';
+    document.getElementById('chart-year-label').textContent=yr+'년 단독';
+  }
+  mainChart.update();
+}
+
+// ── 월별 차트
+const mthCtx=document.getElementById('monthChart').getContext('2d');
+const monthChart=new Chart(mthCtx,{
+  type:'line',
+  data:buildMonthData(2025),
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}억`}}},
+    scales:{
+      x:{grid:{display:false},border:{display:false}},
+      y:{grid:{color:'rgba(0,0,0,0.05)'},border:{display:false},ticks:{callback:v=>v+'억'}}
+    }
+  }
+});
+
+function buildMonthData(yr){
+  const m=monthly[yr];
+  const labels=Object.keys(m).map(k=>k+'월');
+  const taxVals=Object.values(m).map(v=>v.t);
+  const incomeVals=Object.values(m).map(v=>v.i);
+  return{
+    labels,
+    datasets:[
+      {label:'세금계산서',data:taxVals,borderColor:'#1a6fd4',backgroundColor:'rgba(26,111,212,0.1)',borderWidth:2,pointRadius:4,pointHoverRadius:7,fill:true,tension:.3},
+      {label:'수금완료',data:incomeVals,borderColor:'#00875a',backgroundColor:'rgba(0,135,90,0.1)',borderWidth:2,pointRadius:4,pointHoverRadius:7,fill:true,tension:.3},
+    ]
+  };
+}
+
+function setMonthYear(yr,el){
+  document.querySelectorAll('.card-hd .pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  const d=buildMonthData(yr);
+  monthChart.data=d;
+  monthChart.update();
+}
+</script>
+</body>
+</html>
