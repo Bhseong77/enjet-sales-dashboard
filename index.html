@@ -1850,34 +1850,53 @@ async function syncExhFromTeams() {
     // 이벤트를 전시회 형식으로 변환
     const teamsEvts = (events.value||[]).filter(e=>e.subject).map(e=>{
       const loc = e.location?.displayName||"";
-      const isDOM = loc.includes("Korea")||loc.includes("서울")||loc.includes("COEX")||
-                    loc.includes("코엑스")||loc.includes("한국")||loc.includes("부산")||loc.includes("대전");
-      // 기존 로컬 이벤트와 매칭 (이름으로)
-      const existing = exhSchedule.find(x=>x.source==="local"&&x.name===e.subject);
+      // 날짜 처리: allDay면 date, 아니면 dateTime에서 날짜만 추출
+      const parseDate = (d)=>{
+        if(!d) return "";
+        if(d.date) return d.date; // allDay 이벤트
+        return (d.dateTime||"").split("T")[0];
+      };
+      const startD = parseDate(e.start);
+      let endD = parseDate(e.end);
+      // allDay 이벤트는 end가 다음날로 오므로 하루 빼기
+      if(e.isAllDay && endD) {
+        const dt = new Date(endD); dt.setDate(dt.getDate()-1);
+        endD = dt.toISOString().split("T")[0];
+      }
+      // 국내/해외 판별
+      const KOR_KEYWORDS = ["Korea","서울","COEX","코엑스","한국","부산","대전","제주","대구","인천","경기","수원","광주"];
+      const isDOM = KOR_KEYWORDS.some(k=>loc.includes(k));
+      // SP에 저장된 로컬 상세정보 매칭 (전시회명으로)
+      const existing = exhSchedule.find(x=>x.name===e.subject||x.teamsEventId===e.id);
+      // body에서 대시보드 저장 정보 추출
+      const bodyText = (e.body?.content||"").replace(/<[^>]*>/g,"").trim();
       return {
         id: e.id,
         name: e.subject,
-        start: (e.start?.dateTime||e.start?.date||"").split("T")[0],
-        end:   (e.end?.dateTime||e.end?.date||"").split("T")[0],
-        region: isDOM ? "국내" : "해외",
+        start: startD,
+        end: endD||startD,
+        region: existing?.region||(isDOM?"국내":"해외"),
         type: existing?.type||"부스참가",
         country: existing?.country||"",
         city: existing?.city||"",
-        venue: loc,
+        venue: existing?.venue||loc,
         manager: existing?.manager||e.organizer?.emailAddress?.name||"",
         managerEmail: existing?.managerEmail||"",
         status: existing?.status||"준비중",
-        note: existing?.note||(e.body?.content||"").replace(/<[^>]*>/g,"").trim().substring(0,200),
+        note: existing?.note||"",
         source: "teams",
         teamsEventId: e.id,
       };
     });
-    console.log("Teams 캘린더 이벤트:", teamsEvts.length, "개");
+    console.log("Teams 캘린더 이벤트:", teamsEvts.length, "개:", teamsEvts.map(e=>e.name));
 
-    // 기존 데이터와 병합 (Teams 이벤트는 덮어쓰기, 로컬은 유지)
-    const localEvts = exhSchedule.filter(e=>e.source!=="teams");
-    exhSchedule = [...teamsEvts, ...localEvts];
-    exhSchedule.sort((a,b)=>a.start.localeCompare(b.start));
+    // 병합: Teams 이벤트 기준, 로컬 상세정보(담당자/국가/비고 등) 보존
+    // 로컬에만 있는 것(teamsEventId 없는 것) 유지
+    const localOnly = exhSchedule.filter(e=>e.source==="local"&&!e.teamsEventId&&
+      !teamsEvts.some(t=>t.name===e.name));
+    exhSchedule = [...teamsEvts, ...localOnly];
+    exhSchedule.sort((a,b)=>(a.start||"").localeCompare(b.start||""));
+    console.log("병합 결과:", exhSchedule.length, "개 (Teams:", teamsEvts.length, "/ 로컬전용:", localOnly.length, ")");
     renderExhSched();
     $("exhSchedUpd", "Teams 동기화: "+new Date().toLocaleTimeString("ko-KR")+" ("+teamsEvts.length+"개)");
     document.getElementById("exhSyncBadge").textContent = "✅ Teams 연동";
@@ -1906,13 +1925,10 @@ async function loadExhFromSP() {
   } catch(e) {
     console.log("exhibitions.json 없음 → 기본 데이터 사용 (첫 저장 시 생성됨)");
     // 파일 없으면 기본 데이터 (하드코딩 기존 전시회)
-    exhSchedule = [
-      {id:"s1",name:"SEMICON Korea 2026",start:"2026-01-22",end:"2026-01-24",region:"국내",type:"부스참가",country:"한국",city:"서울",venue:"COEX",manager:"성백훈",status:"완료",note:"부스 참가 완료",source:"local"},
-      {id:"s2",name:"DISPLAY WEEK 2026",start:"2026-05-18",end:"2026-05-22",region:"해외",type:"방문참관",country:"USA",city:"San Jose",venue:"San Jose Convention Center",manager:"성백훈",status:"준비중",note:"참가 준비중",source:"local"},
-      {id:"s3",name:"K-Display 2026",start:"2026-10-01",end:"2026-10-04",region:"국내",type:"부스참가",country:"한국",city:"서울",venue:"COEX",manager:"",status:"준비중",note:"",source:"local"},
-      {id:"s4",name:"SEMICON Europa 2026",start:"2026-11-01",end:"2026-11-03",region:"해외",type:"방문참관",country:"Germany",city:"Munich",venue:"Messe München",manager:"",status:"준비중",note:"",source:"local"},
-    ];
+    // SP에도 파일 없고 Teams도 없으면 빈 상태
+    exhSchedule = [];
     renderExhSched();
+    $("exhSchedUpd", "Teams에서 일정을 불러오려면 🔄 Teams 동기화를 클릭하세요");
   }
 }
 
@@ -2147,10 +2163,18 @@ async function createTeamsCalEvent(evt) {
     : "https://graph.microsoft.com/v1.0/groups/"+gid+"/events";
   const method = evt.teamsEventId ? "PATCH" : "POST";
 
+  // allDay 이벤트: date 형식 사용 (dateTime + timeZone 쓰면 Bad Request)
+  const endDate = evt.end||evt.start;
+  // allDay end는 다음날로 설정해야 Teams가 올바르게 표시
+  const endDatePlusOne = (()=>{
+    const d=new Date(endDate+"T00:00:00"); d.setDate(d.getDate()+1);
+    return d.toISOString().split("T")[0];
+  })();
   const body = {
     subject: evt.name,
-    start: { dateTime: evt.start+"T09:00:00", timeZone: "Asia/Seoul" },
-    end:   { dateTime: (evt.end||evt.start)+"T18:00:00", timeZone: "Asia/Seoul" },
+    start: { date: evt.start },
+    end:   { date: endDatePlusOne },
+    isAllDay: true,
     location: { displayName: [evt.venue, evt.city, evt.country].filter(Boolean).join(", ") },
     body: {
       contentType: "HTML",
@@ -2162,7 +2186,6 @@ async function createTeamsCalEvent(evt) {
 비고: ${evt.note||""}<br><br>
 <i>ENJET 영업 대시보드에서 등록됨</i>`
     },
-    isAllDay: true,
     categories: [evt.region==="국내" ? "국내전시회" : "해외전시회"],
   };
 
