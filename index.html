@@ -154,9 +154,12 @@
       <div class="ni" onclick="go('cashflow',this)">💰 현금흐름</div>
       <div class="ni" onclick="go('pipeline',this)">🔄 파이프라인 <span class="nb nbg" id="badge-pl">-</span></div>
       <div class="ni" onclick="go('customer',this)">🏭 고객사 관리 <span class="nb nbg" id="badge-ct">-</span></div>
+      <div class="sb-sec">영업활동</div>
+      <div class="ni" onclick="go('sales-meeting',this)">📝 미팅 로그 (영업) <span class="nb nbg" id="badge-sm">-</span></div>
       <div class="sb-sec">마케팅</div>
       <div class="ni" onclick="go('marketing',this)">📣 마케팅 활동</div>
-      <div class="ni" onclick="go('sales-meeting',this)">📝 미팅 로그</div>
+      <div class="ni" onclick="go('mkt-meeting',this)">📝 미팅 로그 (마케팅)</div>
+      <div class="ni" onclick="go('exhibition',this)">🎪 전시회 Contact <span class="nb nbg" id="badge-exh">-</span></div>
     </nav>
     <div class="sb-foot">
       <div style="font-size:10px;color:var(--t3);font-family:var(--m)" id="clock">--:--:--</div>
@@ -2213,7 +2216,7 @@ window.go = function(id, el) {
 };
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 관리","sales-meeting":"📝 미팅 로그 (영업)",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)",exhibition:"🎪 전시회 Contact",marketing:"📣 마케팅 활동"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 관리","sales-meeting":"📝 미팅 로그 (영업)",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)",exhibition:"🎪 전시회 Contact"};
 function go(id,el) {
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
   document.querySelectorAll(".ni").forEach(n=>n.classList.remove("on"));
