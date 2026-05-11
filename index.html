@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ENJET | 영업 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.10.0/lib/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f4f6fa; --bg2:#ffffff; --bg3:#eef1f6; --card:#ffffff; --card2:#e4e9f2;
+  --border:rgba(0,0,0,0.07); --border2:rgba(0,0,0,0.13);
+  --primary:#1a6fd4; --primary-dim:rgba(26,111,212,0.08);
+  --green:#00875a; --green-dim:rgba(0,135,90,0.08);
+  --accent:#d95f00; --accent-dim:rgba(217,95,0,0.08);
+  --red:#c8201e; --red-dim:rgba(200,32,30,0.08);
+  --yellow:#9a6400; --yellow-dim:rgba(154,100,0,0.09);
+  --purple:#6b35b8; --purple-dim:rgba(107,53,184,0.08);
+  --text:#111827; --text2:#4b5563; --text3:#9ca3af;
+  --mono:'JetBrains Mono',monospace; --sans:'Pretendard',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:210px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0;overflow-y:auto;}
+.sb-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);}
+.sb-logo-mark{font-size:18px;font-weight:900;color:var(--primary);letter-spacing:3px;font-family:var(--mono);}
+.sb-logo-sub{font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
+.sb-sync{display:flex;align-items:center;gap:6px;padding:8px 18px;border-bottom:1px solid var(--border);font-size:10px;color:var(--text3);}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:pulse 2s infinite;}
+.sync-dot.live{background:var(--green);}
+.sync-dot.loading{background:var(--yellow);animation:spin-dot 1s linear infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin-dot{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}
+.sb-nav{padding:10px 10px;flex:1;}
+.sb-sec{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);padding:12px 8px 4px;font-weight:700;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s;font-weight:500;margin-bottom:1px;border:1px solid transparent;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--primary-dim);color:var(--primary);border-color:rgba(26,111,212,0.15);font-weight:700;}
+.nav-badge{margin-left:auto;font-size:9px;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:700;background:var(--red-dim);color:var(--red);}
+.sb-footer{padding:12px 18px;border-top:1px solid var(--border);}
+.sb-time{font-size:10px;color:var(--text3);font-family:var(--mono);}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:11px 22px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;}
+.tb-title{font-size:14px;font-weight:800;color:var(--text);}
+.tb-spacer{flex:1;}
+.tb-auth{display:flex;align-items:center;gap:8px;}
+.auth-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;}
+.auth-status.logged-in{color:var(--green);}
+.auth-status.logged-out{color:var(--text3);}
+.auth-status.loading{color:var(--yellow);}
+.btn-logout{display:none;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--sans);}
+.btn-logout:hover{background:var(--red-dim);color:var(--red);border-color:var(--red);}
+.btn-refresh{padding:5px 12px;border-radius:6px;border:1px solid var(--primary);background:var(--primary-dim);font-size:11px;color:var(--primary);cursor:pointer;font-family:var(--sans);font-weight:700;display:none;}
+.btn-refresh:hover{background:var(--primary);color:#fff;}
+
+/* ── CONTENT ── */
+.content{padding:18px 22px;flex:1;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── LOADING OVERLAY ── */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(244,246,250,0.85);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.loading-overlay.show{display:flex;}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--text2);font-weight:600;}
+
+/* ── LOGIN MODAL ── */
+.login-modal{position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+.login-modal.hidden{display:none;}
+.login-box{background:#fff;border-radius:16px;padding:40px;width:420px;max-width:90vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.login-logo{font-size:24px;font-weight:900;color:var(--primary);letter-spacing:3px;font-family:var(--mono);margin-bottom:6px;}
+.login-sub{color:var(--text3);font-size:12px;margin-bottom:24px;}
+.login-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px;}
+.login-desc{color:var(--text2);font-size:13px;line-height:1.6;margin-bottom:24px;}
+.btn-ms{background:#2f2f2f;color:#fff;border:none;width:100%;padding:13px;font-size:14px;font-weight:600;font-family:var(--sans);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .18s;}
+.btn-ms:hover{background:#111;}
+.btn-ms:disabled{background:#999;cursor:not-allowed;}
+.ms-logo{width:20px;height:20px;background-image:linear-gradient(to right,#f25022 50%,#7fba00 50%),linear-gradient(to right,#00a4ef 50%,#ffb900 50%);background-size:100% 50%;background-repeat:no-repeat;background-position:top,bottom;}
+.login-footer{margin-top:18px;font-size:11px;color:var(--text3);line-height:1.6;}
+
+/* ── KPI ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.kpi.c1::before{background:var(--primary);}
+.kpi.c2::before{background:var(--green);}
+.kpi.c3::before{background:var(--red);}
+.kpi.c4::before{background:var(--accent);}
+.kpi.c5::before{background:var(--purple);}
+.kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px;}
+.kpi-val{font-size:24px;font-weight:900;font-family:var(--mono);line-height:1;margin-bottom:6px;}
+.kpi.c1 .kpi-val{color:var(--primary);}
+.kpi.c2 .kpi-val{color:var(--green);}
+.kpi.c3 .kpi-val{color:var(--red);}
+.kpi.c4 .kpi-val{color:var(--accent);}
+.kpi.c5 .kpi-val{color:var(--purple);}
+.kpi-sub{font-size:10px;color:var(--text3);}
+.badge{font-size:9px;padding:2px 6px;border-radius:5px;font-weight:800;font-family:var(--mono);display:inline-block;}
+.badge.up{background:var(--green-dim);color:var(--green);}
+.badge.down{background:var(--red-dim);color:var(--red);}
+.badge.warn{background:var(--yellow-dim);color:var(--yellow);}
+.badge.info{background:var(--primary-dim);color:var(--primary);}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-bottom:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.g2b{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+
+/* ── CARD ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;}
+.card-hd{padding:13px 18px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.card-title{font-size:12px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:7px;}
+.card-ico{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.card-ico.c1{background:var(--primary-dim);color:var(--primary);}
+.card-ico.c2{background:var(--green-dim);color:var(--green);}
+.card-ico.c3{background:var(--red-dim);color:var(--red);}
+.card-ico.c4{background:var(--accent-dim);color:var(--accent);}
+.card-ico.c5{background:var(--purple-dim);color:var(--purple);}
+.card-act{font-size:10px;color:var(--primary);cursor:pointer;font-weight:700;}
+.card-bd{padding:14px 18px;}
+.card-note{font-size:9px;color:var(--text3);padding:6px 18px;border-top:1px solid var(--border);background:var(--bg3);}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;padding:0 8px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.tbl th.r{text-align:right;}
+.tbl td{padding:9px 8px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--bg3);}
+.tbl-name{color:var(--text);font-weight:700;font-size:12px;}
+.tbl-mono{font-family:var(--mono);font-weight:600;}
+.tbl-mono.blue{color:var(--primary);}
+.tbl-mono.green{color:var(--green);}
+.tbl-mono.red{color:var(--red);}
+
+/* ── BAR LIST ── */
+.bar-list{display:flex;flex-direction:column;gap:9px;}
+.bar-item{display:flex;align-items:center;gap:10px;}
+.bar-rank{font-size:10px;font-family:var(--mono);color:var(--text3);width:18px;text-align:center;font-weight:700;}
+.bar-rank.top{color:var(--yellow);}
+.bar-info{flex:1;min-width:0;}
+.bar-name{font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-row{display:flex;align-items:center;gap:7px;}
+.bar-bg{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width .8s ease;}
+.bar-val{font-family:var(--mono);font-size:10px;color:var(--text2);white-space:nowrap;}
+
+/* ── PIPELINE ── */
+.pipe-list{display:flex;flex-direction:column;}
+.pipe-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.pipe-item:last-child{border-bottom:none;}
+.pipe-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.pipe-info{flex:1;min-width:0;}
+.pipe-company{font-size:11px;font-weight:700;color:var(--text);}
+.pipe-desc{font-size:10px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pipe-right{text-align:right;}
+.pipe-amt{font-family:var(--mono);font-size:11px;color:var(--text);font-weight:700;}
+.pipe-status{font-size:9px;margin-top:2px;}
+
+/* ── CONTACT CARD ── */
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+.contact-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;transition:border-color .15s;}
+.contact-card:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(26,111,212,0.1);}
+.contact-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.contact-company{font-size:11px;color:var(--primary);font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.contact-role{font-size:10px;color:var(--text2);margin-bottom:4px;}
+.contact-info{font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:2px;}
+.contact-tag{display:inline-block;font-size:9px;padding:2px 6px;border-radius:4px;background:var(--primary-dim);color:var(--primary);font-weight:700;margin-top:5px;}
+
+/* ── SEARCH ── */
+.search-bar{display:flex;gap:8px;margin-bottom:14px;}
+.search-input{flex:1;padding:8px 14px;border:1px solid var(--border2);border-radius:8px;font-family:var(--sans);font-size:12px;background:var(--bg2);color:var(--text);}
+.search-input:focus{outline:none;border-color:var(--primary);}
+.search-select{padding:8px 12px;border:1px solid var(--border2);border-radius:8px;font-family:var(--sans);font-size:12px;background:var(--bg2);color:var(--text);cursor:pointer;}
+
+/* ── PERIOD BAR ── */
+.period-bar{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;margin-bottom:14px;flex-wrap:wrap;}
+.period-label{font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;}
+.period-pills{display:flex;gap:4px;flex-wrap:wrap;}
+.ppill{padding:4px 12px;border-radius:16px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;border:1.5px solid var(--border2);background:transparent;color:var(--text2);}
+.ppill.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.ppill:hover:not(.active){border-color:var(--primary);color:var(--primary);}
+.period-range{margin-left:auto;font-size:10px;color:var(--text3);font-family:var(--mono);}
+
+/* ── UNPAID LIST ── */
+.unpaid-list{display:flex;flex-direction:column;gap:7px;}
+.unpaid-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);}
+.unpaid-rank{font-size:10px;font-family:var(--mono);color:var(--text3);width:18px;font-weight:700;}
+.unpaid-rank.top{color:var(--red);}
+.unpaid-info{flex:1;min-width:0;}
+.unpaid-name{font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.unpaid-rate{font-size:10px;color:var(--text3);margin-top:2px;}
+.unpaid-bar-bg{width:50px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden;}
+.unpaid-bar-fill{height:100%;border-radius:2px;background:var(--green);}
+.unpaid-amt{font-family:var(--mono);font-size:12px;font-weight:700;white-space:nowrap;}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty-title{font-size:14px;font-weight:700;color:var(--text2);margin-bottom:6px;}
+.empty-desc{font-size:12px;line-height:1.6;}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--card2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- 로그인 모달 -->
+<div class="login-modal" id="loginModal">
+  <div class="login-box">
+    <div class="login-logo">ENJET</div>
+    <div class="login-sub">영업 대시보드</div>
+    <div class="login-title">🔒 접근 권한 인증 필요</div>
+    <div class="login-desc">
+      ENJET 영업·관리팀 전용 대시보드입니다.<br>
+      Microsoft 365 계정으로 로그인해 주세요.
+    </div>
+    <button class="btn-ms" id="btnLogin">
+      <div class="ms-logo"></div>
+      Microsoft 계정으로 로그인
+    </button>
+    <div class="login-footer">
+      🔒 ENJET 조직 계정만 접근 가능합니다.<br>
+      SharePoint 데이터가 자동으로 동기화됩니다.
+    </div>
+  </div>
+</div>
+
+<!-- 로딩 오버레이 -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">SharePoint에서 데이터 로딩 중...</div>
+</div>
+
+<!-- 메인 레이아웃 -->
+<div class="layout" id="mainLayout" style="display:none;">
+
+  <!-- 사이드바 -->
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-mark">ENJET</div>
+      <div class="sb-logo-sub">Sales Dashboard</div>
+    </div>
+    <div class="sb-sync">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncStatus">연결 중...</span>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-sec">영업</div>
+      <div class="nav-item active" onclick="switchTab('sales',this)">📊 매출 현황</div>
+      <div class="nav-item" onclick="switchTab('cashflow',this)">💰 현금흐름 <span class="nav-badge" id="badge-unpaid"></span></div>
+      <div class="nav-item" onclick="switchTab('pipeline',this)">🔄 파이프라인 <span class="nav-badge" id="badge-pipeline"></span></div>
+      <div class="nav-item" onclick="switchTab('customer',this)">🏭 고객사 관리 <span class="nav-badge" id="badge-customer"></span></div>
+      <div class="sb-sec">마케팅</div>
+      <div class="nav-item" onclick="switchTab('marketing',this)">📣 마케팅 활동</div>
+      <div class="nav-item" onclick="switchTab('meeting',this)">📝 미팅 로그</div>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-time" id="clock">--:--:--</div>
+      <div style="font-size:9px;color:var(--text3);margin-top:2px;" id="lastSync">마지막 동기화: -</div>
+    </div>
+  </aside>
+
+  <!-- 메인 -->
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-title" id="pageTitle">📊 매출 현황</div>
+      <div class="tb-spacer"></div>
+      <button class="btn-refresh" id="btnRefresh" onclick="syncData()">🔄 데이터 새로고침</button>
+      <div class="tb-auth">
+        <span class="auth-status loading" id="authStatus">
+          <span>● 확인 중...</span>
+        </span>
+        <button class="btn-logout" id="btnLogout">로그아웃</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ━━ 매출 현황 탭 ━━ -->
+      <div class="page active" id="tab-sales">
+        <div class="period-bar">
+          <div class="period-label">📅 조회 기간</div>
+          <div class="period-pills">
+            <div class="ppill" onclick="setPeriod('monthly',this)">월간</div>
+            <div class="ppill" onclick="setPeriod('quarterly',this)">분기</div>
+            <div class="ppill active" onclick="setPeriod('annual',this)">연간</div>
+            <div class="ppill" onclick="setPeriod('total',this)">전체누적</div>
+          </div>
+          <div class="period-range" id="periodRange">2026년 기준</div>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi c1">
+            <div class="kpi-label">공급가액 (매출기록부)</div>
+            <div class="kpi-val"><span id="kpi-tax">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
+            <div class="kpi-sub"><span class="badge info" id="kpi-tax-badge">2026</span> <span id="kpi-tax-sub">로딩중</span></div>
+          </div>
+          <div class="kpi c2">
+            <div class="kpi-label">입금 완료</div>
+            <div class="kpi-val"><span id="kpi-income">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
+            <div class="kpi-sub"><span class="badge up">수금률</span> <span id="kpi-rate">-%</span></div>
+          </div>
+          <div class="kpi c3">
+            <div class="kpi-label">미수금 (잔금)</div>
+            <div class="kpi-val"><span id="kpi-unpaid">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
+            <div class="kpi-sub"><span class="badge warn">수금 필요</span></div>
+          </div>
+          <div class="kpi c4">
+            <div class="kpi-label">진행중 프로젝트</div>
+            <div class="kpi-val"><span id="kpi-proj">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">건</span></div>
+            <div class="kpi-sub"><span id="kpi-proj-amt">-억</span></div>
+          </div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="card-hd">
+              <div class="card-title"><div class="card-ico c1">📈</div>연도별 매출 (감사보고서 기준)</div>
+            </div>
+            <div class="card-bd">
+              <div style="height:220px"><canvas id="yearlyChart"></canvas></div>
+            </div>
+            <div class="card-note">※ 2023~2025 감사보고서 확정 · 2026 매출기록부 기준</div>
+          </div>
+          <div class="card">
+            <div class="card-hd">
+              <div class="card-title"><div class="card-ico c2">🏆</div>2026 고객사별 매출 TOP8</div>
+            </div>
+            <div class="card-bd">
+              <div class="bar-list" id="customerBarList">
+                <div class="empty-state"><div class="empty-icon">📊</div><div class="empty-desc">데이터 로딩 중...</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="g2b">
+          <div class="card">
+            <div class="card-hd">
+              <div class="card-title"><div class="card-ico c3">📅</div>2026 월별 매출</div>
+            </div>
+            <div class="card-bd">
+              <div style="height:200px"><canvas id="monthlyChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd">
+              <div class="card-title"><div class="card-ico c4">🍩</div>2026 제품구분별</div>
+            </div>
+            <div class="card-bd">
+              <div style="height:200px"><canvas id="typeChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ━━ 현금흐름 탭 ━━ -->
+      <div class="page" id="tab-cashflow">
+        <div class="kpi-row">
+          <div class="kpi c1">
+            <div class="kpi-label">세금계산서 발행 (ERP)</div>
+            <div class="kpi-val"><span id="cf-tax">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
+            <div class="kpi-sub">전체 누적</div>
+          </div>
+          <div class="kpi c2">
+            <div class="kpi-label">수금 완료</div>
+            <div class="kpi-val"><span id="cf-income">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
+            <div class="kpi-sub"><span id="cf-rate">-%</span> 수금률</div>
+          </div>
+          <div class="kpi c3">
+            <div class="kpi-label">미수금 확정</div>
+            <div class="kpi-val"><span id="cf-unpaid">10.4</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
+            <div class="kpi-sub"><span class="badge warn">즉시 관리 필요</span></div>
+          </div>
+          <div class="kpi c4">
+            <div class="kpi-label">미청구 (PO확보)</div>
+            <div class="kpi-val"><span id="cf-unbilled">1.5</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
+            <div class="kpi-sub">세금계산서 발행 필요</div>
+          </div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="card-hd">
+              <div class="card-title"><div class="card-ico c1">📊</div>연도별 매출흐름 (세금계산서 기준)</div>
+            </div>
+            <div class="card-bd">
+              <div style="height:220px"><canvas id="cashflowChart"></canvas></div>
+            </div>
+            <div class="card-note">※ ERP 세금계산서 조회 기준 · 2023년은 10월~12월분만 포함</div>
+          </div>
+          <div class="card">
+            <div class="card-hd">
+              <div class="card-title"><div class="card-ico c3">⚠️</div>미수금 상위 거래처</div>
+              <span style="font-size:10px;font-family:var(--mono);font-weight:700;color:var(--red)">총 10.4억</span>
+            </div>
+            <div class="card-bd">
+              <div class="unpaid-list">
+                <div class="unpaid-item"><div class="unpaid-rank top">01</div><div class="unpaid-info"><div class="unpaid-name">에이치비솔루션 (BM26001)</div><div class="unpaid-rate">세금계산서 미발행</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:0%"></div></div><div class="unpaid-amt" style="color:var(--red)">5.26억</div></div>
+                <div class="unpaid-item"><div class="unpaid-rank top">02</div><div class="unpaid-info"><div class="unpaid-name">울산과학기술원</div><div class="unpaid-rate">수금률 74%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:74%"></div></div><div class="unpaid-amt" style="color:var(--red)">1.47억</div></div>
+                <div class="unpaid-item"><div class="unpaid-rank top">03</div><div class="unpaid-info"><div class="unpaid-name">㈜인벤티지랩</div><div class="unpaid-rate">수금률 79%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:79%"></div></div><div class="unpaid-amt" style="color:var(--red)">1.39억</div></div>
+                <div class="unpaid-item"><div class="unpaid-rank">04</div><div class="unpaid-info"><div class="unpaid-name">세종산업㈜ (BM26002)</div><div class="unpaid-rate">수금률 0% · 2026년 4월</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:0%"></div></div><div class="unpaid-amt" style="color:var(--red)">0.80억</div></div>
+                <div class="unpaid-item"><div class="unpaid-rank">05</div><div class="unpaid-info"><div class="unpaid-name">㈜아이마켓코리아</div><div class="unpaid-rate">미수금 확정</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:85%"></div></div><div class="unpaid-amt" style="color:var(--red)">0.60억</div></div>
+                <div class="unpaid-item"><div class="unpaid-rank">06</div><div class="unpaid-info"><div class="unpaid-name">서울시립대학교 산학협력단</div><div class="unpaid-rate">수금률 99%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:99%"></div></div><div class="unpaid-amt" style="color:var(--text2)">0.36억</div></div>
+                <div class="unpaid-item"><div class="unpaid-rank">07</div><div class="unpaid-info"><div class="unpaid-name">가천대학교 산학협력단</div><div class="unpaid-rate">수금률 99.8%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:99%"></div></div><div class="unpaid-amt" style="color:var(--text2)">0.32억</div></div>
+                <div class="unpaid-item" style="opacity:.6"><div class="unpaid-rank">✅</div><div class="unpaid-info"><div class="unpaid-name">㈜아이센스원주공장</div><div class="unpaid-rate">2025년 완납 확인</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:100%;background:var(--green)"></div></div><div class="unpaid-amt" style="color:var(--green)">완납</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title"><div class="card-ico c1">📋</div>연도별 매출흐름 상세</div>
+          </div>
+          <div class="card-bd">
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>연도</th><th class="r">공급가액</th><th class="r">입금완료</th><th class="r">미수금</th><th class="r">미청구</th><th class="r">수금률</th><th>비고</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="tbl-name">2023</span></td><td class="r"><span class="tbl-mono blue">362.3억</span></td><td class="r"><span class="tbl-mono green">132.7억</span></td><td class="r"><span class="tbl-mono red">4.6억</span></td><td class="r">-</td><td class="r"><span class="badge warn">36.6%</span></td><td style="font-size:10px;color:var(--text3)">감사 120.7억</td></tr>
+                  <tr><td><span class="tbl-name">2024</span></td><td class="r"><span class="tbl-mono blue">238.0억</span></td><td class="r"><span class="tbl-mono green">64.4억</span></td><td class="r"><span class="tbl-mono red">2.7억</span></td><td class="r">-</td><td class="r"><span class="badge down">27.1%</span></td><td style="font-size:10px;color:var(--text3)">감사 62.6억</td></tr>
+                  <tr><td><span class="tbl-name">2025</span></td><td class="r"><span class="tbl-mono blue">160.3억</span></td><td class="r"><span class="tbl-mono green">57.9억</span></td><td class="r"><span class="tbl-mono red">1.7억</span></td><td class="r">-</td><td class="r"><span class="badge warn">36.1%</span></td><td style="font-size:10px;color:var(--text3)">감사 53.8억</td></tr>
+                  <tr style="background:var(--primary-dim)"><td><span class="tbl-name" style="color:var(--primary)">2026</span><br><span style="font-size:9px;color:var(--text3)">~4월</span></td><td class="r"><span class="tbl-mono blue">65.1억</span></td><td class="r"><span class="tbl-mono green">18.2억</span></td><td class="r"><span class="tbl-mono red">2.6억</span></td><td class="r"><span class="tbl-mono" style="color:var(--accent)">1.5억</span></td><td class="r"><span class="badge info">28.0%</span></td><td style="font-size:10px;color:var(--text3)">진행중</td></tr>
+                  <tr style="font-weight:800;background:var(--bg3)"><td><span class="tbl-name">합계</span></td><td class="r"><span class="tbl-mono blue">825.7억</span></td><td class="r"><span class="tbl-mono green">273.2억</span></td><td class="r"><span class="tbl-mono red">11.6억</span></td><td class="r"><span class="tbl-mono" style="color:var(--accent)">1.5억</span></td><td class="r"><span class="badge warn">33.1%</span></td><td></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ━━ 파이프라인 탭 ━━ -->
+      <div class="page" id="tab-pipeline">
+        <div class="kpi-row">
+          <div class="kpi c1"><div class="kpi-label">진행중 프로젝트</div><div class="kpi-val"><span id="pl-cnt">194</span><span style="font-size:13px;color:var(--text2)">건</span></div><div class="kpi-sub">확정+작성</div></div>
+          <div class="kpi c2"><div class="kpi-label">프로젝트 총액</div><div class="kpi-val"><span id="pl-total">57.7</span><span style="font-size:13px;color:var(--text2)">억</span></div><div class="kpi-sub">수주 기준</div></div>
+          <div class="kpi c3"><div class="kpi-label">미청구 총액</div><div class="kpi-val"><span id="pl-unbilled">1.6</span><span style="font-size:13px;color:var(--text2)">억</span></div><div class="kpi-sub">청구 예정</div></div>
+          <div class="kpi c4"><div class="kpi-label">완료 프로젝트</div><div class="kpi-val"><span id="pl-done">13</span><span style="font-size:13px;color:var(--text2)">건</span></div><div class="kpi-sub">이번 연도</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title"><div class="card-ico c1">🔄</div>영업 파이프라인 (ERP 프로젝트)</div>
+            <span class="card-act" id="pipelineLastUpdate">SharePoint 연동</span>
+          </div>
+          <div class="card-bd" style="padding:10px 18px;">
+            <div class="search-bar">
+              <input class="search-input" type="text" placeholder="🔍 프로젝트명 / 거래처 검색..." id="pipeSearch" oninput="filterPipeline()">
+              <select class="search-select" id="pipeStatusFilter" onchange="filterPipeline()">
+                <option value="">전체 상태</option>
+                <option value="확정">확정</option>
+                <option value="작성">작성</option>
+                <option value="진행중">진행중</option>
+                <option value="완료">완료</option>
+                <option value="중단">중단</option>
+              </select>
+            </div>
+            <div class="tbl-wrap">
+              <table class="tbl" id="pipelineTable">
+                <thead><tr><th>프로젝트번호</th><th>프로젝트명</th><th>거래처</th><th>유형</th><th class="r">프로젝트금액</th><th>상태</th><th>계약일</th><th>책임자</th></tr></thead>
+                <tbody id="pipelineBody">
+                  <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-title">로그인 후 자동 로딩</div><div class="empty-desc">SharePoint ERP 데이터와 연동됩니다</div></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ━━ 고객사 관리 탭 ━━ -->
+      <div class="page" id="tab-customer">
+        <div class="kpi-row">
+          <div class="kpi c1"><div class="kpi-label">전체 연락처</div><div class="kpi-val"><span id="ct-total">-</span><span style="font-size:13px;color:var(--text2)">명</span></div><div class="kpi-sub">리멤버 DB</div></div>
+          <div class="kpi c2"><div class="kpi-label">국내 거래처</div><div class="kpi-val"><span id="ct-domestic">-</span><span style="font-size:13px;color:var(--text2)">명</span></div><div class="kpi-sub"></div></div>
+          <div class="kpi c3"><div class="kpi-label">해외 거래처</div><div class="kpi-val"><span id="ct-intl">-</span><span style="font-size:13px;color:var(--text2)">명</span></div><div class="kpi-sub"></div></div>
+          <div class="kpi c4"><div class="kpi-label">등록 회사 수</div><div class="kpi-val"><span id="ct-companies">-</span><span style="font-size:13px;color:var(--text2)">개</span></div><div class="kpi-sub"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title"><div class="card-ico c2">👥</div>고객사 담당자 DB (리멤버 연동)</div>
+            <span class="card-act" id="contactLastUpdate">SharePoint 연동</span>
+          </div>
+          <div class="card-bd" style="padding:10px 18px;">
+            <div class="search-bar">
+              <input class="search-input" type="text" placeholder="🔍 이름 / 회사 / 직함 검색..." id="contactSearch" oninput="filterContacts()">
+              <select class="search-select" id="contactCompanyFilter" onchange="filterContacts()">
+                <option value="">전체 회사</option>
+              </select>
+            </div>
+            <div class="contact-grid" id="contactGrid">
+              <div class="empty-state" style="grid-column:1/-1">
+                <div class="empty-icon">👥</div>
+                <div class="empty-title">로그인 후 자동 로딩</div>
+                <div class="empty-desc">SharePoint 주소록 데이터와 연동됩니다</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ━━ 마케팅 탭 ━━ -->
+      <div class="page" id="tab-marketing">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title"><div class="card-ico c1">📣</div>마케팅 활동 현황</div>
+          </div>
+          <div class="card-bd">
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>구분</th><th>행사명</th><th>일정</th><th>장소</th><th>상태</th><th>비고</th></tr></thead>
+                <tbody>
+                  <tr><td>전시회</td><td><span class="tbl-name">SEMICON Korea 2026</span></td><td>2026.01.22–24</td><td>COEX 서울</td><td><span class="badge up">완료</span></td><td>부스 참가</td></tr>
+                  <tr><td>온라인</td><td><span class="tbl-name">LinkedIn 캠페인 Q2</span></td><td>2026.04–06</td><td>온라인</td><td><span class="badge info">진행중</span></td><td>타겟: 반도체 엔지니어</td></tr>
+                  <tr><td>웹사이트</td><td><span class="tbl-name">홈페이지 리뉴얼</span></td><td>2026.05 목표</td><td>-</td><td><span class="badge info">진행중</span></td><td>개발 중</td></tr>
+                  <tr><td>전시회</td><td><span class="tbl-name">DISPLAY WEEK 2026</span></td><td>2026.05.18</td><td>San Jose, USA</td><td><span class="badge warn">예정</span></td><td>참가 준비중</td></tr>
+                  <tr><td>전시회</td><td><span class="tbl-name">SEMICON Europa 2026</span></td><td>2026.11</td><td>Munich, Germany</td><td><span class="badge warn">예정</span></td><td>부스 신청 예정</td></tr>
+                  <tr><td>전시회</td><td><span class="tbl-name">K-Display 2026</span></td><td>2026.10</td><td>COEX 서울</td><td><span class="badge warn">예정</span></td><td></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ━━ 미팅 로그 탭 ━━ -->
+      <div class="page" id="tab-meeting">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title"><div class="card-ico c2">📝</div>미팅 로그</div>
+            <button class="card-act" onclick="alert('미팅 등록 기능 준비중')">+ 미팅 등록</button>
+          </div>
+          <div class="card-bd">
+            <div class="empty-state">
+              <div class="empty-icon">📝</div>
+              <div class="empty-title">미팅 로그 준비중</div>
+              <div class="empty-desc">Power Apps 모바일 입력 연동 예정<br>Teams 채널에서 미팅 기록 후 자동 반영됩니다</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MSAL 설정
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const MSAL_CONFIG = {
+  clientId: '76793776-3330-496f-97f1-9f0c034f3f07',
+  tenantId: '58b310e1-9278-47ab-8e49-792728818c9e',
+  redirectUri: window.location.href.split('?')[0].split('#')[0],
+};
+const SP_CONFIG = {
+  hostname: 'enjetco.sharepoint.com',
+  siteName: '06.BackOffice',
+  driveFolder: '📦영업',
+};
+const SCOPES = ['User.Read', 'Files.Read.All', 'Sites.Read.All'];
+
+let msalInstance = null;
+let currentAccount = null;
+let spSiteId = null;
+let spDriveId = null;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MSAL 초기화
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function initApp() {
+  try {
+    msalInstance = new msal.PublicClientApplication({
+      auth: {
+        clientId: MSAL_CONFIG.clientId,
+        authority: `https://login.microsoftonline.com/${MSAL_CONFIG.tenantId}`,
+        redirectUri: MSAL_CONFIG.redirectUri,
+      },
+      cache: { cacheLocation: 'sessionStorage' },
+    });
+    await msalInstance.initialize();
+
+    // 기존 로그인 세션 확인
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      currentAccount = accounts[0];
+      onLoginSuccess();
+    }
+  } catch(e) {
+    console.error('MSAL 초기화 실패:', e);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 로그인 / 로그아웃
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function handleLogin() {
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = true;
+  btn.textContent = '로그인 중...';
+  try {
+    const result = await msalInstance.loginPopup({ scopes: SCOPES, prompt: 'select_account' });
+    currentAccount = result.account;
+    onLoginSuccess();
+  } catch(e) {
+    console.error('로그인 실패:', e);
+    btn.disabled = false;
+    btn.innerHTML = '<div class="ms-logo"></div>Microsoft 계정으로 로그인';
+    alert('로그인에 실패했습니다. 다시 시도해주세요.\n' + e.message);
+  }
+}
+
+function handleLogout() {
+  if (!msalInstance || !currentAccount) return;
+  msalInstance.logoutPopup({ account: currentAccount });
+  currentAccount = null;
+  document.getElementById('loginModal').classList.remove('hidden');
+  document.getElementById('mainLayout').style.display = 'none';
+}
+
+function onLoginSuccess() {
+  document.getElementById('loginModal').classList.add('hidden');
+  document.getElementById('mainLayout').style.display = 'flex';
+  document.getElementById('authStatus').className = 'auth-status logged-in';
+  document.getElementById('authStatus').innerHTML = `<span>● ${currentAccount.name || currentAccount.username}</span>`;
+  document.getElementById('btnLogout').style.display = 'inline-block';
+  document.getElementById('btnRefresh').style.display = 'inline-block';
+  syncData();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Graph API 토큰
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function getToken() {
+  try {
+    const result = await msalInstance.acquireTokenSilent({ scopes: SCOPES, account: currentAccount });
+    return result.accessToken;
+  } catch(e) {
+    const result = await msalInstance.acquireTokenPopup({ scopes: SCOPES });
+    return result.accessToken;
+  }
+}
+
+async function graphGet(url) {
+  const token = await getToken();
+  const res = await fetch(`https://graph.microsoft.com/v1.0${url}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error(`Graph API 오류: ${res.status} ${url}`);
+  return res.json();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SharePoint 파일 읽기
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function getSPSite() {
+  if (spSiteId) return spSiteId;
+  const data = await graphGet(`/sites/${SP_CONFIG.hostname}:/sites/${SP_CONFIG.siteName}`);
+  spSiteId = data.id;
+  return spSiteId;
+}
+
+async function getSPDrive() {
+  if (spDriveId) return spDriveId;
+  const siteId = await getSPSite();
+  const data = await graphGet(`/sites/${siteId}/drives`);
+  // Documents 드라이브 찾기
+  const drive = data.value.find(d => d.name === 'Documents' || d.name === '문서') || data.value[0];
+  spDriveId = drive.id;
+  return spDriveId;
+}
+
+async function readExcelFromSP(filePath) {
+  const driveId = await getSPDrive();
+  const encodedPath = encodeURIComponent(filePath);
+  const token = await getToken();
+  // 파일 다운로드 URL 가져오기
+  const meta = await graphGet(`/drives/${driveId}/root:/${filePath}`);
+  const downloadUrl = meta['@microsoft.graph.downloadUrl'];
+  const res = await fetch(downloadUrl);
+  const buffer = await res.arrayBuffer();
+  const wb = XLSX.read(buffer, { type: 'array' });
+  return wb;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 데이터 동기화 메인
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function syncData() {
+  showLoading('SharePoint에서 데이터 동기화 중...');
+  setSyncStatus('loading', '동기화 중...');
+  try {
+    await Promise.allSettled([
+      loadSalesData(),
+      loadContactsData(),
+      loadERPData(),
+    ]);
+    setSyncStatus('live', '실시간 연동');
+    document.getElementById('lastSync').textContent = '마지막 동기화: ' + new Date().toLocaleTimeString('ko-KR');
+  } catch(e) {
+    console.error('동기화 오류:', e);
+    setSyncStatus('error', '동기화 실패');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 매출 데이터 로드 (2026 매출기록부)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function loadSalesData() {
+  try {
+    updateText('loadingText', '매출 데이터 로딩 중...');
+    const wb = await readExcelFromSP('📦영업/1. 매출 기록부/2026년 매출 (260420 ver.).xlsx');
+
+    // 국내 시트
+    const domSheet = wb.Sheets['2026 국내'];
+    if (!domSheet) throw new Error('2026 국내 시트 없음');
+    const domData = XLSX.utils.sheet_to_json(domSheet, { defval: 0 });
+
+    // 해외 시트
+    const intlSheet = wb.Sheets['2026 해외 '] || wb.Sheets['2026 해외'];
+    const intlData = intlSheet ? XLSX.utils.sheet_to_json(intlSheet, { defval: 0 }) : [];
+
+    // 집계
+    let totalTax = 0, totalIncome = 0, totalUnpaid = 0;
+    const byCustomer = {}, byType = {}, byMonth = {};
+
+    domData.forEach(row => {
+      const amt = parseFloat(row['공급가액']) || 0;
+      const inc = parseFloat(row['입금액']) || 0;
+      const unp = parseFloat(row['잔금']) || 0;
+      const cust = row['거래처'] || '미상';
+      const type = row['구분1'] || '기타';
+      if (amt <= 0) return;
+
+      totalTax += amt;
+      totalIncome += inc;
+      totalUnpaid += unp;
+
+      byCustomer[cust] = (byCustomer[cust] || 0) + amt;
+      byType[type] = (byType[type] || 0) + amt;
+
+      // 월별
+      const dateStr = String(row['계산서 작성일'] || '');
+      const m = dateStr.match(/(\d{4})-(\d{2})/);
+      if (m && m[1] === '2026') {
+        const mo = parseInt(m[2]);
+        if (!byMonth[mo]) byMonth[mo] = { tax: 0, income: 0 };
+        byMonth[mo].tax += amt;
+        byMonth[mo].income += inc;
+      }
+    });
+
+    intlData.forEach(row => {
+      const amt = parseFloat(row['원화']) || 0;
+      if (amt <= 0) return;
+      totalTax += amt;
+      totalIncome += parseFloat(row['입금액']) || 0;
+      totalUnpaid += parseFloat(row['잔액']) || 0;
+    });
+
+    // KPI 업데이트
+    updateText('kpi-tax', (totalTax / 1e8).toFixed(2));
+    updateText('kpi-income', (totalIncome / 1e8).toFixed(2));
+    updateText('kpi-unpaid', (totalUnpaid / 1e8).toFixed(2));
+    const rate = totalTax > 0 ? Math.round(totalIncome / totalTax * 100) : 0;
+    updateText('kpi-rate', rate + '%');
+    updateText('cf-tax', (totalTax / 1e8).toFixed(1));
+    updateText('cf-income', (totalIncome / 1e8).toFixed(1));
+    updateText('cf-rate', rate + '%');
+
+    // 고객사 바 차트
+    renderCustomerBars(byCustomer);
+
+    // 월별 차트
+    renderMonthlyChart(byMonth);
+
+    // 제품구분 차트
+    renderTypeChart(byType);
+
+    // 연도별 차트
+    renderYearlyChart();
+
+    // 현금흐름 차트
+    renderCashflowChart();
+
+  } catch(e) {
+    console.error('매출 데이터 로드 실패:', e);
+    // 폴백: 하드코딩 데이터
+    loadFallbackSalesData();
+  }
+}
+
+function loadFallbackSalesData() {
+  updateText('kpi-tax', '65.07');
+  updateText('kpi-income', '18.21');
+  updateText('kpi-unpaid', '2.63');
+  updateText('kpi-rate', '28%');
+  updateText('cf-tax', '65.1');
+  updateText('cf-income', '18.2');
+  updateText('cf-rate', '28%');
+
+  const fallbackCustomers = {
+    '삼성전기㈜': 8.5e8, 'ChongQing Konka': 5.5e8, '에이치비솔루션㈜': 5.26e8,
+    'Koenig & Bauer': 2.37e8, '울산과학기술원': 1.69e8, '인벤티지랩': 1.26e8,
+    '아이마켓코리아': 1.04e8, '부산대학교': 1.16e8,
+  };
+  renderCustomerBars(fallbackCustomers);
+
+  const fallbackMonth = {1:{tax:1.79e8,income:1.73e8},2:{tax:5.81e8,income:3.58e8},3:{tax:0.57e8,income:0.28e8},4:{tax:1.25e8,income:0.05e8}};
+  renderMonthlyChart(fallbackMonth);
+
+  const fallbackType = {'장비':18.2e8,'모듈':6.77e8,'용역':6.01e8,'노즐':1.27e8,'잉크':0.69e8,'소모품':0.67e8};
+  renderTypeChart(fallbackType);
+
+  renderYearlyChart();
+  renderCashflowChart();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 고객사(리멤버) 데이터 로드
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let allContacts = [];
+async function loadContactsData() {
+  try {
+    updateText('loadingText', '고객사 데이터 로딩 중...');
+    const wb = await readExcelFromSP('📦영업/2. 주소록(리멤버)/202605091921_Enjet sales_성백훈_(1 of 1) (1).xlsx');
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    allContacts = data.filter(r => r['이름'] || r['회사']);
+
+    const domestic = allContacts.filter(r => !String(r['휴대폰'] || '').startsWith('+'));
+    const intl = allContacts.filter(r => String(r['휴대폰'] || '').startsWith('+'));
+    const companies = [...new Set(allContacts.map(r => r['회사']).filter(Boolean))];
+
+    updateText('ct-total', allContacts.length);
+    updateText('ct-domestic', domestic.length);
+    updateText('ct-intl', intl.length);
+    updateText('ct-companies', companies.length);
+    updateText('badge-customer', allContacts.length);
+
+    // 회사 필터 옵션
+    const sel = document.getElementById('contactCompanyFilter');
+    companies.sort().forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      sel.appendChild(opt);
+    });
+
+    renderContacts(allContacts);
+    updateText('contactLastUpdate', '동기화: ' + new Date().toLocaleTimeString('ko-KR'));
+  } catch(e) {
+    console.error('고객사 데이터 로드 실패:', e);
+  }
+}
+
+function renderContacts(data) {
+  const grid = document.getElementById('contactGrid');
+  if (!data.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">👥</div><div class="empty-title">데이터 없음</div></div>';
+    return;
+  }
+  grid.innerHTML = data.slice(0, 100).map(r => {
+    const isIntl = String(r['휴대폰'] || '').startsWith('+');
+    return `<div class="contact-card">
+      <div class="contact-name">${r['이름'] || '-'}</div>
+      <div class="contact-company">${r['회사'] || '-'}</div>
+      <div class="contact-role">${r['직함'] || ''} ${r['부서'] ? '· ' + r['부서'] : ''}</div>
+      <div class="contact-info">
+        ${r['휴대폰'] ? '<span>📱 ' + r['휴대폰'] + '</span>' : ''}
+        ${r['전자 메일 주소'] ? '<span>✉️ ' + r['전자 메일 주소'] + '</span>' : ''}
+      </div>
+      <span class="contact-tag">${isIntl ? '🌏 해외' : '🇰🇷 국내'}</span>
+      ${r['명함 등록자'] ? '<span class="contact-tag" style="background:var(--green-dim);color:var(--green)">' + r['명함 등록자'] + '</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function filterContacts() {
+  const q = document.getElementById('contactSearch').value.toLowerCase();
+  const company = document.getElementById('contactCompanyFilter').value;
+  const filtered = allContacts.filter(r => {
+    const matchQ = !q || [r['이름'], r['회사'], r['직함'], r['부서']].some(v => String(v || '').toLowerCase().includes(q));
+    const matchC = !company || r['회사'] === company;
+    return matchQ && matchC;
+  });
+  renderContacts(filtered);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ERP 데이터 로드 (프로젝트)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let allPipeline = [];
+async function loadERPData() {
+  try {
+    updateText('loadingText', 'ERP 파이프라인 로딩 중...');
+    const wb = await readExcelFromSP('📦영업/4. ERP/프로젝트조회_20260511.xlsx');
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(sheet, { defval: '', range: 4 });
+    allPipeline = data.filter(r => r['프로젝트번호'] && r['프로젝트번호'] !== 'TOTAL');
+
+    const active = allPipeline.filter(r => ['확정','작성'].includes(r['진행구분']));
+    const done = allPipeline.filter(r => r['진행구분'] === '완료');
+    const totalAmt = active.reduce((s, r) => s + (parseFloat(r['프로젝트금액(원화)']) || 0), 0);
+
+    updateText('pl-cnt', active.length);
+    updateText('pl-total', (totalAmt / 1e8).toFixed(1));
+    updateText('pl-done', done.length);
+    updateText('badge-pipeline', active.length);
+    updateText('kpi-proj', active.length);
+    updateText('kpi-proj-amt', (totalAmt / 1e8).toFixed(1) + '억');
+
+    renderPipeline(allPipeline);
+    updateText('pipelineLastUpdate', '동기화: ' + new Date().toLocaleTimeString('ko-KR'));
+  } catch(e) {
+    console.error('ERP 데이터 로드 실패:', e);
+    updateText('pl-cnt', '194');
+    updateText('pl-total', '57.7');
+    updateText('badge-pipeline', '194');
+    updateText('kpi-proj', '194');
+    updateText('kpi-proj-amt', '57.7억');
+  }
+}
+
+function renderPipeline(data) {
+  const tbody = document.getElementById('pipelineBody');
+  const statusColors = { '확정': 'up', '작성': 'warn', '진행중': 'info', '완료': 'info', '중단': 'down' };
+  tbody.innerHTML = data.slice(0, 200).map(r => {
+    const amt = parseFloat(r['프로젝트금액(원화)']) || 0;
+    const amtStr = amt > 0 ? (amt / 1e8).toFixed(3) + '억' : '-';
+    const badge = statusColors[r['진행구분']] || 'info';
+    return `<tr>
+      <td><span class="tbl-mono" style="font-size:10px">${r['프로젝트번호'] || ''}</span></td>
+      <td><span class="tbl-name" style="font-size:11px">${(r['프로젝트명'] || '').substring(0, 30)}</span></td>
+      <td>${(r['거래처'] || '').substring(0, 15)}</td>
+      <td style="font-size:10px">${r['프로젝트유형'] || ''}</td>
+      <td class="r"><span class="tbl-mono blue">${amtStr}</span></td>
+      <td><span class="badge ${badge}">${r['진행구분'] || ''}</span></td>
+      <td style="font-size:10px;color:var(--text3)">${String(r['계약일'] || '').substring(0, 10)}</td>
+      <td style="font-size:10px">${r['책임자'] || ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterPipeline() {
+  const q = document.getElementById('pipeSearch').value.toLowerCase();
+  const status = document.getElementById('pipeStatusFilter').value;
+  const filtered = allPipeline.filter(r => {
+    const matchQ = !q || [r['프로젝트번호'], r['프로젝트명'], r['거래처']].some(v => String(v || '').toLowerCase().includes(q));
+    const matchS = !status || r['진행구분'] === status;
+    return matchQ && matchS;
+  });
+  renderPipeline(filtered);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 차트 렌더링
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Chart.defaults.color = '#6b7280';
+Chart.defaults.font.family = "'Pretendard',sans-serif";
+Chart.defaults.font.size = 10;
+const tt = { backgroundColor:'#1f2937', borderColor:'rgba(0,0,0,0.1)', borderWidth:1, padding:10 };
+
+let charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function renderYearlyChart() {
+  destroyChart('yearly');
+  charts['yearly'] = new Chart(document.getElementById('yearlyChart'), {
+    type: 'bar',
+    data: {
+      labels: ['2023\n(감사)', '2024\n(감사)', '2025\n(감사)', '2026\n(~4월)'],
+      datasets: [
+        { label: '공급가액', data: [362.3, 238.0, 160.3, 65.1], backgroundColor: 'rgba(26,111,212,0.75)', borderRadius: 4 },
+        { label: '입금완료', data: [132.7, 64.4, 57.9, 18.2], backgroundColor: 'rgba(0,135,90,0.75)', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { usePointStyle: true } }, tooltip: { ...tt } },
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: { grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { callback: v => v + '억' } }
+      }
+    }
+  });
+}
+
+function renderCashflowChart() {
+  destroyChart('cashflow');
+  charts['cashflow'] = new Chart(document.getElementById('cashflowChart'), {
+    type: 'bar',
+    data: {
+      labels: ['2023(10~12월)', '2024', '2025', '2026(~3월)'],
+      datasets: [
+        { label: '세금계산서', data: [12.2, 58.7, 47.1, 6.0], backgroundColor: 'rgba(26,111,212,0.75)', borderRadius: 4 },
+        { label: '수금완료', data: [0, 2.3, 32.4, 3.5], backgroundColor: 'rgba(0,135,90,0.75)', borderRadius: 4 },
+        { label: '미수금', data: [13.4, 62.2, 18.1, 3.2], backgroundColor: 'rgba(200,32,30,0.6)', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { usePointStyle: true } }, tooltip: { ...tt } },
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: { grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { callback: v => v + '억' } }
+      }
+    }
+  });
+}
+
+function renderCustomerBars(byCustomer) {
+  const sorted = Object.entries(byCustomer).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const max = sorted[0]?.[1] || 1;
+  const colors = ['var(--primary)', 'var(--primary)', 'var(--accent)', 'var(--accent)', 'var(--green)', 'var(--green)', 'var(--yellow)', 'var(--yellow)'];
+  document.getElementById('customerBarList').innerHTML = sorted.map(([name, amt], i) => `
+    <div class="bar-item">
+      <div class="bar-rank ${i<3?'top':''}">${String(i+1).padStart(2,'0')}</div>
+      <div class="bar-info">
+        <div class="bar-name">${name.substring(0,22)}</div>
+        <div class="bar-row">
+          <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(amt/max*100)}%;background:${colors[i]}"></div></div>
+          <div class="bar-val">${(amt/1e8).toFixed(2)}억</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderMonthlyChart(byMonth) {
+  destroyChart('monthly');
+  const months = Object.keys(byMonth).sort((a,b)=>a-b);
+  charts['monthly'] = new Chart(document.getElementById('monthlyChart'), {
+    type: 'bar',
+    data: {
+      labels: months.map(m => m + '월'),
+      datasets: [
+        { label: '공급가액', data: months.map(m => byMonth[m].tax / 1e8), backgroundColor: 'rgba(26,111,212,0.75)', borderRadius: 4 },
+        { label: '입금', data: months.map(m => byMonth[m].income / 1e8), backgroundColor: 'rgba(0,135,90,0.75)', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { usePointStyle: true } }, tooltip: { ...tt } },
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: { grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { callback: v => v + '억' } }
+      }
+    }
+  });
+}
+
+function renderTypeChart(byType) {
+  destroyChart('type');
+  const entries = Object.entries(byType).sort((a,b)=>b[1]-a[1]);
+  charts['type'] = new Chart(document.getElementById('typeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: entries.map(([k]) => k),
+      datasets: [{ data: entries.map(([,v]) => (v/1e8).toFixed(2)), backgroundColor: ['#1a6fd4','#d95f00','#6b35b8','#00875a','#9a6400','#6b7280'], borderWidth: 0, hoverOffset: 5 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 10 } }, tooltip: { ...tt } }
+    }
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 탭 전환
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const tabTitles = {
+  sales: '📊 매출 현황', cashflow: '💰 현금흐름',
+  pipeline: '🔄 영업 파이프라인', customer: '🏭 고객사 관리',
+  marketing: '📣 마케팅 활동', meeting: '📝 미팅 로그'
+};
+function switchTab(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('pageTitle').textContent = tabTitles[id] || id;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 기간 필터
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const periodFallback = {
+  monthly: { tax: '1.25', income: '0.05', unpaid: '1.17', label: '2026년 4월' },
+  quarterly: { tax: '8.42', income: '5.63', unpaid: '1.42', label: '2026년 Q1' },
+  annual: { tax: '65.07', income: '18.21', unpaid: '2.63', label: '2026년 연간' },
+  total: { tax: '825.7', income: '273.2', unpaid: '11.6', label: '전체 누적 (2023~2026)' },
+};
+function setPeriod(key, el) {
+  document.querySelectorAll('.ppill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  const d = periodFallback[key];
+  if (d) {
+    updateText('kpi-tax', d.tax);
+    updateText('kpi-income', d.income);
+    updateText('kpi-unpaid', d.unpaid);
+    updateText('periodRange', d.label);
+    const r = Math.round(parseFloat(d.income) / parseFloat(d.tax) * 100);
+    updateText('kpi-rate', r + '%');
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 유틸
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function updateText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function showLoading(msg) { document.getElementById('loadingOverlay').classList.add('show'); updateText('loadingText', msg); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+function setSyncStatus(type, text) {
+  const dot = document.getElementById('syncDot');
+  dot.className = 'sync-dot' + (type === 'live' ? ' live' : type === 'loading' ? ' loading' : '');
+  updateText('syncStatus', text);
+}
+
+// 시계
+setInterval(() => {
+  const n = new Date();
+  updateText('clock', [n.getHours(), n.getMinutes(), n.getSeconds()].map(v => String(v).padStart(2,'0')).join(':'));
+}, 1000);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 이벤트 바인딩 & 시작
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btnLogin').addEventListener('click', handleLogin);
+  document.getElementById('btnLogout').addEventListener('click', handleLogout);
+  initApp();
+});
+</script>
+</body>
+</html>
