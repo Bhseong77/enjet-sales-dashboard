@@ -404,7 +404,7 @@
       <div class="kr">
         <div class="kpi c1"><div class="kl">전체 전시회</div><div class="kv"><span id="exh-sched-tot">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks" id="exh-yr-label">2026년</div></div>
         <div class="kpi c2"><div class="kl">부스 참가</div><div class="kv"><span id="exh-sched-booth">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks"></div></div>
-        <div class="kpi c3"><div class="kl">준비중</div><div class="kv"><span id="exh-sched-prep">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks"><span class="badge warn">액션 필요</span></div></div>
+        <div class="kpi c3"><div class="kl">준비중/진행중</div><div class="kv"><span id="exh-sched-prep">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks"><span class="badge warn">액션 필요</span></div></div>
         <div class="kpi c4"><div class="kl">완료</div><div class="kv"><span id="exh-sched-done">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks"><span class="badge up">완료</span></div></div>
       </div>
 
@@ -451,7 +451,10 @@
               <th>전시회명</th><th>구분</th><th>참가유형</th>
               <th>시작일</th><th>종료일</th>
               <th>국가/도시</th><th>행사장</th>
-              <th>담당자</th><th>준비상태</th><th>비고</th><th></th>
+              <th>담당자</th><th>진행상태</th>
+              <th style="text-align:center">📁 준비파일</th>
+              <th style="text-align:center">📁 결과파일</th>
+              <th></th>
             </tr></thead>
             <tbody id="exhSchedBody">
               <tr><td colspan="11"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 번째 전시회 추가</button></div></div></td></tr>
@@ -514,9 +517,10 @@
               <input class="si" type="email" id="exh-f-manager-email" placeholder="예: bh@enjet.co.kr" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">준비상태</label>
+              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">진행상태</label>
               <select class="ss" id="exh-f-status" style="width:100%">
                 <option value="준비중">🔄 준비중</option>
+                <option value="진행중">▶️ 진행중</option>
                 <option value="완료">✅ 완료</option>
                 <option value="취소">❌ 취소</option>
               </select>
@@ -1745,6 +1749,7 @@ function renderExhSummaryCards(exhs) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const TEAMS_CHANNEL_ID = "19:15cae7e9dec84ce1ae4909e6f7c25634@thread.tacv2";
 const EXH_SP_FILE = "📦영업/99.Dashboard(real-time)/exhibitions.json";
+const EXH_FOLDER_BASE = "📦영업/6. 마케팅/전시회"; // 전시회 파일 폴더
 let exhSchedule = [];   // 전체 전시회 일정
 let exhEditIdx = -1;    // 수정 중인 인덱스 (-1: 신규)
 let teamsGroupId = null; // Teams 그룹 ID (자동 탐색)
@@ -1965,7 +1970,7 @@ function renderExhSched() {
 function updateExhKPI(data) {
   $("exh-sched-tot", data.length);
   $("exh-sched-booth", data.filter(e=>e.type==="부스참가").length);
-  $("exh-sched-prep", data.filter(e=>e.status==="준비중").length);
+  $("exh-sched-prep", data.filter(e=>e.status==="준비중"||e.status==="진행중").length);
   $("exh-sched-done", data.filter(e=>e.status==="완료").length);
 }
 
@@ -1988,7 +1993,7 @@ function renderExhTimeline(data) {
   }
 
   const TYPE_ICON = {부스참가:"🏪",방문참관:"👀",온라인:"💻"};
-  const STATUS_COLOR = {준비중:"var(--p)",완료:"var(--g)",취소:"var(--t3)"};
+  const STATUS_COLOR = {준비중:"var(--p)",진행중:"var(--a)",완료:"var(--g)",취소:"var(--t3)"};
   const REGION_BG = {국내:"var(--pd)",해외:"var(--ad)"};
   const REGION_C  = {국내:"var(--p)",해외:"var(--a)"};
 
@@ -2024,25 +2029,58 @@ function renderExhTimeline(data) {
     </div>`;
 }
 
+function getExhFolderName(e) {
+  // 전시회명(시작일-종료일) 형식으로 폴더명 생성
+  const name = e.name.replace(/[\\/:*?"<>|]/g,"").trim();
+  const dates = [e.start, e.end].filter(Boolean).join("-");
+  return dates ? name+"("+dates+")" : name;
+}
+
 function renderExhTable(data) {
-  const STATUS_BADGE = {준비중:"info",완료:"up",취소:"dn"};
+  const STATUS_BADGE = {준비중:"info",진행중:"warn",완료:"up",취소:"dn"};
   const TYPE_ICON = {부스참가:"🏪",방문참관:"👀",온라인:"💻"};
   document.getElementById("exhSchedBody").innerHTML = data.length
-    ? data.map((e,i)=>`<tr>
-        <td><span class="tn" style="font-size:11px">${e.name}</span>${e.source==="teams"?'<span style="font-size:9px;color:var(--p);margin-left:4px">Teams</span>':''}</td>
-        <td><span class="badge ${e.region==="국내"?"info":"warn"}" style="font-size:9px">${e.region==="국내"?"🇰🇷":"🌏"} ${e.region}</span></td>
-        <td style="font-size:11px">${TYPE_ICON[e.type]||""} ${e.type}</td>
-        <td style="font-size:10px;color:var(--t3)">${e.start||"-"}</td>
-        <td style="font-size:10px;color:var(--t3)">${e.end||"-"}</td>
-        <td style="font-size:11px">${[e.country,e.city].filter(Boolean).join(" / ")||"-"}</td>
-        <td style="font-size:10px;color:var(--t2)">${e.venue||"-"}</td>
-        <td style="font-size:11px">${e.manager||"-"}</td>
-        <td><span class="badge ${STATUS_BADGE[e.status]||"gray"}">${e.status}</span></td>
-        <td style="font-size:10px;color:var(--t3);max-width:100px;overflow:hidden;text-overflow:ellipsis">${e.note||""}</td>
-        <td><span style="font-size:10px;color:var(--p);cursor:pointer" onclick="openExhModal(exhSchedule[exhSchedule.indexOf(exhSchedule.find(x=>x.id==='${e.id}'))])">✏️</span>
-            <span style="font-size:10px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteExh('${e.id}')">🗑️</span></td>
-      </tr>`).join("")
-    : `<tr><td colspan="11"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div></td></tr>`;
+    ? data.map((e,i)=>{
+        const folderName = getExhFolderName(e);
+        const prepFiles = (e.prepFiles||[]);
+        const resultFiles = (e.resultFiles||[]);
+        return `<tr>
+          <td><span class="tn" style="font-size:11px">${e.name}</span>${e.source==="teams"?'<span style="font-size:9px;color:var(--p);margin-left:4px">Teams</span>':''}</td>
+          <td><span class="badge ${e.region==="국내"?"info":"warn"}" style="font-size:9px">${e.region==="국내"?"🇰🇷":"🌏"} ${e.region}</span></td>
+          <td style="font-size:11px">${TYPE_ICON[e.type]||""} ${e.type}</td>
+          <td style="font-size:10px;color:var(--t3)">${e.start||"-"}</td>
+          <td style="font-size:10px;color:var(--t3)">${e.end||"-"}</td>
+          <td style="font-size:11px">${[e.country,e.city].filter(Boolean).join(" / ")||"-"}</td>
+          <td style="font-size:10px;color:var(--t2)">${e.venue||"-"}</td>
+          <td style="font-size:11px">${e.manager||"-"}</td>
+          <td><span class="badge ${STATUS_BADGE[e.status]||"gray"}">${e.status||"-"}</span></td>
+          <td style="text-align:center">
+            <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+              ${prepFiles.length>0?`<span style="font-size:9px;color:var(--g);font-weight:700">${prepFiles.length}개</span>`:""}
+              <button onclick="uploadExhFile('${e.id}','prep')" title="준비 파일 업로드"
+                style="padding:2px 8px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:9px;cursor:pointer;font-weight:700;white-space:nowrap">
+                ⬆ 업로드
+              </button>
+              ${prepFiles.length>0?`<button onclick="openExhFolder('${e.id}','prep')" style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t2);font-size:9px;cursor:pointer">📂 보기</button>`:""}
+            </div>
+          </td>
+          <td style="text-align:center">
+            <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+              ${resultFiles.length>0?`<span style="font-size:9px;color:var(--g);font-weight:700">${resultFiles.length}개</span>`:""}
+              <button onclick="uploadExhFile('${e.id}','result')" title="결과 파일 업로드"
+                style="padding:2px 8px;border-radius:5px;border:1px solid var(--a);background:var(--ad);color:var(--a);font-size:9px;cursor:pointer;font-weight:700;white-space:nowrap">
+                ⬆ 업로드
+              </button>
+              ${resultFiles.length>0?`<button onclick="openExhFolder('${e.id}','result')" style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t2);font-size:9px;cursor:pointer">📂 보기</button>`:""}
+            </div>
+          </td>
+          <td>
+            <span style="font-size:10px;color:var(--p);cursor:pointer" onclick="openExhModal(exhSchedule.find(x=>x.id==='${e.id}'))">✏️</span>
+            <span style="font-size:10px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteExh('${e.id}')">🗑️</span>
+          </td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="12"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div></td></tr>`;
 }
 
 // 모달 열기/닫기
@@ -2308,6 +2346,136 @@ async function deleteTeamsCalEvent(teamsEventId) {
     });
     console.log("✅ Teams 캘린더 이벤트 삭제:", teamsEventId);
   } catch(e) { console.warn("Teams 이벤트 삭제 실패:", e.message); }
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 전시회 파일 관리 (SharePoint 폴더 연동)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// SP 드라이브 경로로 폴더 생성 (없으면 생성)
+async function ensureSPFolder(folderPath) {
+  await getIds();
+  const parts = folderPath.split("/");
+  let current = "";
+  for(const part of parts) {
+    const prev = current;
+    current = current ? current+"/"+part : part;
+    try {
+      await gGet("/drives/"+spDrive+"/root:/"+current.split("/").map(encodeURIComponent).join(":/")+":/children");
+    } catch(e) {
+      // 폴더 없으면 생성
+      try {
+        const t = await getToken();
+        const parentPath = prev ? "/drives/"+spDrive+"/root:/"+prev.split("/").map(encodeURIComponent).join(":/")+":/children"
+                                : "/drives/"+spDrive+"/root/children";
+        await fetch("https://graph.microsoft.com/v1.0"+parentPath, {
+          method:"POST",
+          headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+          body:JSON.stringify({name:part,folder:{},["@microsoft.graph.conflictBehavior"]:"ignore"})
+        });
+      } catch(ce) { /* 이미 있으면 무시 */ }
+    }
+  }
+}
+
+// 전시회 파일 업로드
+async function uploadExhFile(exhId, fileType) {
+  const evt = exhSchedule.find(e=>e.id===exhId);
+  if(!evt) return;
+
+  // 파일 선택 input 생성
+  const input = document.createElement("input");
+  input.type = "file";
+  input.multiple = true;
+  input.accept = "*/*";
+  input.onchange = async()=>{
+    const files = Array.from(input.files);
+    if(!files.length) return;
+
+    const folderName = getExhFolderName(evt);
+    const subFolder = fileType==="prep" ? "준비" : "결과";
+    const spPath = EXH_FOLDER_BASE+"/"+folderName+"/"+subFolder;
+
+    const statusEl = document.getElementById("exhSchedUpd");
+    const origTxt = statusEl?.textContent||"";
+
+    try {
+      if(statusEl) statusEl.textContent = "폴더 생성 중...";
+      // 폴더 생성 (없으면)
+      await ensureSPFolder(spPath);
+
+      // 파일 업로드
+      const t = await getToken();
+      const uploaded = [];
+      for(const file of files) {
+        if(statusEl) statusEl.textContent = "업로드 중: "+file.name+" ("+Math.round(file.size/1024)+"KB)";
+        const encoded = spPath.split("/").map(encodeURIComponent).join("/");
+        const uploadUrl = "https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+encoded+"/"+encodeURIComponent(file.name)+":/content";
+
+        // 25MB 이하는 단순 업로드
+        if(file.size < 25*1024*1024) {
+          const r = await fetch(uploadUrl, {
+            method:"PUT",
+            headers:{"Authorization":"Bearer "+t,"Content-Type":file.type||"application/octet-stream"},
+            body: file
+          });
+          if(r.ok) {
+            const data = await r.json();
+            uploaded.push({name:file.name, url:data.webUrl, size:file.size, uploadedAt:new Date().toISOString()});
+          } else {
+            throw new Error("업로드 실패: "+file.name);
+          }
+        } else {
+          throw new Error("파일이 25MB를 초과합니다: "+file.name);
+        }
+      }
+
+      // exhSchedule에 파일 정보 저장
+      const fileKey = fileType==="prep" ? "prepFiles" : "resultFiles";
+      if(!evt[fileKey]) evt[fileKey]=[];
+      evt[fileKey].push(...uploaded);
+
+      // SP exhibitions.json 업데이트
+      await saveExhToSP();
+      renderExhSched();
+
+      if(statusEl) statusEl.textContent = "✅ "+uploaded.length+"개 파일 업로드 완료 ("+subFolder+" 폴더)";
+      alert("✅ "+uploaded.length+"개 파일이 업로드됐어요!\n폴더: "+spPath);
+    } catch(e) {
+      console.error("파일 업로드 실패:", e);
+      if(statusEl) statusEl.textContent = origTxt;
+      alert("업로드 실패: "+e.message);
+    }
+  };
+  input.click();
+}
+
+// SP 폴더 열기 (브라우저에서 SharePoint 폴더로 이동)
+async function openExhFolder(exhId, fileType) {
+  const evt = exhSchedule.find(e=>e.id===exhId);
+  if(!evt) return;
+  const folderName = getExhFolderName(evt);
+  const subFolder = fileType==="prep" ? "준비" : "결과";
+  // SharePoint 웹 URL 생성
+  const spBaseUrl = "https://enjetco.sharepoint.com/sites/06.BackOffice/Shared%20Documents/";
+  const folderPath = encodeURIComponent("📦영업/6. 마케팅/전시회/"+folderName+"/"+subFolder).replace(/%2F/g,"/");
+  window.open(spBaseUrl+folderPath, "_blank");
+}
+
+// 파일 목록 모달 표시
+function showExhFiles(exhId, fileType) {
+  const evt = exhSchedule.find(e=>e.id===exhId);
+  if(!evt) return;
+  const fileKey = fileType==="prep" ? "prepFiles" : "resultFiles";
+  const files = evt[fileKey]||[];
+  const label = fileType==="prep" ? "준비" : "결과";
+  if(!files.length) {
+    alert("아직 "+label+" 파일이 없어요. ⬆ 업로드 버튼으로 추가하세요.");
+    return;
+  }
+  const list = files.map(f=>`📄 ${f.name} (${Math.round(f.size/1024)}KB) - ${f.uploadedAt?.substring(0,10)||""}`).join("\n");
+  alert("📁 "+evt.name+" - "+label+" 파일 ("+files.length+"개)\n\n"+list+"\n\n SharePoint에서 직접 보려면 📂 보기 클릭");
 }
 
 async function deleteExh(id) {
