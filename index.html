@@ -9,1141 +9,799 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:#f4f6fa; --bg2:#ffffff; --bg3:#eef1f6; --card:#ffffff; --card2:#e4e9f2;
-  --border:rgba(0,0,0,0.07); --border2:rgba(0,0,0,0.13);
-  --primary:#1a6fd4; --primary-dim:rgba(26,111,212,0.08);
-  --green:#00875a; --green-dim:rgba(0,135,90,0.08);
-  --accent:#d95f00; --accent-dim:rgba(217,95,0,0.08);
-  --red:#c8201e; --red-dim:rgba(200,32,30,0.08);
-  --yellow:#9a6400; --yellow-dim:rgba(154,100,0,0.09);
-  --purple:#6b35b8; --purple-dim:rgba(107,53,184,0.08);
-  --text:#111827; --text2:#4b5563; --text3:#9ca3af;
-  --mono:'JetBrains Mono',monospace; --sans:'Pretendard',sans-serif;
-}
+:root{--bg:#f4f6fa;--bg2:#fff;--bg3:#eef1f6;--card:#fff;--card2:#e4e9f2;--border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.13);--primary:#1a6fd4;--primary-dim:rgba(26,111,212,0.08);--green:#00875a;--green-dim:rgba(0,135,90,0.08);--accent:#d95f00;--accent-dim:rgba(217,95,0,0.08);--red:#c8201e;--red-dim:rgba(200,32,30,0.08);--yellow:#9a6400;--yellow-dim:rgba(154,100,0,0.09);--text:#111827;--text2:#4b5563;--text3:#9ca3af;--mono:'JetBrains Mono',monospace;--sans:'Pretendard',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
-
-/* ── LAYOUT ── */
 .layout{display:flex;min-height:100vh;}
-
-/* ── SIDEBAR ── */
-.sidebar{width:210px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0;overflow-y:auto;}
-.sb-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);}
-.sb-logo-mark{font-size:18px;font-weight:900;color:var(--primary);letter-spacing:3px;font-family:var(--mono);}
-.sb-logo-sub{font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
-.sb-sync{display:flex;align-items:center;gap:6px;padding:8px 18px;border-bottom:1px solid var(--border);font-size:10px;color:var(--text3);}
-.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:pulse 2s infinite;}
-.sync-dot.live{background:var(--green);}
-.sync-dot.loading{background:var(--yellow);animation:spin-dot 1s linear infinite;}
+.sidebar{width:200px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0;}
+.sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);}
+.sb-logo-mark{font-size:17px;font-weight:900;color:var(--primary);letter-spacing:3px;font-family:var(--mono);}
+.sb-logo-sub{font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.sb-sync{display:flex;align-items:center;gap:6px;padding:7px 16px;border-bottom:1px solid var(--border);font-size:10px;color:var(--text3);}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);}
+.sync-dot.live{background:var(--green);animation:pulse 2s infinite;}
+.sync-dot.loading{background:var(--yellow);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-@keyframes spin-dot{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}
-.sb-nav{padding:10px 10px;flex:1;}
-.sb-sec{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);padding:12px 8px 4px;font-weight:700;}
-.nav-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s;font-weight:500;margin-bottom:1px;border:1px solid transparent;}
-.nav-item:hover{background:var(--bg3);color:var(--text);}
-.nav-item.active{background:var(--primary-dim);color:var(--primary);border-color:rgba(26,111,212,0.15);font-weight:700;}
-.nav-badge{margin-left:auto;font-size:9px;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:700;background:var(--red-dim);color:var(--red);}
-.sb-footer{padding:12px 18px;border-top:1px solid var(--border);}
-.sb-time{font-size:10px;color:var(--text3);font-family:var(--mono);}
-
-/* ── MAIN ── */
+.sb-nav{padding:10px;flex:1;overflow-y:auto;}
+.sb-sec{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);padding:10px 8px 4px;font-weight:700;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s;font-weight:500;margin-bottom:1px;}
+.nav-item:hover{background:var(--bg3);}
+.nav-item.active{background:var(--primary-dim);color:var(--primary);font-weight:700;}
+.nav-badge{margin-left:auto;font-size:9px;padding:1px 5px;border-radius:6px;font-family:var(--mono);font-weight:700;background:var(--red-dim);color:var(--red);}
+.sb-footer{padding:10px 16px;border-top:1px solid var(--border);}
 .main{flex:1;display:flex;flex-direction:column;min-width:0;}
-
-/* ── TOPBAR ── */
-.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:11px 22px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
 .tb-title{font-size:14px;font-weight:800;color:var(--text);}
 .tb-spacer{flex:1;}
-.tb-auth{display:flex;align-items:center;gap:8px;}
-.auth-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;}
-.auth-status.logged-in{color:var(--green);}
-.auth-status.logged-out{color:var(--text3);}
+.auth-status{font-size:11px;font-weight:600;}
+.auth-status.ok{color:var(--green);}
 .auth-status.loading{color:var(--yellow);}
-.btn-logout{display:none;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--sans);}
-.btn-logout:hover{background:var(--red-dim);color:var(--red);border-color:var(--red);}
-.btn-refresh{padding:5px 12px;border-radius:6px;border:1px solid var(--primary);background:var(--primary-dim);font-size:11px;color:var(--primary);cursor:pointer;font-family:var(--sans);font-weight:700;display:none;}
-.btn-refresh:hover{background:var(--primary);color:#fff;}
-
-/* ── CONTENT ── */
-.content{padding:18px 22px;flex:1;}
+.btn-sm{padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--sans);font-weight:600;transition:all .15s;display:none;}
+.btn-sm.primary{background:var(--primary-dim);border-color:var(--primary);color:var(--primary);}
+.content{padding:16px 20px;flex:1;}
 .page{display:none;}
 .page.active{display:block;}
-
-/* ── LOADING OVERLAY ── */
-.loading-overlay{display:none;position:fixed;inset:0;background:rgba(244,246,250,0.85);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
-.loading-overlay.show{display:flex;}
-.loading-spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-text{font-size:13px;color:var(--text2);font-weight:600;}
-
-/* ── LOGIN MODAL ── */
-.login-modal{position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+/* LOGIN */
+.login-modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
 .login-modal.hidden{display:none;}
-.login-box{background:#fff;border-radius:16px;padding:40px;width:420px;max-width:90vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
-.login-logo{font-size:24px;font-weight:900;color:var(--primary);letter-spacing:3px;font-family:var(--mono);margin-bottom:6px;}
-.login-sub{color:var(--text3);font-size:12px;margin-bottom:24px;}
-.login-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px;}
-.login-desc{color:var(--text2);font-size:13px;line-height:1.6;margin-bottom:24px;}
-.btn-ms{background:#2f2f2f;color:#fff;border:none;width:100%;padding:13px;font-size:14px;font-weight:600;font-family:var(--sans);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .18s;}
+.login-box{background:#fff;border-radius:16px;padding:40px;width:400px;max-width:90vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.login-logo{font-size:22px;font-weight:900;color:var(--primary);letter-spacing:3px;font-family:var(--mono);margin-bottom:4px;}
+.login-sub{color:var(--text3);font-size:12px;margin-bottom:22px;}
+.login-title{font-size:15px;font-weight:700;margin-bottom:10px;}
+.login-desc{color:var(--text2);font-size:12px;line-height:1.6;margin-bottom:22px;}
+.btn-ms{background:#2f2f2f;color:#fff;border:none;width:100%;padding:13px;font-size:13px;font-weight:600;font-family:var(--sans);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .18s;}
 .btn-ms:hover{background:#111;}
 .btn-ms:disabled{background:#999;cursor:not-allowed;}
 .ms-logo{width:20px;height:20px;background-image:linear-gradient(to right,#f25022 50%,#7fba00 50%),linear-gradient(to right,#00a4ef 50%,#ffb900 50%);background-size:100% 50%;background-repeat:no-repeat;background-position:top,bottom;}
-.login-footer{margin-top:18px;font-size:11px;color:var(--text3);line-height:1.6;}
-
-/* ── KPI ── */
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
-.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;}
+.login-footer{margin-top:16px;font-size:10px;color:var(--text3);line-height:1.6;}
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
 .kpi.c1::before{background:var(--primary);}
 .kpi.c2::before{background:var(--green);}
 .kpi.c3::before{background:var(--red);}
 .kpi.c4::before{background:var(--accent);}
-.kpi.c5::before{background:var(--purple);}
-.kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px;}
-.kpi-val{font-size:24px;font-weight:900;font-family:var(--mono);line-height:1;margin-bottom:6px;}
+.kpi-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:7px;}
+.kpi-val{font-size:22px;font-weight:900;font-family:var(--mono);line-height:1;margin-bottom:5px;}
 .kpi.c1 .kpi-val{color:var(--primary);}
 .kpi.c2 .kpi-val{color:var(--green);}
 .kpi.c3 .kpi-val{color:var(--red);}
 .kpi.c4 .kpi-val{color:var(--accent);}
-.kpi.c5 .kpi-val{color:var(--purple);}
 .kpi-sub{font-size:10px;color:var(--text3);}
 .badge{font-size:9px;padding:2px 6px;border-radius:5px;font-weight:800;font-family:var(--mono);display:inline-block;}
 .badge.up{background:var(--green-dim);color:var(--green);}
-.badge.down{background:var(--red-dim);color:var(--red);}
+.badge.dn{background:var(--red-dim);color:var(--red);}
 .badge.warn{background:var(--yellow-dim);color:var(--yellow);}
 .badge.info{background:var(--primary-dim);color:var(--primary);}
-
-/* ── GRID ── */
-.g2{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-bottom:12px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
-.g2b{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
-
-/* ── CARD ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;}
-.card-hd{padding:13px 18px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.card-title{font-size:12px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:7px;}
-.card-ico{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.g2{display:grid;grid-template-columns:1.5fr 1fr;gap:10px;margin-bottom:10px;}
+.g2b{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;}
+.card-hd{padding:11px 16px 9px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.card-title{font-size:12px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:6px;}
+.card-ico{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;}
 .card-ico.c1{background:var(--primary-dim);color:var(--primary);}
 .card-ico.c2{background:var(--green-dim);color:var(--green);}
 .card-ico.c3{background:var(--red-dim);color:var(--red);}
 .card-ico.c4{background:var(--accent-dim);color:var(--accent);}
-.card-ico.c5{background:var(--purple-dim);color:var(--purple);}
-.card-act{font-size:10px;color:var(--primary);cursor:pointer;font-weight:700;}
-.card-bd{padding:14px 18px;}
-.card-note{font-size:9px;color:var(--text3);padding:6px 18px;border-top:1px solid var(--border);background:var(--bg3);}
-
-/* ── TABLE ── */
+.card-note{font-size:9px;color:var(--text3);padding:5px 16px;border-top:1px solid var(--border);background:var(--bg3);}
+.card-bd{padding:12px 16px;}
+/* PERIOD */
+.period-bar{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;margin-bottom:12px;flex-wrap:wrap;}
+.period-label{font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;}
+.period-pills{display:flex;gap:4px;flex-wrap:wrap;}
+.ppill-wrap{position:relative;}
+.ppill{padding:4px 11px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;border:1.5px solid var(--border2);background:transparent;color:var(--text2);white-space:nowrap;}
+.ppill.active,.ppill.has-sel{background:var(--primary);color:#fff;border-color:var(--primary);}
+.ppill:hover:not(.active):not(.has-sel){border-color:var(--primary);color:var(--primary);}
+.drop-menu{display:none;position:absolute;top:calc(100% + 5px);left:0;background:#fff;border:1px solid var(--border2);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;min-width:140px;max-height:260px;overflow-y:auto;padding:5px 0;}
+.drop-menu.open{display:block;}
+.drop-sec{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:7px 12px 3px;}
+.drop-item{font-size:11px;color:var(--text2);padding:6px 12px;cursor:pointer;transition:background .1s;white-space:nowrap;}
+.drop-item:hover,.drop-item.sel{background:var(--primary-dim);color:var(--primary);}
+.period-range{margin-left:auto;font-size:10px;color:var(--text3);font-family:var(--mono);}
+/* TABLE */
 .tbl-wrap{overflow-x:auto;}
 .tbl{width:100%;border-collapse:collapse;}
-.tbl th{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;padding:0 8px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.tbl th{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;padding:0 8px 7px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
 .tbl th.r{text-align:right;}
-.tbl td{padding:9px 8px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;}
+.tbl td{padding:8px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;}
 .tbl tr:last-child td{border-bottom:none;}
 .tbl tr:hover td{background:var(--bg3);}
-.tbl-name{color:var(--text);font-weight:700;font-size:12px;}
-.tbl-mono{font-family:var(--mono);font-weight:600;}
-.tbl-mono.blue{color:var(--primary);}
-.tbl-mono.green{color:var(--green);}
-.tbl-mono.red{color:var(--red);}
-
-/* ── BAR LIST ── */
-.bar-list{display:flex;flex-direction:column;gap:9px;}
-.bar-item{display:flex;align-items:center;gap:10px;}
-.bar-rank{font-size:10px;font-family:var(--mono);color:var(--text3);width:18px;text-align:center;font-weight:700;}
+.tbl-name{color:var(--text);font-weight:700;}
+.tm{font-family:var(--mono);font-weight:600;}
+.tm.b{color:var(--primary);}
+.tm.g{color:var(--green);}
+.tm.r{color:var(--red);}
+/* BAR */
+.bar-list{display:flex;flex-direction:column;gap:8px;}
+.bar-item{display:flex;align-items:center;gap:9px;}
+.bar-rank{font-size:10px;font-family:var(--mono);color:var(--text3);width:18px;text-align:center;font-weight:700;flex-shrink:0;}
 .bar-rank.top{color:var(--yellow);}
 .bar-info{flex:1;min-width:0;}
 .bar-name{font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.bar-row{display:flex;align-items:center;gap:7px;}
+.bar-row{display:flex;align-items:center;gap:6px;}
 .bar-bg{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;}
-.bar-fill{height:100%;border-radius:3px;transition:width .8s ease;}
+.bar-fill{height:100%;border-radius:3px;transition:width .6s ease;}
 .bar-val{font-family:var(--mono);font-size:10px;color:var(--text2);white-space:nowrap;}
-
-/* ── PIPELINE ── */
-.pipe-list{display:flex;flex-direction:column;}
-.pipe-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
-.pipe-item:last-child{border-bottom:none;}
-.pipe-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.pipe-info{flex:1;min-width:0;}
-.pipe-company{font-size:11px;font-weight:700;color:var(--text);}
-.pipe-desc{font-size:10px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pipe-right{text-align:right;}
-.pipe-amt{font-family:var(--mono);font-size:11px;color:var(--text);font-weight:700;}
-.pipe-status{font-size:9px;margin-top:2px;}
-
-/* ── CONTACT CARD ── */
-.contact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
-.contact-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;transition:border-color .15s;}
-.contact-card:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(26,111,212,0.1);}
-.contact-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;}
-.contact-company{font-size:11px;color:var(--primary);font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.contact-role{font-size:10px;color:var(--text2);margin-bottom:4px;}
-.contact-info{font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:2px;}
-.contact-tag{display:inline-block;font-size:9px;padding:2px 6px;border-radius:4px;background:var(--primary-dim);color:var(--primary);font-weight:700;margin-top:5px;}
-
-/* ── SEARCH ── */
-.search-bar{display:flex;gap:8px;margin-bottom:14px;}
-.search-input{flex:1;padding:8px 14px;border:1px solid var(--border2);border-radius:8px;font-family:var(--sans);font-size:12px;background:var(--bg2);color:var(--text);}
-.search-input:focus{outline:none;border-color:var(--primary);}
-.search-select{padding:8px 12px;border:1px solid var(--border2);border-radius:8px;font-family:var(--sans);font-size:12px;background:var(--bg2);color:var(--text);cursor:pointer;}
-
-/* ── PERIOD BAR ── */
-.period-bar{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;margin-bottom:14px;flex-wrap:wrap;}
-.period-label{font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;}
-.period-pills{display:flex;gap:4px;flex-wrap:wrap;}
-.ppill{padding:4px 12px;border-radius:16px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;border:1.5px solid var(--border2);background:transparent;color:var(--text2);}
-.ppill.active{background:var(--primary);color:#fff;border-color:var(--primary);}
-.ppill:hover:not(.active){border-color:var(--primary);color:var(--primary);}
-.period-range{margin-left:auto;font-size:10px;color:var(--text3);font-family:var(--mono);}
-
-/* ── UNPAID LIST ── */
-.unpaid-list{display:flex;flex-direction:column;gap:7px;}
-.unpaid-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);}
+/* CONTACT */
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;}
+.ccard{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;}
+.ccard:hover{border-color:var(--primary);}
+.ccard-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.ccard-company{font-size:11px;color:var(--primary);font-weight:600;margin-bottom:5px;}
+.ccard-role{font-size:10px;color:var(--text2);margin-bottom:4px;}
+.ccard-info{font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:1px;}
+.ctag{display:inline-block;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700;margin-top:4px;}
+.company-list{display:flex;flex-direction:column;gap:5px;}
+.company-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color .15s;}
+.company-item:hover{border-color:var(--primary);}
+.company-item.sel{border-color:var(--primary);background:var(--primary-dim);}
+.co-ico{width:34px;height:34px;border-radius:7px;background:var(--primary-dim);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;flex-shrink:0;}
+.co-info{flex:1;min-width:0;}
+.co-name{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.co-meta{font-size:10px;color:var(--text3);}
+.co-cnt{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--primary);}
+/* UNPAID */
+.unpaid-list{display:flex;flex-direction:column;gap:6px;}
+.unpaid-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);}
 .unpaid-rank{font-size:10px;font-family:var(--mono);color:var(--text3);width:18px;font-weight:700;}
 .unpaid-rank.top{color:var(--red);}
 .unpaid-info{flex:1;min-width:0;}
-.unpaid-name{font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.unpaid-rate{font-size:10px;color:var(--text3);margin-top:2px;}
-.unpaid-bar-bg{width:50px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden;}
+.unpaid-name{font-size:11px;font-weight:700;color:var(--text);}
+.unpaid-rate{font-size:10px;color:var(--text3);margin-top:1px;}
+.unpaid-bar-bg{width:48px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden;}
 .unpaid-bar-fill{height:100%;border-radius:2px;background:var(--green);}
-.unpaid-amt{font-family:var(--mono);font-size:12px;font-weight:700;white-space:nowrap;}
-
-/* ── EMPTY STATE ── */
-.empty-state{text-align:center;padding:60px 20px;color:var(--text3);}
-.empty-icon{font-size:40px;margin-bottom:12px;}
-.empty-title{font-size:14px;font-weight:700;color:var(--text2);margin-bottom:6px;}
-.empty-desc{font-size:12px;line-height:1.6;}
-
+.unpaid-amt{font-family:var(--mono);font-size:12px;font-weight:700;}
+.s-bar{display:flex;gap:7px;margin-bottom:10px;}
+.s-inp{flex:1;padding:7px 12px;border:1px solid var(--border2);border-radius:7px;font-family:var(--sans);font-size:12px;background:var(--bg2);color:var(--text);}
+.s-inp:focus{outline:none;border-color:var(--primary);}
+.s-sel{padding:7px 10px;border:1px solid var(--border2);border-radius:7px;font-family:var(--sans);font-size:12px;background:var(--bg2);color:var(--text);cursor:pointer;}
+.empty{text-align:center;padding:40px 20px;color:var(--text3);}
+.empty-icon{font-size:36px;margin-bottom:10px;}
+.empty-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:5px;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:var(--card2);border-radius:2px;}
 </style>
 </head>
 <body>
 
-<!-- 로그인 모달 -->
 <div class="login-modal" id="loginModal">
   <div class="login-box">
     <div class="login-logo">ENJET</div>
     <div class="login-sub">영업 대시보드</div>
     <div class="login-title">🔒 접근 권한 인증 필요</div>
-    <div class="login-desc">
-      ENJET 영업·관리팀 전용 대시보드입니다.<br>
-      Microsoft 365 계정으로 로그인해 주세요.
-    </div>
-    <button class="btn-ms" id="btnLogin">
-      <div class="ms-logo"></div>
-      Microsoft 계정으로 로그인
-    </button>
-    <div class="login-footer">
-      🔒 ENJET 조직 계정만 접근 가능합니다.<br>
-      SharePoint 데이터가 자동으로 동기화됩니다.
-    </div>
+    <div class="login-desc">ENJET 영업·관리팀 전용입니다.<br>Microsoft 365 계정으로 로그인해 주세요.</div>
+    <button class="btn-ms" id="btnLogin"><div class="ms-logo"></div>Microsoft 계정으로 로그인</button>
+    <div class="login-footer">🔒 ENJET 조직 계정만 접근 가능 · SharePoint 자동 연동</div>
   </div>
 </div>
 
-<!-- 로딩 오버레이 -->
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="loading-spinner"></div>
-  <div class="loading-text" id="loadingText">SharePoint에서 데이터 로딩 중...</div>
-</div>
-
-<!-- 메인 레이아웃 -->
 <div class="layout" id="mainLayout" style="display:none;">
-
-  <!-- 사이드바 -->
   <aside class="sidebar">
-    <div class="sb-logo">
-      <div class="sb-logo-mark">ENJET</div>
-      <div class="sb-logo-sub">Sales Dashboard</div>
-    </div>
-    <div class="sb-sync">
-      <span class="sync-dot" id="syncDot"></span>
-      <span id="syncStatus">연결 중...</span>
-    </div>
+    <div class="sb-logo"><div class="sb-logo-mark">ENJET</div><div class="sb-logo-sub">Sales Dashboard</div></div>
+    <div class="sb-sync"><span class="sync-dot" id="syncDot"></span><span id="syncStatus" style="font-size:10px">연결 중...</span></div>
     <nav class="sb-nav">
       <div class="sb-sec">영업</div>
       <div class="nav-item active" onclick="switchTab('sales',this)">📊 매출 현황</div>
-      <div class="nav-item" onclick="switchTab('cashflow',this)">💰 현금흐름 <span class="nav-badge" id="badge-unpaid"></span></div>
-      <div class="nav-item" onclick="switchTab('pipeline',this)">🔄 파이프라인 <span class="nav-badge" id="badge-pipeline"></span></div>
-      <div class="nav-item" onclick="switchTab('customer',this)">🏭 고객사 관리 <span class="nav-badge" id="badge-customer"></span></div>
+      <div class="nav-item" onclick="switchTab('cashflow',this)">💰 현금흐름 <span class="nav-badge">10.4억</span></div>
+      <div class="nav-item" onclick="switchTab('customer',this)">🏭 고객사 관리 <span class="nav-badge" id="badge-ct"></span></div>
       <div class="sb-sec">마케팅</div>
       <div class="nav-item" onclick="switchTab('marketing',this)">📣 마케팅 활동</div>
       <div class="nav-item" onclick="switchTab('meeting',this)">📝 미팅 로그</div>
     </nav>
     <div class="sb-footer">
-      <div class="sb-time" id="clock">--:--:--</div>
-      <div style="font-size:9px;color:var(--text3);margin-top:2px;" id="lastSync">마지막 동기화: -</div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono)" id="clock">--:--:--</div>
+      <div style="font-size:9px;color:var(--text3);margin-top:2px" id="lastSync">SharePoint 미연동</div>
     </div>
   </aside>
 
-  <!-- 메인 -->
   <div class="main">
     <div class="topbar">
       <div class="tb-title" id="pageTitle">📊 매출 현황</div>
       <div class="tb-spacer"></div>
-      <button class="btn-refresh" id="btnRefresh" onclick="syncData()">🔄 데이터 새로고침</button>
-      <div class="tb-auth">
-        <span class="auth-status loading" id="authStatus">
-          <span>● 확인 중...</span>
-        </span>
-        <button class="btn-logout" id="btnLogout">로그아웃</button>
-      </div>
+      <button class="btn-sm primary" id="btnRefresh" onclick="syncData()">🔄 새로고침</button>
+      <div class="auth-status loading" id="authStatus">● 확인 중...</div>
+      <button class="btn-sm" id="btnLogout">로그아웃</button>
     </div>
 
     <div class="content">
 
-      <!-- ━━ 매출 현황 탭 ━━ -->
-      <div class="page active" id="tab-sales">
-        <div class="period-bar">
-          <div class="period-label">📅 조회 기간</div>
-          <div class="period-pills">
-            <div class="ppill" onclick="setPeriod('monthly',this)">월간</div>
-            <div class="ppill" onclick="setPeriod('quarterly',this)">분기</div>
-            <div class="ppill active" onclick="setPeriod('annual',this)">연간</div>
-            <div class="ppill" onclick="setPeriod('total',this)">전체누적</div>
+    <!-- 매출 현황 -->
+    <div class="page active" id="tab-sales">
+      <div class="period-bar">
+        <div class="period-label">📅 조회 기간</div>
+        <div class="period-pills">
+          <div class="ppill-wrap">
+            <div class="ppill" id="ppill-monthly" onclick="toggleDrop('monthly',this)">월간 ▾</div>
+            <div class="drop-menu" id="drop-monthly">
+              <div class="drop-sec">2026</div>
+              <div class="drop-item" onclick="selP('monthly',2026,4,'2026년 4월',this)">4월</div>
+              <div class="drop-item" onclick="selP('monthly',2026,3,'2026년 3월',this)">3월</div>
+              <div class="drop-item" onclick="selP('monthly',2026,2,'2026년 2월',this)">2월</div>
+              <div class="drop-item" onclick="selP('monthly',2026,1,'2026년 1월',this)">1월</div>
+              <div class="drop-sec">2025</div>
+              <div class="drop-item" onclick="selP('monthly',2025,12,'2025년 12월',this)">12월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,11,'2025년 11월',this)">11월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,10,'2025년 10월',this)">10월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,9,'2025년 9월',this)">9월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,8,'2025년 8월',this)">8월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,7,'2025년 7월',this)">7월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,6,'2025년 6월',this)">6월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,5,'2025년 5월',this)">5월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,4,'2025년 4월',this)">4월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,3,'2025년 3월',this)">3월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,2,'2025년 2월',this)">2월</div>
+              <div class="drop-item" onclick="selP('monthly',2025,1,'2025년 1월',this)">1월</div>
+              <div class="drop-sec">2024</div>
+              <div class="drop-item" onclick="selP('monthly',2024,12,'2024년 12월',this)">12월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,11,'2024년 11월',this)">11월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,10,'2024년 10월',this)">10월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,9,'2024년 9월',this)">9월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,8,'2024년 8월',this)">8월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,7,'2024년 7월',this)">7월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,6,'2024년 6월',this)">6월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,5,'2024년 5월',this)">5월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,4,'2024년 4월',this)">4월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,3,'2024년 3월',this)">3월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,2,'2024년 2월',this)">2월</div>
+              <div class="drop-item" onclick="selP('monthly',2024,1,'2024년 1월',this)">1월</div>
+              <div class="drop-sec">2023</div>
+              <div class="drop-item" onclick="selP('monthly',2023,12,'2023년 12월',this)">12월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,11,'2023년 11월',this)">11월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,10,'2023년 10월',this)">10월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,9,'2023년 9월',this)">9월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,8,'2023년 8월',this)">8월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,7,'2023년 7월',this)">7월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,6,'2023년 6월',this)">6월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,5,'2023년 5월',this)">5월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,4,'2023년 4월',this)">4월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,3,'2023년 3월',this)">3월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,2,'2023년 2월',this)">2월</div>
+              <div class="drop-item" onclick="selP('monthly',2023,1,'2023년 1월',this)">1월</div>
+            </div>
           </div>
-          <div class="period-range" id="periodRange">2026년 기준</div>
+          <div class="ppill-wrap">
+            <div class="ppill" id="ppill-quarterly" onclick="toggleDrop('quarterly',this)">분기 ▾</div>
+            <div class="drop-menu" id="drop-quarterly">
+              <div class="drop-sec">2026</div>
+              <div class="drop-item" onclick="selP('quarterly',2026,4,'2026 Q4',this)">Q4 (10~12월)</div>
+              <div class="drop-item" onclick="selP('quarterly',2026,3,'2026 Q3',this)">Q3 (7~9월)</div>
+              <div class="drop-item" onclick="selP('quarterly',2026,2,'2026 Q2',this)">Q2 (4~6월)</div>
+              <div class="drop-item" onclick="selP('quarterly',2026,1,'2026 Q1',this)">Q1 (1~3월)</div>
+              <div class="drop-sec">2025</div>
+              <div class="drop-item" onclick="selP('quarterly',2025,4,'2025 Q4',this)">Q4</div>
+              <div class="drop-item" onclick="selP('quarterly',2025,3,'2025 Q3',this)">Q3</div>
+              <div class="drop-item" onclick="selP('quarterly',2025,2,'2025 Q2',this)">Q2</div>
+              <div class="drop-item" onclick="selP('quarterly',2025,1,'2025 Q1',this)">Q1</div>
+              <div class="drop-sec">2024</div>
+              <div class="drop-item" onclick="selP('quarterly',2024,4,'2024 Q4',this)">Q4</div>
+              <div class="drop-item" onclick="selP('quarterly',2024,3,'2024 Q3',this)">Q3</div>
+              <div class="drop-item" onclick="selP('quarterly',2024,2,'2024 Q2',this)">Q2</div>
+              <div class="drop-item" onclick="selP('quarterly',2024,1,'2024 Q1',this)">Q1</div>
+              <div class="drop-sec">2023</div>
+              <div class="drop-item" onclick="selP('quarterly',2023,4,'2023 Q4',this)">Q4</div>
+              <div class="drop-item" onclick="selP('quarterly',2023,3,'2023 Q3',this)">Q3</div>
+              <div class="drop-item" onclick="selP('quarterly',2023,2,'2023 Q2',this)">Q2</div>
+              <div class="drop-item" onclick="selP('quarterly',2023,1,'2023 Q1',this)">Q1</div>
+            </div>
+          </div>
+          <div class="ppill-wrap">
+            <div class="ppill" id="ppill-half" onclick="toggleDrop('half',this)">반기 ▾</div>
+            <div class="drop-menu" id="drop-half">
+              <div class="drop-sec">2026</div>
+              <div class="drop-item" onclick="selP('half',2026,2,'2026 하반기',this)">하반기</div>
+              <div class="drop-item" onclick="selP('half',2026,1,'2026 상반기',this)">상반기</div>
+              <div class="drop-sec">2025</div>
+              <div class="drop-item" onclick="selP('half',2025,2,'2025 하반기',this)">하반기</div>
+              <div class="drop-item" onclick="selP('half',2025,1,'2025 상반기',this)">상반기</div>
+              <div class="drop-sec">2024</div>
+              <div class="drop-item" onclick="selP('half',2024,2,'2024 하반기',this)">하반기</div>
+              <div class="drop-item" onclick="selP('half',2024,1,'2024 상반기',this)">상반기</div>
+              <div class="drop-sec">2023</div>
+              <div class="drop-item" onclick="selP('half',2023,2,'2023 하반기',this)">하반기</div>
+              <div class="drop-item" onclick="selP('half',2023,1,'2023 상반기',this)">상반기</div>
+            </div>
+          </div>
+          <div class="ppill-wrap">
+            <div class="ppill" id="ppill-annual" onclick="toggleDrop('annual',this)">연간 ▾</div>
+            <div class="drop-menu" id="drop-annual">
+              <div class="drop-item" onclick="selP('annual',2026,0,'2026년 연간',this)">2026년 (~4월)</div>
+              <div class="drop-item" onclick="selP('annual',2025,0,'2025년 연간',this)">2025년</div>
+              <div class="drop-item" onclick="selP('annual',2024,0,'2024년 연간',this)">2024년</div>
+              <div class="drop-item" onclick="selP('annual',2023,0,'2023년 연간',this)">2023년</div>
+            </div>
+          </div>
+          <div class="ppill active" id="ppill-total" onclick="selP('total',0,0,'전체 누적 (2023~2026)',this)">전체누적</div>
         </div>
+        <div class="period-range" id="periodRange">전체 누적 (2023~2026)</div>
+      </div>
 
-        <div class="kpi-row">
-          <div class="kpi c1">
-            <div class="kpi-label">공급가액 (매출기록부)</div>
-            <div class="kpi-val"><span id="kpi-tax">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
-            <div class="kpi-sub"><span class="badge info" id="kpi-tax-badge">2026</span> <span id="kpi-tax-sub">로딩중</span></div>
-          </div>
-          <div class="kpi c2">
-            <div class="kpi-label">입금 완료</div>
-            <div class="kpi-val"><span id="kpi-income">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
-            <div class="kpi-sub"><span class="badge up">수금률</span> <span id="kpi-rate">-%</span></div>
-          </div>
-          <div class="kpi c3">
-            <div class="kpi-label">미수금 (잔금)</div>
-            <div class="kpi-val"><span id="kpi-unpaid">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
-            <div class="kpi-sub"><span class="badge warn">수금 필요</span></div>
-          </div>
-          <div class="kpi c4">
-            <div class="kpi-label">진행중 프로젝트</div>
-            <div class="kpi-val"><span id="kpi-proj">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">건</span></div>
-            <div class="kpi-sub"><span id="kpi-proj-amt">-억</span></div>
-          </div>
+      <div class="kpi-row">
+        <div class="kpi c1"><div class="kpi-label">공급가액</div><div class="kpi-val"><span id="kpi-tax">825.7</span><span style="font-size:12px;color:var(--text2)">억</span></div><div class="kpi-sub"><span class="badge info" id="kpi-badge">전체누적</span></div></div>
+        <div class="kpi c2"><div class="kpi-label">입금 완료</div><div class="kpi-val"><span id="kpi-income">273.2</span><span style="font-size:12px;color:var(--text2)">억</span></div><div class="kpi-sub">수금률 <span id="kpi-rate">33.1%</span></div></div>
+        <div class="kpi c3"><div class="kpi-label">잔금 (미수금)</div><div class="kpi-val"><span id="kpi-unpaid">11.6</span><span style="font-size:12px;color:var(--text2)">억</span></div><div class="kpi-sub"><span class="badge warn">수금 필요</span></div></div>
+        <div class="kpi c4"><div class="kpi-label">국내 / 해외</div><div class="kpi-val"><span id="kpi-dom">-</span><span style="font-size:12px;color:var(--text2)"> / </span><span id="kpi-intl">-</span><span style="font-size:12px;color:var(--text2)">억</span></div><div class="kpi-sub" id="kpi-domintl-sub">전체기준</div></div>
+      </div>
+
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><div class="card-title"><div class="card-ico c1">📈</div>연도별 매출 추이</div></div>
+          <div class="card-bd"><div style="height:210px"><canvas id="yearlyChart"></canvas></div></div>
+          <div class="card-note">※ 매출기록부 공급가액 기준</div>
         </div>
-
-        <div class="g2">
-          <div class="card">
-            <div class="card-hd">
-              <div class="card-title"><div class="card-ico c1">📈</div>연도별 매출 (감사보고서 기준)</div>
-            </div>
-            <div class="card-bd">
-              <div style="height:220px"><canvas id="yearlyChart"></canvas></div>
-            </div>
-            <div class="card-note">※ 2023~2025 감사보고서 확정 · 2026 매출기록부 기준</div>
-          </div>
-          <div class="card">
-            <div class="card-hd">
-              <div class="card-title"><div class="card-ico c2">🏆</div>2026 고객사별 매출 TOP8</div>
-            </div>
-            <div class="card-bd">
-              <div class="bar-list" id="customerBarList">
-                <div class="empty-state"><div class="empty-icon">📊</div><div class="empty-desc">데이터 로딩 중...</div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="g2b">
-          <div class="card">
-            <div class="card-hd">
-              <div class="card-title"><div class="card-ico c3">📅</div>2026 월별 매출</div>
-            </div>
-            <div class="card-bd">
-              <div style="height:200px"><canvas id="monthlyChart"></canvas></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-hd">
-              <div class="card-title"><div class="card-ico c4">🍩</div>2026 제품구분별</div>
-            </div>
-            <div class="card-bd">
-              <div style="height:200px"><canvas id="typeChart"></canvas></div>
-            </div>
-          </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-title"><div class="card-ico c2">🏆</div>고객사별 매출 <span id="bar-label" style="font-size:10px;color:var(--text3);font-weight:400;margin-left:3px">전체</span></div></div>
+          <div class="card-bd"><div class="bar-list" id="custBars"></div></div>
         </div>
       </div>
 
-      <!-- ━━ 현금흐름 탭 ━━ -->
-      <div class="page" id="tab-cashflow">
-        <div class="kpi-row">
-          <div class="kpi c1">
-            <div class="kpi-label">세금계산서 발행 (ERP)</div>
-            <div class="kpi-val"><span id="cf-tax">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
-            <div class="kpi-sub">전체 누적</div>
-          </div>
-          <div class="kpi c2">
-            <div class="kpi-label">수금 완료</div>
-            <div class="kpi-val"><span id="cf-income">-</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
-            <div class="kpi-sub"><span id="cf-rate">-%</span> 수금률</div>
-          </div>
-          <div class="kpi c3">
-            <div class="kpi-label">미수금 확정</div>
-            <div class="kpi-val"><span id="cf-unpaid">10.4</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
-            <div class="kpi-sub"><span class="badge warn">즉시 관리 필요</span></div>
-          </div>
-          <div class="kpi c4">
-            <div class="kpi-label">미청구 (PO확보)</div>
-            <div class="kpi-val"><span id="cf-unbilled">1.5</span><span style="font-size:13px;font-weight:400;color:var(--text2)">억</span></div>
-            <div class="kpi-sub">세금계산서 발행 필요</div>
-          </div>
-        </div>
-
-        <div class="g2">
-          <div class="card">
-            <div class="card-hd">
-              <div class="card-title"><div class="card-ico c1">📊</div>연도별 매출흐름 (세금계산서 기준)</div>
-            </div>
-            <div class="card-bd">
-              <div style="height:220px"><canvas id="cashflowChart"></canvas></div>
-            </div>
-            <div class="card-note">※ ERP 세금계산서 조회 기준 · 2023년은 10월~12월분만 포함</div>
-          </div>
-          <div class="card">
-            <div class="card-hd">
-              <div class="card-title"><div class="card-ico c3">⚠️</div>미수금 상위 거래처</div>
-              <span style="font-size:10px;font-family:var(--mono);font-weight:700;color:var(--red)">총 10.4억</span>
-            </div>
-            <div class="card-bd">
-              <div class="unpaid-list">
-                <div class="unpaid-item"><div class="unpaid-rank top">01</div><div class="unpaid-info"><div class="unpaid-name">에이치비솔루션 (BM26001)</div><div class="unpaid-rate">세금계산서 미발행</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:0%"></div></div><div class="unpaid-amt" style="color:var(--red)">5.26억</div></div>
-                <div class="unpaid-item"><div class="unpaid-rank top">02</div><div class="unpaid-info"><div class="unpaid-name">울산과학기술원</div><div class="unpaid-rate">수금률 74%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:74%"></div></div><div class="unpaid-amt" style="color:var(--red)">1.47억</div></div>
-                <div class="unpaid-item"><div class="unpaid-rank top">03</div><div class="unpaid-info"><div class="unpaid-name">㈜인벤티지랩</div><div class="unpaid-rate">수금률 79%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:79%"></div></div><div class="unpaid-amt" style="color:var(--red)">1.39억</div></div>
-                <div class="unpaid-item"><div class="unpaid-rank">04</div><div class="unpaid-info"><div class="unpaid-name">세종산업㈜ (BM26002)</div><div class="unpaid-rate">수금률 0% · 2026년 4월</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:0%"></div></div><div class="unpaid-amt" style="color:var(--red)">0.80억</div></div>
-                <div class="unpaid-item"><div class="unpaid-rank">05</div><div class="unpaid-info"><div class="unpaid-name">㈜아이마켓코리아</div><div class="unpaid-rate">미수금 확정</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:85%"></div></div><div class="unpaid-amt" style="color:var(--red)">0.60억</div></div>
-                <div class="unpaid-item"><div class="unpaid-rank">06</div><div class="unpaid-info"><div class="unpaid-name">서울시립대학교 산학협력단</div><div class="unpaid-rate">수금률 99%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:99%"></div></div><div class="unpaid-amt" style="color:var(--text2)">0.36억</div></div>
-                <div class="unpaid-item"><div class="unpaid-rank">07</div><div class="unpaid-info"><div class="unpaid-name">가천대학교 산학협력단</div><div class="unpaid-rate">수금률 99.8%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:99%"></div></div><div class="unpaid-amt" style="color:var(--text2)">0.32억</div></div>
-                <div class="unpaid-item" style="opacity:.6"><div class="unpaid-rank">✅</div><div class="unpaid-info"><div class="unpaid-name">㈜아이센스원주공장</div><div class="unpaid-rate">2025년 완납 확인</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:100%;background:var(--green)"></div></div><div class="unpaid-amt" style="color:var(--green)">완납</div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
+      <div class="g2b">
         <div class="card">
-          <div class="card-hd">
-            <div class="card-title"><div class="card-ico c1">📋</div>연도별 매출흐름 상세</div>
-          </div>
+          <div class="card-hd"><div class="card-title"><div class="card-ico c3">📅</div>월별 공급가액 <span id="monthly-lbl" style="font-size:10px;color:var(--text3);margin-left:3px">전체(2023~2026)</span></div></div>
+          <div class="card-bd"><div style="height:185px"><canvas id="monthlyChart"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-title"><div class="card-ico c4">🍩</div>제품구분별 (2026)</div></div>
+          <div class="card-bd"><div style="height:185px"><canvas id="typeChart"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 현금흐름 -->
+    <div class="page" id="tab-cashflow">
+      <div class="kpi-row">
+        <div class="kpi c1"><div class="kpi-label">세금계산서 발행</div><div class="kpi-val">124.1<span style="font-size:12px;color:var(--text2)">억</span></div><div class="kpi-sub">ERP 기준 누적</div></div>
+        <div class="kpi c2"><div class="kpi-label">수금 완료</div><div class="kpi-val">38.2<span style="font-size:12px;color:var(--text2)">억</span></div><div class="kpi-sub">수금률 30.8%</div></div>
+        <div class="kpi c3"><div class="kpi-label">확정 미수금</div><div class="kpi-val">10.4<span style="font-size:12px;color:var(--text2)">억</span></div><div class="kpi-sub"><span class="badge warn">즉시 관리</span></div></div>
+        <div class="kpi c4"><div class="kpi-label">미청구 (PO확보)</div><div class="kpi-val">1.5<span style="font-size:12px;color:var(--text2)">억</span></div><div class="kpi-sub">세금계산서 발행 필요</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><div class="card-title"><div class="card-ico c1">📊</div>연도별 매출흐름 (ERP 세금계산서)</div></div>
+          <div class="card-bd"><div style="height:210px"><canvas id="cfChart"></canvas></div></div>
+          <div class="card-note">※ ERP 세금계산서 기준 · 2023년은 10~12월분만</div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-title"><div class="card-ico c3">⚠️</div>미수금 상위 거래처</div><span style="font-size:10px;font-family:var(--mono);font-weight:700;color:var(--red)">총 10.4억</span></div>
           <div class="card-bd">
-            <div class="tbl-wrap">
-              <table class="tbl">
-                <thead><tr><th>연도</th><th class="r">공급가액</th><th class="r">입금완료</th><th class="r">미수금</th><th class="r">미청구</th><th class="r">수금률</th><th>비고</th></tr></thead>
-                <tbody>
-                  <tr><td><span class="tbl-name">2023</span></td><td class="r"><span class="tbl-mono blue">362.3억</span></td><td class="r"><span class="tbl-mono green">132.7억</span></td><td class="r"><span class="tbl-mono red">4.6억</span></td><td class="r">-</td><td class="r"><span class="badge warn">36.6%</span></td><td style="font-size:10px;color:var(--text3)">감사 120.7억</td></tr>
-                  <tr><td><span class="tbl-name">2024</span></td><td class="r"><span class="tbl-mono blue">238.0억</span></td><td class="r"><span class="tbl-mono green">64.4억</span></td><td class="r"><span class="tbl-mono red">2.7억</span></td><td class="r">-</td><td class="r"><span class="badge down">27.1%</span></td><td style="font-size:10px;color:var(--text3)">감사 62.6억</td></tr>
-                  <tr><td><span class="tbl-name">2025</span></td><td class="r"><span class="tbl-mono blue">160.3억</span></td><td class="r"><span class="tbl-mono green">57.9억</span></td><td class="r"><span class="tbl-mono red">1.7억</span></td><td class="r">-</td><td class="r"><span class="badge warn">36.1%</span></td><td style="font-size:10px;color:var(--text3)">감사 53.8억</td></tr>
-                  <tr style="background:var(--primary-dim)"><td><span class="tbl-name" style="color:var(--primary)">2026</span><br><span style="font-size:9px;color:var(--text3)">~4월</span></td><td class="r"><span class="tbl-mono blue">65.1억</span></td><td class="r"><span class="tbl-mono green">18.2억</span></td><td class="r"><span class="tbl-mono red">2.6억</span></td><td class="r"><span class="tbl-mono" style="color:var(--accent)">1.5억</span></td><td class="r"><span class="badge info">28.0%</span></td><td style="font-size:10px;color:var(--text3)">진행중</td></tr>
-                  <tr style="font-weight:800;background:var(--bg3)"><td><span class="tbl-name">합계</span></td><td class="r"><span class="tbl-mono blue">825.7억</span></td><td class="r"><span class="tbl-mono green">273.2억</span></td><td class="r"><span class="tbl-mono red">11.6억</span></td><td class="r"><span class="tbl-mono" style="color:var(--accent)">1.5억</span></td><td class="r"><span class="badge warn">33.1%</span></td><td></td></tr>
-                </tbody>
-              </table>
+            <div class="unpaid-list">
+              <div class="unpaid-item"><div class="unpaid-rank top">01</div><div class="unpaid-info"><div class="unpaid-name">에이치비솔루션 (BM26001)</div><div class="unpaid-rate">세금계산서 미발행</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:0%"></div></div><div class="unpaid-amt" style="color:var(--red)">5.26억</div></div>
+              <div class="unpaid-item"><div class="unpaid-rank top">02</div><div class="unpaid-info"><div class="unpaid-name">울산과학기술원</div><div class="unpaid-rate">수금률 74%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:74%"></div></div><div class="unpaid-amt" style="color:var(--red)">1.47억</div></div>
+              <div class="unpaid-item"><div class="unpaid-rank top">03</div><div class="unpaid-info"><div class="unpaid-name">㈜인벤티지랩</div><div class="unpaid-rate">수금률 79%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:79%"></div></div><div class="unpaid-amt" style="color:var(--red)">1.39억</div></div>
+              <div class="unpaid-item"><div class="unpaid-rank">04</div><div class="unpaid-info"><div class="unpaid-name">세종산업㈜ (BM26002)</div><div class="unpaid-rate">수금률 0%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:0%"></div></div><div class="unpaid-amt" style="color:var(--red)">0.80억</div></div>
+              <div class="unpaid-item"><div class="unpaid-rank">05</div><div class="unpaid-info"><div class="unpaid-name">㈜아이마켓코리아</div><div class="unpaid-rate">미수금 확정</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:85%"></div></div><div class="unpaid-amt" style="color:var(--red)">0.60억</div></div>
+              <div class="unpaid-item"><div class="unpaid-rank">06</div><div class="unpaid-info"><div class="unpaid-name">서울시립대 산학협력단</div><div class="unpaid-rate">수금률 99%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:99%"></div></div><div class="unpaid-amt" style="color:var(--text2)">0.36억</div></div>
+              <div class="unpaid-item"><div class="unpaid-rank">07</div><div class="unpaid-info"><div class="unpaid-name">가천대학교 산학협력단</div><div class="unpaid-rate">수금률 99.8%</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:99%"></div></div><div class="unpaid-amt" style="color:var(--text2)">0.32억</div></div>
+              <div class="unpaid-item" style="opacity:.6"><div class="unpaid-rank">✅</div><div class="unpaid-info"><div class="unpaid-name">㈜아이센스원주공장</div><div class="unpaid-rate">2025년 완납 확인</div></div><div class="unpaid-bar-bg"><div class="unpaid-bar-fill" style="width:100%;background:var(--green)"></div></div><div class="unpaid-amt" style="color:var(--green)">완납</div></div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- ━━ 파이프라인 탭 ━━ -->
-      <div class="page" id="tab-pipeline">
-        <div class="kpi-row">
-          <div class="kpi c1"><div class="kpi-label">진행중 프로젝트</div><div class="kpi-val"><span id="pl-cnt">194</span><span style="font-size:13px;color:var(--text2)">건</span></div><div class="kpi-sub">확정+작성</div></div>
-          <div class="kpi c2"><div class="kpi-label">프로젝트 총액</div><div class="kpi-val"><span id="pl-total">57.7</span><span style="font-size:13px;color:var(--text2)">억</span></div><div class="kpi-sub">수주 기준</div></div>
-          <div class="kpi c3"><div class="kpi-label">미청구 총액</div><div class="kpi-val"><span id="pl-unbilled">1.6</span><span style="font-size:13px;color:var(--text2)">억</span></div><div class="kpi-sub">청구 예정</div></div>
-          <div class="kpi c4"><div class="kpi-label">완료 프로젝트</div><div class="kpi-val"><span id="pl-done">13</span><span style="font-size:13px;color:var(--text2)">건</span></div><div class="kpi-sub">이번 연도</div></div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title"><div class="card-ico c1">📋</div>연도별 매출흐름 상세</div></div>
+        <div class="card-bd">
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>연도</th><th class="r">공급가액</th><th class="r">입금완료</th><th class="r">잔금(미수)</th><th class="r">수금률</th><th>감사보고서</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tbl-name">2023</span></td><td class="r"><span class="tm b">362.4억</span></td><td class="r"><span class="tm g">132.7억</span></td><td class="r"><span class="tm r">4.6억</span></td><td class="r"><span class="badge warn">36.6%</span></td><td style="font-size:10px;color:var(--text3)">120.7억 (IFRS)</td></tr>
+              <tr><td><span class="tbl-name">2024</span></td><td class="r"><span class="tm b">238.0억</span></td><td class="r"><span class="tm g">64.4억</span></td><td class="r"><span class="tm r">2.7억</span></td><td class="r"><span class="badge dn">27.1%</span></td><td style="font-size:10px;color:var(--text3)">62.6억 (IFRS)</td></tr>
+              <tr><td><span class="tbl-name">2025</span></td><td class="r"><span class="tm b">160.3억</span></td><td class="r"><span class="tm g">57.9억</span></td><td class="r"><span class="tm r">1.7억</span></td><td class="r"><span class="badge warn">36.1%</span></td><td style="font-size:10px;color:var(--text3)">53.8억 (IFRS)</td></tr>
+              <tr style="background:var(--primary-dim)"><td><span class="tbl-name" style="color:var(--primary)">2026</span><br><span style="font-size:9px;color:var(--text3)">~4월</span></td><td class="r"><span class="tm b">65.1억</span></td><td class="r"><span class="tm g">18.2억</span></td><td class="r"><span class="tm r">2.6억</span></td><td class="r"><span class="badge info">28.0%</span></td><td style="font-size:10px;color:var(--text3)">진행중</td></tr>
+              <tr style="background:var(--bg3);font-weight:800"><td><span class="tbl-name">합계</span></td><td class="r"><span class="tm b">825.8억</span></td><td class="r"><span class="tm g">273.2억</span></td><td class="r"><span class="tm r">11.6억</span></td><td class="r"><span class="badge warn">33.1%</span></td><td></td></tr>
+            </tbody>
+          </table></div>
         </div>
+      </div>
+    </div>
 
-        <div class="card">
-          <div class="card-hd">
-            <div class="card-title"><div class="card-ico c1">🔄</div>영업 파이프라인 (ERP 프로젝트)</div>
-            <span class="card-act" id="pipelineLastUpdate">SharePoint 연동</span>
-          </div>
-          <div class="card-bd" style="padding:10px 18px;">
-            <div class="search-bar">
-              <input class="search-input" type="text" placeholder="🔍 프로젝트명 / 거래처 검색..." id="pipeSearch" oninput="filterPipeline()">
-              <select class="search-select" id="pipeStatusFilter" onchange="filterPipeline()">
-                <option value="">전체 상태</option>
-                <option value="확정">확정</option>
-                <option value="작성">작성</option>
-                <option value="진행중">진행중</option>
-                <option value="완료">완료</option>
-                <option value="중단">중단</option>
+    <!-- 고객사 관리 -->
+    <div class="page" id="tab-customer">
+      <div class="kpi-row">
+        <div class="kpi c1"><div class="kpi-label">전체 연락처</div><div class="kpi-val"><span id="ct-total">-</span><span style="font-size:12px;color:var(--text2)">명</span></div><div class="kpi-sub">리멤버 DB</div></div>
+        <div class="kpi c2"><div class="kpi-label">등록 회사</div><div class="kpi-val"><span id="ct-co">-</span><span style="font-size:12px;color:var(--text2)">개</span></div><div class="kpi-sub"></div></div>
+        <div class="kpi c3"><div class="kpi-label">국내 거래처</div><div class="kpi-val"><span id="ct-dom">-</span><span style="font-size:12px;color:var(--text2)">명</span></div><div class="kpi-sub"></div></div>
+        <div class="kpi c4"><div class="kpi-label">해외 거래처</div><div class="kpi-val"><span id="ct-intl2">-</span><span style="font-size:12px;color:var(--text2)">명</span></div><div class="kpi-sub"></div></div>
+      </div>
+      <div class="g2" style="margin-bottom:0">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-hd"><div class="card-title"><div class="card-ico c1">🏢</div>고객사 목록</div><span style="font-size:10px;color:var(--text3)" id="ctLastUpdate">SharePoint 연동</span></div>
+          <div class="card-bd" style="padding:10px 12px">
+            <div class="s-bar">
+              <input class="s-inp" type="text" placeholder="🔍 회사명 검색..." id="coSearch" oninput="filterCos()">
+              <select class="s-sel" id="coType" onchange="filterCos()">
+                <option value="">전체</option>
+                <option value="국내">🇰🇷 국내</option>
+                <option value="해외">🌏 해외</option>
               </select>
             </div>
-            <div class="tbl-wrap">
-              <table class="tbl" id="pipelineTable">
-                <thead><tr><th>프로젝트번호</th><th>프로젝트명</th><th>거래처</th><th>유형</th><th class="r">프로젝트금액</th><th>상태</th><th>계약일</th><th>책임자</th></tr></thead>
-                <tbody id="pipelineBody">
-                  <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-title">로그인 후 자동 로딩</div><div class="empty-desc">SharePoint ERP 데이터와 연동됩니다</div></div></td></tr>
-                </tbody>
-              </table>
+            <div class="company-list" id="coList" style="max-height:500px;overflow-y:auto"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-hd"><div class="card-title"><div class="card-ico c2">👥</div>담당자 <span id="selCoName" style="font-size:10px;color:var(--text3);font-weight:400;margin-left:3px">회사를 선택하세요</span></div><span style="font-size:10px;color:var(--text3)" id="ctCnt"></span></div>
+          <div class="card-bd" style="padding:10px 12px">
+            <div class="s-bar"><input class="s-inp" type="text" placeholder="🔍 이름 / 직함 검색..." id="ctSearch" oninput="filterCtPerson()"></div>
+            <div class="contact-grid" id="ctGrid" style="max-height:460px;overflow-y:auto">
+              <div class="empty" style="grid-column:1/-1"><div class="empty-icon">👈</div><div class="empty-title">좌측에서 회사를 선택하세요</div></div>
             </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- ━━ 고객사 관리 탭 ━━ -->
-      <div class="page" id="tab-customer">
-        <div class="kpi-row">
-          <div class="kpi c1"><div class="kpi-label">전체 연락처</div><div class="kpi-val"><span id="ct-total">-</span><span style="font-size:13px;color:var(--text2)">명</span></div><div class="kpi-sub">리멤버 DB</div></div>
-          <div class="kpi c2"><div class="kpi-label">국내 거래처</div><div class="kpi-val"><span id="ct-domestic">-</span><span style="font-size:13px;color:var(--text2)">명</span></div><div class="kpi-sub"></div></div>
-          <div class="kpi c3"><div class="kpi-label">해외 거래처</div><div class="kpi-val"><span id="ct-intl">-</span><span style="font-size:13px;color:var(--text2)">명</span></div><div class="kpi-sub"></div></div>
-          <div class="kpi c4"><div class="kpi-label">등록 회사 수</div><div class="kpi-val"><span id="ct-companies">-</span><span style="font-size:13px;color:var(--text2)">개</span></div><div class="kpi-sub"></div></div>
-        </div>
-        <div class="card">
-          <div class="card-hd">
-            <div class="card-title"><div class="card-ico c2">👥</div>고객사 담당자 DB (리멤버 연동)</div>
-            <span class="card-act" id="contactLastUpdate">SharePoint 연동</span>
-          </div>
-          <div class="card-bd" style="padding:10px 18px;">
-            <div class="search-bar">
-              <input class="search-input" type="text" placeholder="🔍 이름 / 회사 / 직함 검색..." id="contactSearch" oninput="filterContacts()">
-              <select class="search-select" id="contactCompanyFilter" onchange="filterContacts()">
-                <option value="">전체 회사</option>
-              </select>
-            </div>
-            <div class="contact-grid" id="contactGrid">
-              <div class="empty-state" style="grid-column:1/-1">
-                <div class="empty-icon">👥</div>
-                <div class="empty-title">로그인 후 자동 로딩</div>
-                <div class="empty-desc">SharePoint 주소록 데이터와 연동됩니다</div>
-              </div>
-            </div>
-          </div>
+    <!-- 마케팅 -->
+    <div class="page" id="tab-marketing">
+      <div class="card">
+        <div class="card-hd"><div class="card-title"><div class="card-ico c1">📣</div>마케팅 활동 현황</div></div>
+        <div class="card-bd">
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>구분</th><th>행사명</th><th>일정</th><th>장소</th><th>상태</th><th>비고</th></tr></thead>
+            <tbody>
+              <tr><td>전시회</td><td><span class="tbl-name">SEMICON Korea 2026</span></td><td>2026.01.22~24</td><td>COEX 서울</td><td><span class="badge up">완료</span></td><td>부스 참가</td></tr>
+              <tr><td>온라인</td><td><span class="tbl-name">LinkedIn 캠페인 Q2</span></td><td>2026.04~06</td><td>온라인</td><td><span class="badge info">진행중</span></td><td>반도체 엔지니어 타겟</td></tr>
+              <tr><td>웹사이트</td><td><span class="tbl-name">홈페이지 리뉴얼</span></td><td>2026.05 목표</td><td>-</td><td><span class="badge info">진행중</span></td><td>개발중</td></tr>
+              <tr><td>전시회</td><td><span class="tbl-name">DISPLAY WEEK 2026</span></td><td>2026.05.18</td><td>San Jose, USA</td><td><span class="badge warn">예정</span></td><td>참가 준비중</td></tr>
+              <tr><td>전시회</td><td><span class="tbl-name">SEMICON Europa 2026</span></td><td>2026.11</td><td>Munich, Germany</td><td><span class="badge warn">예정</span></td><td>부스 신청 예정</td></tr>
+              <tr><td>전시회</td><td><span class="tbl-name">K-Display 2026</span></td><td>2026.10</td><td>COEX 서울</td><td><span class="badge warn">예정</span></td><td></td></tr>
+            </tbody>
+          </table></div>
         </div>
       </div>
+    </div>
 
-      <!-- ━━ 마케팅 탭 ━━ -->
-      <div class="page" id="tab-marketing">
-        <div class="card">
-          <div class="card-hd">
-            <div class="card-title"><div class="card-ico c1">📣</div>마케팅 활동 현황</div>
-          </div>
-          <div class="card-bd">
-            <div class="tbl-wrap">
-              <table class="tbl">
-                <thead><tr><th>구분</th><th>행사명</th><th>일정</th><th>장소</th><th>상태</th><th>비고</th></tr></thead>
-                <tbody>
-                  <tr><td>전시회</td><td><span class="tbl-name">SEMICON Korea 2026</span></td><td>2026.01.22–24</td><td>COEX 서울</td><td><span class="badge up">완료</span></td><td>부스 참가</td></tr>
-                  <tr><td>온라인</td><td><span class="tbl-name">LinkedIn 캠페인 Q2</span></td><td>2026.04–06</td><td>온라인</td><td><span class="badge info">진행중</span></td><td>타겟: 반도체 엔지니어</td></tr>
-                  <tr><td>웹사이트</td><td><span class="tbl-name">홈페이지 리뉴얼</span></td><td>2026.05 목표</td><td>-</td><td><span class="badge info">진행중</span></td><td>개발 중</td></tr>
-                  <tr><td>전시회</td><td><span class="tbl-name">DISPLAY WEEK 2026</span></td><td>2026.05.18</td><td>San Jose, USA</td><td><span class="badge warn">예정</span></td><td>참가 준비중</td></tr>
-                  <tr><td>전시회</td><td><span class="tbl-name">SEMICON Europa 2026</span></td><td>2026.11</td><td>Munich, Germany</td><td><span class="badge warn">예정</span></td><td>부스 신청 예정</td></tr>
-                  <tr><td>전시회</td><td><span class="tbl-name">K-Display 2026</span></td><td>2026.10</td><td>COEX 서울</td><td><span class="badge warn">예정</span></td><td></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+    <!-- 미팅 로그 -->
+    <div class="page" id="tab-meeting">
+      <div class="card">
+        <div class="card-hd"><div class="card-title"><div class="card-ico c2">📝</div>미팅 로그</div></div>
+        <div class="card-bd"><div class="empty"><div class="empty-icon">📝</div><div class="empty-title">미팅 로그 준비중</div><div style="font-size:12px;color:var(--text3);margin-top:5px">Power Apps 모바일 입력 연동 예정</div></div></div>
       </div>
-
-      <!-- ━━ 미팅 로그 탭 ━━ -->
-      <div class="page" id="tab-meeting">
-        <div class="card">
-          <div class="card-hd">
-            <div class="card-title"><div class="card-ico c2">📝</div>미팅 로그</div>
-            <button class="card-act" onclick="alert('미팅 등록 기능 준비중')">+ 미팅 등록</button>
-          </div>
-          <div class="card-bd">
-            <div class="empty-state">
-              <div class="empty-icon">📝</div>
-              <div class="empty-title">미팅 로그 준비중</div>
-              <div class="empty-desc">Power Apps 모바일 입력 연동 예정<br>Teams 채널에서 미팅 기록 후 자동 반영됩니다</div>
-            </div>
-          </div>
-        </div>
-      </div>
+    </div>
 
     </div><!-- /content -->
   </div><!-- /main -->
 </div><!-- /layout -->
 
 <script>
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MSAL 설정
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const MSAL_CONFIG = {
-  clientId: '76793776-3330-496f-97f1-9f0c034f3f07',
-  tenantId: '58b310e1-9278-47ab-8e49-792728818c9e',
-  redirectUri: window.location.href.split('?')[0].split('#')[0],
+// ━━ 데이터 ━━
+const M={
+  2026:{1:{t:1.792,i:1.729},2:{t:5.81,i:3.577},3:{t:0.567,i:0.282},4:{t:1.254,i:0.046},6:{t:0.198,i:0.218},9:{t:5.487,i:0.003},10:{t:0.054,i:0.059},11:{t:0.279,i:0.307},12:{t:0.99,i:1.06}},
+  2025:{1:{t:0.491,i:0.281},2:{t:2.055,i:2.084},3:{t:13.349,i:13.475},4:{t:2.429,i:0.812},5:{t:2.553,i:1.705},6:{t:2.327,i:2.169},7:{t:1.487,i:1.258},8:{t:9.128,i:0.866},9:{t:7.372,i:1.737},10:{t:0.489,i:0.434},11:{t:2.958,i:2.718},12:{t:5.98,i:3.398}},
+  2024:{1:{t:1.269,i:1.287},2:{t:0.775,i:0.742},3:{t:23.695,i:25.794},4:{t:9.457,i:8.446},5:{t:1.037,i:0.952},6:{t:2.264,i:2.488},7:{t:9.975,i:3.262},8:{t:13.302,i:13.003},9:{t:2.432,i:2.186},10:{t:1.642,i:1.621},11:{t:8.2,i:0.776},12:{t:2.127,i:2.19}},
+  2023:{1:{t:42.654,i:46.907},2:{t:29.472,i:32.371},3:{t:2.033,i:2.202},4:{t:4.195,i:3.703},5:{t:3.577,i:2.529},6:{t:8.317,i:8.708},7:{t:16.336,i:10.231},8:{t:8.666,i:9.134},9:{t:2.092,i:1.97},10:{t:3.47,i:3.813},11:{t:10.591,i:3.694},12:{t:6.351,i:6.983}}
 };
-const SP_CONFIG = {
-  hostname: 'enjetco.sharepoint.com',
-  siteName: '06.BackOffice',
-  driveFolder: '📦영업',
+const Q={
+  2026:{1:{t:8.169,i:5.588},2:{t:1.452,i:0.264},3:{t:5.487,i:0.003},4:{t:1.323,i:1.426}},
+  2025:{1:{t:15.895,i:15.84},2:{t:7.309,i:4.687},3:{t:17.988,i:3.861},4:{t:9.427,i:6.55}},
+  2024:{1:{t:25.739,i:27.823},2:{t:12.758,i:11.886},3:{t:25.71,i:18.451},4:{t:11.969,i:4.587}},
+  2023:{1:{t:74.159,i:81.48},2:{t:16.089,i:14.941},3:{t:27.093,i:21.335},4:{t:20.411,i:14.49}}
 };
-const SCOPES = ['User.Read', 'Files.Read.All', 'Sites.Read.All'];
+const H={
+  2026:{1:{t:9.621,i:5.852},2:{t:6.81,i:1.429}},
+  2025:{1:{t:23.204,i:20.527},2:{t:27.414,i:10.412}},
+  2024:{1:{t:38.497,i:39.708},2:{t:37.679,i:23.038}},
+  2023:{1:{t:90.248,i:96.421},2:{t:47.504,i:35.825}}
+};
+const A={2026:{t:65.068,i:18.202,u:2.63,dom:53.05,intl:12.02},2025:{t:160.262,i:57.896,u:1.709,dom:123.47,intl:36.79},2024:{t:237.975,i:64.398,u:2.674,dom:213.67,intl:24.31},2023:{t:362.372,i:132.735,u:4.637,dom:301.2,intl:61.17}};
+const CUST={
+  2026:[{n:'삼성전기㈜',t:8.5},{n:'ChongQing Konka',t:5.531},{n:'에이치비솔루션',t:5.256},{n:'Koenig & Bauer',t:2.373},{n:'울산과학기술원',t:1.689},{n:'동아대 산학',t:1.29},{n:'㈜인벤티지랩',t:1.26},{n:'부산대 산학',t:1.16}],
+  2025:[{n:'에이치비솔루션',t:28.19},{n:'삼성전자㈜',t:13.77},{n:'㈜에스제이신소재',t:10.27},{n:'삼성전기㈜',t:5.65},{n:'㈜아이마켓코리아',t:2.35},{n:'경상국립대 산학',t:2.13},{n:'서울시립대 산학',t:1.66},{n:'Khalifa University',t:1.6}],
+  2024:[{n:'에이치비솔루션',t:47.3},{n:'삼성전자㈜',t:19.75},{n:'DuPont Taiwan',t:15.08},{n:'ChongQing Konka',t:14.74},{n:'㈜아이마켓코리아',t:7.86},{n:'Chengdu Vistar',t:9.16},{n:'희성피엠텍㈜',t:5.91},{n:'경상국립대 산학',t:2.07}],
+  2023:[{n:'에이치비솔루션',t:52.19},{n:'삼성전자㈜',t:9.23},{n:'㈜아이마켓코리아',t:9.33},{n:'ChongQing Konka',t:5.19},{n:'삼성전기㈜',t:5.29},{n:'희성피엠텍㈜',t:4.56},{n:'경상국립대 산학',t:3.2},{n:'DuPont Taiwan',t:0}],
+  all:[{n:'에이치비솔루션',t:127.66},{n:'삼성전자㈜',t:42.72},{n:'삼성전기㈜',t:25.54},{n:'ChongQing Konka',t:24.94},{n:'㈜아이마켓코리아',t:19.56},{n:'㈜에스제이신소재',t:17.97},{n:'DuPont Taiwan',t:15.08},{n:'희성피엠텍㈜',t:10.47}]
+};
 
-let msalInstance = null;
-let currentAccount = null;
-let spSiteId = null;
-let spDriveId = null;
+// ━━ MSAL ━━
+const MSAL_CFG={clientId:'76793776-3330-496f-97f1-9f0c034f3f07',tenantId:'58b310e1-9278-47ab-8e49-792728818c9e',redirectUri:window.location.href.split('?')[0].split('#')[0]};
+const SCOPES=['User.Read','Files.Read.All','Sites.Read.All'];
+let msal_,acct,spSite,spDrive;
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MSAL 초기화
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function initApp() {
-  try {
-    msalInstance = new msal.PublicClientApplication({
-      auth: {
-        clientId: MSAL_CONFIG.clientId,
-        authority: `https://login.microsoftonline.com/${MSAL_CONFIG.tenantId}`,
-        redirectUri: MSAL_CONFIG.redirectUri,
-      },
-      cache: { cacheLocation: 'sessionStorage' },
-    });
-    await msalInstance.initialize();
-
-    // 기존 로그인 세션 확인
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-      currentAccount = accounts[0];
-      onLoginSuccess();
-    }
-  } catch(e) {
-    console.error('MSAL 초기화 실패:', e);
-  }
+async function initApp(){
+  msal_=new msal.PublicClientApplication({auth:{clientId:MSAL_CFG.clientId,authority:`https://login.microsoftonline.com/${MSAL_CFG.tenantId}`,redirectUri:MSAL_CFG.redirectUri},cache:{cacheLocation:'sessionStorage'}});
+  await msal_.initialize();
+  const accts=msal_.getAllAccounts();
+  if(accts.length>0){acct=accts[0];onOK();}
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 로그인 / 로그아웃
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function handleLogin() {
-  const btn = document.getElementById('btnLogin');
-  btn.disabled = true;
-  btn.textContent = '로그인 중...';
-  try {
-    const result = await msalInstance.loginPopup({ scopes: SCOPES, prompt: 'select_account' });
-    currentAccount = result.account;
-    onLoginSuccess();
-  } catch(e) {
-    console.error('로그인 실패:', e);
-    btn.disabled = false;
-    btn.innerHTML = '<div class="ms-logo"></div>Microsoft 계정으로 로그인';
-    alert('로그인에 실패했습니다. 다시 시도해주세요.\n' + e.message);
-  }
+async function login(){
+  const btn=document.getElementById('btnLogin');
+  btn.disabled=true;btn.textContent='로그인 중...';
+  try{const r=await msal_.loginPopup({scopes:SCOPES,prompt:'select_account'});acct=r.account;onOK();}
+  catch(e){btn.disabled=false;btn.innerHTML='<div class="ms-logo"></div>Microsoft 계정으로 로그인';alert('로그인 실패: '+e.message);}
 }
 
-function handleLogout() {
-  if (!msalInstance || !currentAccount) return;
-  msalInstance.logoutPopup({ account: currentAccount });
-  currentAccount = null;
-  document.getElementById('loginModal').classList.remove('hidden');
-  document.getElementById('mainLayout').style.display = 'none';
-}
+function logout(){if(!msal_||!acct)return;msal_.logoutPopup({account:acct});acct=null;document.getElementById('loginModal').classList.remove('hidden');document.getElementById('mainLayout').style.display='none';}
 
-function onLoginSuccess() {
+function onOK(){
   document.getElementById('loginModal').classList.add('hidden');
-  document.getElementById('mainLayout').style.display = 'flex';
-  document.getElementById('authStatus').className = 'auth-status logged-in';
-  document.getElementById('authStatus').innerHTML = `<span>● ${currentAccount.name || currentAccount.username}</span>`;
-  document.getElementById('btnLogout').style.display = 'inline-block';
-  document.getElementById('btnRefresh').style.display = 'inline-block';
+  document.getElementById('mainLayout').style.display='flex';
+  document.getElementById('authStatus').className='auth-status ok';
+  document.getElementById('authStatus').textContent='● '+(acct.name||acct.username);
+  document.getElementById('btnLogout').style.display='inline-block';
+  document.getElementById('btnRefresh').style.display='inline-block';
+  initCharts();
   syncData();
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Graph API 토큰
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function getToken() {
-  try {
-    const result = await msalInstance.acquireTokenSilent({ scopes: SCOPES, account: currentAccount });
-    return result.accessToken;
-  } catch(e) {
-    const result = await msalInstance.acquireTokenPopup({ scopes: SCOPES });
-    return result.accessToken;
-  }
+async function getToken(){
+  try{const r=await msal_.acquireTokenSilent({scopes:SCOPES,account:acct});return r.accessToken;}
+  catch(e){const r=await msal_.acquireTokenPopup({scopes:SCOPES});return r.accessToken;}
+}
+async function gGet(url){
+  const t=await getToken();
+  const r=await fetch('https://graph.microsoft.com/v1.0'+url,{headers:{Authorization:'Bearer '+t}});
+  if(!r.ok)throw new Error('Graph '+r.status+' '+url);
+  return r.json();
+}
+async function getIds(){
+  if(!spSite){const d=await gGet('/sites/enjetco.sharepoint.com:/sites/06.BackOffice');spSite=d.id;}
+  if(!spDrive){const d=await gGet('/sites/'+spSite+'/drives');const dr=d.value.find(x=>x.name==='Documents'||x.name==='문서')||d.value[0];spDrive=dr.id;}
+}
+async function readXL(path){
+  await getIds();
+  const meta=await gGet('/drives/'+spDrive+'/root:/'+path);
+  const r=await fetch(meta['@microsoft.graph.downloadUrl']);
+  const buf=await r.arrayBuffer();
+  return XLSX.read(buf,{type:'array'});
 }
 
-async function graphGet(url) {
-  const token = await getToken();
-  const res = await fetch(`https://graph.microsoft.com/v1.0${url}`, {
-    headers: { Authorization: `Bearer ${token}` }
+async function syncData(){
+  setSyncStatus('loading','동기화 중...');
+  try{await loadContacts();setSyncStatus('live','실시간 연동');set('lastSync','마지막 동기화: '+new Date().toLocaleTimeString('ko-KR'));}
+  catch(e){console.error(e);setSyncStatus('','연동 실패');}
+}
+
+// ━━ 고객사 ━━
+let allCt=[],coMap={},selCo=null;
+
+async function loadContacts(){
+  try{
+    const wb=await readXL('📦영업/2. 주소록(리멤버)/202605091921_Enjet sales_성백훈_(1 of 1) (1).xlsx');
+    const sh=wb.Sheets[wb.SheetNames[0]];
+    const data=XLSX.utils.sheet_to_json(sh,{defval:''});
+    allCt=data.filter(r=>r['이름']||r['회사']);
+    coMap={};
+    allCt.forEach(r=>{const co=r['회사']||'미상';if(!coMap[co])coMap[co]=[];coMap[co].push(r);});
+    const cos=Object.keys(coMap).filter(c=>c!=='미상').sort();
+    const dom=allCt.filter(r=>!String(r['휴대폰']||'').startsWith('+'));
+    const intl=allCt.filter(r=>String(r['휴대폰']||'').startsWith('+'));
+    set('ct-total',allCt.length);set('ct-co',cos.length);set('ct-dom',dom.length);set('ct-intl2',intl.length);set('badge-ct',allCt.length);
+    set('ctLastUpdate','동기화: '+new Date().toLocaleTimeString('ko-KR'));
+    renderCos(cos);
+  }catch(e){console.error('고객사 로드 실패:',e);}
+}
+
+function renderCos(cos){
+  const list=document.getElementById('coList');
+  const type=document.getElementById('coType').value;
+  const q=document.getElementById('coSearch').value.toLowerCase();
+  const filtered=cos.filter(c=>{
+    if(q&&!c.toLowerCase().includes(q))return false;
+    const isI=coMap[c]?.some(r=>String(r['휴대폰']||'').startsWith('+'));
+    if(type==='국내'&&isI)return false;
+    if(type==='해외'&&!isI)return false;
+    return true;
   });
-  if (!res.ok) throw new Error(`Graph API 오류: ${res.status} ${url}`);
-  return res.json();
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SharePoint 파일 읽기
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function getSPSite() {
-  if (spSiteId) return spSiteId;
-  const data = await graphGet(`/sites/${SP_CONFIG.hostname}:/sites/${SP_CONFIG.siteName}`);
-  spSiteId = data.id;
-  return spSiteId;
-}
-
-async function getSPDrive() {
-  if (spDriveId) return spDriveId;
-  const siteId = await getSPSite();
-  const data = await graphGet(`/sites/${siteId}/drives`);
-  // Documents 드라이브 찾기
-  const drive = data.value.find(d => d.name === 'Documents' || d.name === '문서') || data.value[0];
-  spDriveId = drive.id;
-  return spDriveId;
-}
-
-async function readExcelFromSP(filePath) {
-  const driveId = await getSPDrive();
-  const encodedPath = encodeURIComponent(filePath);
-  const token = await getToken();
-  // 파일 다운로드 URL 가져오기
-  const meta = await graphGet(`/drives/${driveId}/root:/${filePath}`);
-  const downloadUrl = meta['@microsoft.graph.downloadUrl'];
-  const res = await fetch(downloadUrl);
-  const buffer = await res.arrayBuffer();
-  const wb = XLSX.read(buffer, { type: 'array' });
-  return wb;
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 데이터 동기화 메인
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function syncData() {
-  showLoading('SharePoint에서 데이터 동기화 중...');
-  setSyncStatus('loading', '동기화 중...');
-  try {
-    await Promise.allSettled([
-      loadSalesData(),
-      loadContactsData(),
-      loadERPData(),
-    ]);
-    setSyncStatus('live', '실시간 연동');
-    document.getElementById('lastSync').textContent = '마지막 동기화: ' + new Date().toLocaleTimeString('ko-KR');
-  } catch(e) {
-    console.error('동기화 오류:', e);
-    setSyncStatus('error', '동기화 실패');
-  } finally {
-    hideLoading();
-  }
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 매출 데이터 로드 (2026 매출기록부)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function loadSalesData() {
-  try {
-    updateText('loadingText', '매출 데이터 로딩 중...');
-    const wb = await readExcelFromSP('📦영업/1. 매출 기록부/2026년 매출 (260420 ver.).xlsx');
-
-    // 국내 시트
-    const domSheet = wb.Sheets['2026 국내'];
-    if (!domSheet) throw new Error('2026 국내 시트 없음');
-    const domData = XLSX.utils.sheet_to_json(domSheet, { defval: 0 });
-
-    // 해외 시트
-    const intlSheet = wb.Sheets['2026 해외 '] || wb.Sheets['2026 해외'];
-    const intlData = intlSheet ? XLSX.utils.sheet_to_json(intlSheet, { defval: 0 }) : [];
-
-    // 집계
-    let totalTax = 0, totalIncome = 0, totalUnpaid = 0;
-    const byCustomer = {}, byType = {}, byMonth = {};
-
-    domData.forEach(row => {
-      const amt = parseFloat(row['공급가액']) || 0;
-      const inc = parseFloat(row['입금액']) || 0;
-      const unp = parseFloat(row['잔금']) || 0;
-      const cust = row['거래처'] || '미상';
-      const type = row['구분1'] || '기타';
-      if (amt <= 0) return;
-
-      totalTax += amt;
-      totalIncome += inc;
-      totalUnpaid += unp;
-
-      byCustomer[cust] = (byCustomer[cust] || 0) + amt;
-      byType[type] = (byType[type] || 0) + amt;
-
-      // 월별
-      const dateStr = String(row['계산서 작성일'] || '');
-      const m = dateStr.match(/(\d{4})-(\d{2})/);
-      if (m && m[1] === '2026') {
-        const mo = parseInt(m[2]);
-        if (!byMonth[mo]) byMonth[mo] = { tax: 0, income: 0 };
-        byMonth[mo].tax += amt;
-        byMonth[mo].income += inc;
-      }
-    });
-
-    intlData.forEach(row => {
-      const amt = parseFloat(row['원화']) || 0;
-      if (amt <= 0) return;
-      totalTax += amt;
-      totalIncome += parseFloat(row['입금액']) || 0;
-      totalUnpaid += parseFloat(row['잔액']) || 0;
-    });
-
-    // KPI 업데이트
-    updateText('kpi-tax', (totalTax / 1e8).toFixed(2));
-    updateText('kpi-income', (totalIncome / 1e8).toFixed(2));
-    updateText('kpi-unpaid', (totalUnpaid / 1e8).toFixed(2));
-    const rate = totalTax > 0 ? Math.round(totalIncome / totalTax * 100) : 0;
-    updateText('kpi-rate', rate + '%');
-    updateText('cf-tax', (totalTax / 1e8).toFixed(1));
-    updateText('cf-income', (totalIncome / 1e8).toFixed(1));
-    updateText('cf-rate', rate + '%');
-
-    // 고객사 바 차트
-    renderCustomerBars(byCustomer);
-
-    // 월별 차트
-    renderMonthlyChart(byMonth);
-
-    // 제품구분 차트
-    renderTypeChart(byType);
-
-    // 연도별 차트
-    renderYearlyChart();
-
-    // 현금흐름 차트
-    renderCashflowChart();
-
-  } catch(e) {
-    console.error('매출 데이터 로드 실패:', e);
-    // 폴백: 하드코딩 데이터
-    loadFallbackSalesData();
-  }
-}
-
-function loadFallbackSalesData() {
-  updateText('kpi-tax', '65.07');
-  updateText('kpi-income', '18.21');
-  updateText('kpi-unpaid', '2.63');
-  updateText('kpi-rate', '28%');
-  updateText('cf-tax', '65.1');
-  updateText('cf-income', '18.2');
-  updateText('cf-rate', '28%');
-
-  const fallbackCustomers = {
-    '삼성전기㈜': 8.5e8, 'ChongQing Konka': 5.5e8, '에이치비솔루션㈜': 5.26e8,
-    'Koenig & Bauer': 2.37e8, '울산과학기술원': 1.69e8, '인벤티지랩': 1.26e8,
-    '아이마켓코리아': 1.04e8, '부산대학교': 1.16e8,
-  };
-  renderCustomerBars(fallbackCustomers);
-
-  const fallbackMonth = {1:{tax:1.79e8,income:1.73e8},2:{tax:5.81e8,income:3.58e8},3:{tax:0.57e8,income:0.28e8},4:{tax:1.25e8,income:0.05e8}};
-  renderMonthlyChart(fallbackMonth);
-
-  const fallbackType = {'장비':18.2e8,'모듈':6.77e8,'용역':6.01e8,'노즐':1.27e8,'잉크':0.69e8,'소모품':0.67e8};
-  renderTypeChart(fallbackType);
-
-  renderYearlyChart();
-  renderCashflowChart();
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 고객사(리멤버) 데이터 로드
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-let allContacts = [];
-async function loadContactsData() {
-  try {
-    updateText('loadingText', '고객사 데이터 로딩 중...');
-    const wb = await readExcelFromSP('📦영업/2. 주소록(리멤버)/202605091921_Enjet sales_성백훈_(1 of 1) (1).xlsx');
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-    allContacts = data.filter(r => r['이름'] || r['회사']);
-
-    const domestic = allContacts.filter(r => !String(r['휴대폰'] || '').startsWith('+'));
-    const intl = allContacts.filter(r => String(r['휴대폰'] || '').startsWith('+'));
-    const companies = [...new Set(allContacts.map(r => r['회사']).filter(Boolean))];
-
-    updateText('ct-total', allContacts.length);
-    updateText('ct-domestic', domestic.length);
-    updateText('ct-intl', intl.length);
-    updateText('ct-companies', companies.length);
-    updateText('badge-customer', allContacts.length);
-
-    // 회사 필터 옵션
-    const sel = document.getElementById('contactCompanyFilter');
-    companies.sort().forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c; opt.textContent = c;
-      sel.appendChild(opt);
-    });
-
-    renderContacts(allContacts);
-    updateText('contactLastUpdate', '동기화: ' + new Date().toLocaleTimeString('ko-KR'));
-  } catch(e) {
-    console.error('고객사 데이터 로드 실패:', e);
-  }
-}
-
-function renderContacts(data) {
-  const grid = document.getElementById('contactGrid');
-  if (!data.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">👥</div><div class="empty-title">데이터 없음</div></div>';
-    return;
-  }
-  grid.innerHTML = data.slice(0, 100).map(r => {
-    const isIntl = String(r['휴대폰'] || '').startsWith('+');
-    return `<div class="contact-card">
-      <div class="contact-name">${r['이름'] || '-'}</div>
-      <div class="contact-company">${r['회사'] || '-'}</div>
-      <div class="contact-role">${r['직함'] || ''} ${r['부서'] ? '· ' + r['부서'] : ''}</div>
-      <div class="contact-info">
-        ${r['휴대폰'] ? '<span>📱 ' + r['휴대폰'] + '</span>' : ''}
-        ${r['전자 메일 주소'] ? '<span>✉️ ' + r['전자 메일 주소'] + '</span>' : ''}
-      </div>
-      <span class="contact-tag">${isIntl ? '🌏 해외' : '🇰🇷 국내'}</span>
-      ${r['명함 등록자'] ? '<span class="contact-tag" style="background:var(--green-dim);color:var(--green)">' + r['명함 등록자'] + '</span>' : ''}
+  list.innerHTML=filtered.slice(0,100).map(co=>{
+    const cts=coMap[co]||[];
+    const isI=cts.some(r=>String(r['휴대폰']||'').startsWith('+'));
+    const sel=co===selCo?'sel':'';
+    const roles=cts.map(r=>r['직함']||'').filter(Boolean).slice(0,2).join(' · ')||'담당자 '+cts.length+'명';
+    return `<div class="company-item ${sel}" onclick="pickCo('${co.replace(/'/g,"\\'")}',this)">
+      <div class="co-ico">${co.charAt(0)}</div>
+      <div class="co-info"><div class="co-name">${co}</div><div class="co-meta">${isI?'🌏 해외':'🇰🇷 국내'} · ${roles}</div></div>
+      <div class="co-cnt">${cts.length}</div>
     </div>`;
   }).join('');
 }
 
-function filterContacts() {
-  const q = document.getElementById('contactSearch').value.toLowerCase();
-  const company = document.getElementById('contactCompanyFilter').value;
-  const filtered = allContacts.filter(r => {
-    const matchQ = !q || [r['이름'], r['회사'], r['직함'], r['부서']].some(v => String(v || '').toLowerCase().includes(q));
-    const matchC = !company || r['회사'] === company;
-    return matchQ && matchC;
-  });
-  renderContacts(filtered);
+function pickCo(co,el){
+  selCo=co;
+  document.querySelectorAll('.company-item').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  set('selCoName',co);
+  const cts=coMap[co]||[];
+  set('ctCnt',cts.length+'명');
+  renderCts(cts);
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// ERP 데이터 로드 (프로젝트)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-let allPipeline = [];
-async function loadERPData() {
-  try {
-    updateText('loadingText', 'ERP 파이프라인 로딩 중...');
-    const wb = await readExcelFromSP('📦영업/4. ERP/프로젝트조회_20260511.xlsx');
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(sheet, { defval: '', range: 4 });
-    allPipeline = data.filter(r => r['프로젝트번호'] && r['프로젝트번호'] !== 'TOTAL');
-
-    const active = allPipeline.filter(r => ['확정','작성'].includes(r['진행구분']));
-    const done = allPipeline.filter(r => r['진행구분'] === '완료');
-    const totalAmt = active.reduce((s, r) => s + (parseFloat(r['프로젝트금액(원화)']) || 0), 0);
-
-    updateText('pl-cnt', active.length);
-    updateText('pl-total', (totalAmt / 1e8).toFixed(1));
-    updateText('pl-done', done.length);
-    updateText('badge-pipeline', active.length);
-    updateText('kpi-proj', active.length);
-    updateText('kpi-proj-amt', (totalAmt / 1e8).toFixed(1) + '억');
-
-    renderPipeline(allPipeline);
-    updateText('pipelineLastUpdate', '동기화: ' + new Date().toLocaleTimeString('ko-KR'));
-  } catch(e) {
-    console.error('ERP 데이터 로드 실패:', e);
-    updateText('pl-cnt', '194');
-    updateText('pl-total', '57.7');
-    updateText('badge-pipeline', '194');
-    updateText('kpi-proj', '194');
-    updateText('kpi-proj-amt', '57.7억');
-  }
+function renderCts(cts){
+  const grid=document.getElementById('ctGrid');
+  const q=document.getElementById('ctSearch').value.toLowerCase();
+  const f=cts.filter(r=>!q||[r['이름'],r['직함'],r['부서']].some(v=>String(v||'').toLowerCase().includes(q)));
+  if(!f.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🔍</div><div class="empty-title">검색 결과 없음</div></div>';return;}
+  const isI=cts.some(r=>String(r['휴대폰']||'').startsWith('+'));
+  grid.innerHTML=f.map(r=>`
+    <div class="ccard">
+      <div class="ccard-name">${r['이름']||'-'}</div>
+      <div class="ccard-company">${r['회사']||'-'}</div>
+      <div class="ccard-role">${[r['직함'],r['부서']].filter(Boolean).join(' · ')||'-'}</div>
+      <div class="ccard-info">
+        ${r['휴대폰']?`<span>📱 ${r['휴대폰']}</span>`:''}
+        ${r['전자 메일 주소']?`<span>✉️ ${r['전자 메일 주소']}</span>`:''}
+        ${r['근무처 전화']?`<span>📞 ${r['근무처 전화']}</span>`:''}
+      </div>
+      <span class="ctag" style="background:${isI?'var(--accent-dim)':'var(--primary-dim)'};color:${isI?'var(--accent)':'var(--primary)'}">${isI?'🌏 해외':'🇰🇷 국내'}</span>
+      ${r['메모']?`<span class="ctag" style="background:var(--yellow-dim);color:var(--yellow)">📌 ${String(r['메모']).substring(0,15)}</span>`:''}
+    </div>`).join('');
 }
 
-function renderPipeline(data) {
-  const tbody = document.getElementById('pipelineBody');
-  const statusColors = { '확정': 'up', '작성': 'warn', '진행중': 'info', '완료': 'info', '중단': 'down' };
-  tbody.innerHTML = data.slice(0, 200).map(r => {
-    const amt = parseFloat(r['프로젝트금액(원화)']) || 0;
-    const amtStr = amt > 0 ? (amt / 1e8).toFixed(3) + '억' : '-';
-    const badge = statusColors[r['진행구분']] || 'info';
-    return `<tr>
-      <td><span class="tbl-mono" style="font-size:10px">${r['프로젝트번호'] || ''}</span></td>
-      <td><span class="tbl-name" style="font-size:11px">${(r['프로젝트명'] || '').substring(0, 30)}</span></td>
-      <td>${(r['거래처'] || '').substring(0, 15)}</td>
-      <td style="font-size:10px">${r['프로젝트유형'] || ''}</td>
-      <td class="r"><span class="tbl-mono blue">${amtStr}</span></td>
-      <td><span class="badge ${badge}">${r['진행구분'] || ''}</span></td>
-      <td style="font-size:10px;color:var(--text3)">${String(r['계약일'] || '').substring(0, 10)}</td>
-      <td style="font-size:10px">${r['책임자'] || ''}</td>
-    </tr>`;
-  }).join('');
+function filterCos(){const cos=Object.keys(coMap).filter(c=>c!=='미상').sort();renderCos(cos);}
+function filterCtPerson(){if(selCo)renderCts(coMap[selCo]||[]);}
+
+// ━━ 기간 필터 ━━
+document.addEventListener('click',()=>document.querySelectorAll('.drop-menu').forEach(d=>d.classList.remove('open')));
+
+function toggleDrop(type,el){
+  event.stopPropagation();
+  document.querySelectorAll('.drop-menu').forEach(d=>{if(d.id!=='drop-'+type)d.classList.remove('open');});
+  document.getElementById('drop-'+type).classList.toggle('open');
+  document.querySelectorAll('.ppill-wrap .ppill,.ppill#ppill-total').forEach(p=>{if(p!==el)p.classList.remove('active','has-sel');});
+  el.classList.add('active');
 }
 
-function filterPipeline() {
-  const q = document.getElementById('pipeSearch').value.toLowerCase();
-  const status = document.getElementById('pipeStatusFilter').value;
-  const filtered = allPipeline.filter(r => {
-    const matchQ = !q || [r['프로젝트번호'], r['프로젝트명'], r['거래처']].some(v => String(v || '').toLowerCase().includes(q));
-    const matchS = !status || r['진행구분'] === status;
-    return matchQ && matchS;
-  });
-  renderPipeline(filtered);
+function selP(type,yr,sub,label,el){
+  event.stopPropagation();
+  document.querySelectorAll('.drop-item').forEach(d=>d.classList.remove('sel'));
+  el.classList.add('sel');
+  document.querySelectorAll('.drop-menu').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.ppill-wrap .ppill,.ppill#ppill-total').forEach(p=>p.classList.remove('active','has-sel'));
+  const pp=el.closest('.ppill-wrap')?.querySelector('.ppill');
+  if(pp)pp.classList.add('active','has-sel');
+  else document.getElementById('ppill-total')?.classList.add('active');
+  set('periodRange',label);
+
+  let d={t:0,i:0,u:0},mData={},custKey='all',dom='-',intl='-';
+  if(type==='monthly'){const mm=MONTHLY?.[yr]?.[parseInt(sub)]||{t:0,i:0};d={t:mm.t,i:mm.i,u:0};mData={[sub]:mm};custKey=yr;}
+  else if(type==='quarterly'){d=Q[yr]?.[sub]||{t:0,i:0,u:0};const qm={1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[sub];qm.forEach(m=>{if(M[yr]?.[m])mData[m]=M[yr][m];});custKey=yr;}
+  else if(type==='half'){d=H[yr]?.[sub]||{t:0,i:0,u:0};const hm={1:[1,2,3,4,5,6],2:[7,8,9,10,11,12]}[sub];hm.forEach(m=>{if(M[yr]?.[m])mData[m]=M[yr][m];});custKey=yr;}
+  else if(type==='annual'){d=A[yr]||{t:0,i:0,u:0};mData=M[yr]||{};dom=(A[yr]?.dom||'-').toString();intl=(A[yr]?.intl||'-').toString();custKey=yr;}
+  else{d={t:825.7,i:273.2,u:11.6};mData={};dom='654.4';intl='171.3';custKey='all';}
+
+  const rate=d.t>0?Math.round(d.i/d.t*100):0;
+  set('kpi-tax',d.t.toFixed?d.t.toFixed(2):d.t);
+  set('kpi-income',d.i.toFixed?d.i.toFixed(2):d.i);
+  set('kpi-unpaid',(d.u||0).toFixed(2));
+  set('kpi-rate',rate+'%');
+  set('kpi-badge',label.length>10?label.substring(0,10)+'..':label);
+  set('kpi-dom',dom!=='-'?parseFloat(dom).toFixed(1):'-');
+  set('kpi-intl',intl!=='-'?parseFloat(intl).toFixed(1):'-');
+
+  const mKeys=Object.keys(mData).sort((a,b)=>a-b);
+  if(mKeys.length>0){updateMChart(mData,label);}
+  else if(type==='total'){updateMChart4All();}
+
+  renderBars(CUST[custKey]||CUST.all);
+  set('bar-label',type==='total'?'전체':yr+'년');
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 차트 렌더링
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Chart.defaults.color = '#6b7280';
-Chart.defaults.font.family = "'Pretendard',sans-serif";
-Chart.defaults.font.size = 10;
-const tt = { backgroundColor:'#1f2937', borderColor:'rgba(0,0,0,0.1)', borderWidth:1, padding:10 };
-
-let charts = {};
-function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
-
-function renderYearlyChart() {
-  destroyChart('yearly');
-  charts['yearly'] = new Chart(document.getElementById('yearlyChart'), {
-    type: 'bar',
-    data: {
-      labels: ['2023\n(감사)', '2024\n(감사)', '2025\n(감사)', '2026\n(~4월)'],
-      datasets: [
-        { label: '공급가액', data: [362.3, 238.0, 160.3, 65.1], backgroundColor: 'rgba(26,111,212,0.75)', borderRadius: 4 },
-        { label: '입금완료', data: [132.7, 64.4, 57.9, 18.2], backgroundColor: 'rgba(0,135,90,0.75)', borderRadius: 4 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'top', labels: { usePointStyle: true } }, tooltip: { ...tt } },
-      scales: {
-        x: { grid: { display: false }, border: { display: false } },
-        y: { grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { callback: v => v + '억' } }
-      }
-    }
+function updateMChart(mData,label){
+  dc('monthlyChart');
+  set('monthly-lbl',label);
+  const ks=Object.keys(mData).sort((a,b)=>a-b);
+  charts['m']=new Chart(document.getElementById('monthlyChart'),{
+    type:'bar',
+    data:{labels:ks.map(k=>k+'월'),datasets:[
+      {label:'공급가액',data:ks.map(k=>mData[k].t),backgroundColor:'rgba(26,111,212,.75)',borderRadius:4},
+      {label:'입금',data:ks.map(k=>mData[k].i),backgroundColor:'rgba(0,135,90,.75)',borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{usePointStyle:true}},tooltip:TT},
+      scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:'rgba(0,0,0,.05)'},border:{display:false},ticks:{callback:v=>v+'억'}}}}
   });
 }
 
-function renderCashflowChart() {
-  destroyChart('cashflow');
-  charts['cashflow'] = new Chart(document.getElementById('cashflowChart'), {
-    type: 'bar',
-    data: {
-      labels: ['2023(10~12월)', '2024', '2025', '2026(~3월)'],
-      datasets: [
-        { label: '세금계산서', data: [12.2, 58.7, 47.1, 6.0], backgroundColor: 'rgba(26,111,212,0.75)', borderRadius: 4 },
-        { label: '수금완료', data: [0, 2.3, 32.4, 3.5], backgroundColor: 'rgba(0,135,90,0.75)', borderRadius: 4 },
-        { label: '미수금', data: [13.4, 62.2, 18.1, 3.2], backgroundColor: 'rgba(200,32,30,0.6)', borderRadius: 4 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'top', labels: { usePointStyle: true } }, tooltip: { ...tt } },
-      scales: {
-        x: { grid: { display: false }, border: { display: false } },
-        y: { grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { callback: v => v + '억' } }
-      }
-    }
+function updateMChart4All(){
+  // 전체 연도 월별 합산
+  dc('monthlyChart');
+  set('monthly-lbl','전체(2023~2026)');
+  const combined={};
+  [2023,2024,2025,2026].forEach(yr=>{
+    Object.entries(M[yr]||{}).forEach(([m,v])=>{
+      const key=yr+'년 '+m+'월';
+      combined[key]=v;
+    });
+  });
+  // 연도별 합산으로 표시
+  const labels=['2023','2024','2025','2026'];
+  const taxData=[362.4,238.0,160.3,65.1];
+  const incData=[132.7,64.4,57.9,18.2];
+  dc('monthlyChart');
+  charts['m']=new Chart(document.getElementById('monthlyChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'공급가액',data:taxData,backgroundColor:'rgba(26,111,212,.75)',borderRadius:4},
+      {label:'입금',data:incData,backgroundColor:'rgba(0,135,90,.75)',borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{usePointStyle:true}},tooltip:TT},
+      scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:'rgba(0,0,0,.05)'},border:{display:false},ticks:{callback:v=>v+'억'}}}}
   });
 }
 
-function renderCustomerBars(byCustomer) {
-  const sorted = Object.entries(byCustomer).sort((a,b) => b[1]-a[1]).slice(0, 8);
-  const max = sorted[0]?.[1] || 1;
-  const colors = ['var(--primary)', 'var(--primary)', 'var(--accent)', 'var(--accent)', 'var(--green)', 'var(--green)', 'var(--yellow)', 'var(--yellow)'];
-  document.getElementById('customerBarList').innerHTML = sorted.map(([name, amt], i) => `
+// ━━ 차트 ━━
+Chart.defaults.color='#6b7280';
+Chart.defaults.font.family="'Pretendard',sans-serif";
+Chart.defaults.font.size=10;
+const TT={backgroundColor:'#1f2937',borderColor:'rgba(0,0,0,.1)',borderWidth:1,padding:10};
+const charts={};
+const MONTHLY=M;
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function initCharts(){
+  // 연도별
+  dc('yearly');
+  charts['yearly']=new Chart(document.getElementById('yearlyChart'),{
+    type:'bar',
+    data:{labels:['2023','2024','2025','2026(~4월)'],datasets:[
+      {label:'공급가액',data:[362.4,238.0,160.3,65.1],backgroundColor:'rgba(26,111,212,.75)',borderRadius:4,borderSkipped:false},
+      {label:'입금완료',data:[132.7,64.4,57.9,18.2],backgroundColor:'rgba(0,135,90,.75)',borderRadius:4,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{usePointStyle:true}},tooltip:TT},
+      scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:'rgba(0,0,0,.05)'},border:{display:false},ticks:{callback:v=>v+'억'}}}}
+  });
+  // 월별 기본
+  updateMChart4All();
+  // 제품구분
+  dc('typeChart');
+  charts['type']=new Chart(document.getElementById('typeChart'),{
+    type:'doughnut',
+    data:{labels:['장비','모듈','용역','노즐','잉크','소모품'],datasets:[{data:[18.2,6.77,6.01,1.27,0.69,0.67],backgroundColor:['#1a6fd4','#d95f00','#6b35b8','#00875a','#9a6400','#6b7280'],borderWidth:0,hoverOffset:5}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:8}},tooltip:TT}}
+  });
+  // 현금흐름
+  dc('cfChart');
+  charts['cf']=new Chart(document.getElementById('cfChart'),{
+    type:'bar',
+    data:{labels:['2023(10~12)','2024','2025','2026(~3월)'],datasets:[
+      {label:'세금계산서',data:[12.2,58.7,47.1,6.0],backgroundColor:'rgba(26,111,212,.75)',borderRadius:4},
+      {label:'수금완료',data:[0,2.3,32.4,3.5],backgroundColor:'rgba(0,135,90,.75)',borderRadius:4},
+      {label:'미수금',data:[13.4,62.2,18.1,3.2],backgroundColor:'rgba(200,32,30,.6)',borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{usePointStyle:true}},tooltip:TT},
+      scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:'rgba(0,0,0,.05)'},border:{display:false},ticks:{callback:v=>v+'억'}}}}
+  });
+  // 기본 고객사 바
+  renderBars(CUST.all);
+  // 기본 KPI
+  set('kpi-dom','654.4'); set('kpi-intl','171.3');
+}
+
+function renderBars(data){
+  const top=data.filter(r=>r.t>0).slice(0,8);
+  const max=top[0]?.t||1;
+  const cols=['var(--primary)','var(--primary)','var(--accent)','var(--accent)','var(--green)','var(--green)','var(--yellow)','var(--yellow)'];
+  document.getElementById('custBars').innerHTML=top.map((r,i)=>`
     <div class="bar-item">
       <div class="bar-rank ${i<3?'top':''}">${String(i+1).padStart(2,'0')}</div>
       <div class="bar-info">
-        <div class="bar-name">${name.substring(0,22)}</div>
+        <div class="bar-name">${r.n}</div>
         <div class="bar-row">
-          <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(amt/max*100)}%;background:${colors[i]}"></div></div>
-          <div class="bar-val">${(amt/1e8).toFixed(2)}억</div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(r.t/max*100)}%;background:${cols[i]}"></div></div>
+          <div class="bar-val">${r.t.toFixed(2)}억</div>
         </div>
       </div>
     </div>`).join('');
 }
 
-function renderMonthlyChart(byMonth) {
-  destroyChart('monthly');
-  const months = Object.keys(byMonth).sort((a,b)=>a-b);
-  charts['monthly'] = new Chart(document.getElementById('monthlyChart'), {
-    type: 'bar',
-    data: {
-      labels: months.map(m => m + '월'),
-      datasets: [
-        { label: '공급가액', data: months.map(m => byMonth[m].tax / 1e8), backgroundColor: 'rgba(26,111,212,0.75)', borderRadius: 4 },
-        { label: '입금', data: months.map(m => byMonth[m].income / 1e8), backgroundColor: 'rgba(0,135,90,0.75)', borderRadius: 4 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'top', labels: { usePointStyle: true } }, tooltip: { ...tt } },
-      scales: {
-        x: { grid: { display: false }, border: { display: false } },
-        y: { grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { callback: v => v + '억' } }
-      }
-    }
-  });
-}
-
-function renderTypeChart(byType) {
-  destroyChart('type');
-  const entries = Object.entries(byType).sort((a,b)=>b[1]-a[1]);
-  charts['type'] = new Chart(document.getElementById('typeChart'), {
-    type: 'doughnut',
-    data: {
-      labels: entries.map(([k]) => k),
-      datasets: [{ data: entries.map(([,v]) => (v/1e8).toFixed(2)), backgroundColor: ['#1a6fd4','#d95f00','#6b35b8','#00875a','#9a6400','#6b7280'], borderWidth: 0, hoverOffset: 5 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '62%',
-      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 10 } }, tooltip: { ...tt } }
-    }
-  });
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 탭 전환
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const tabTitles = {
-  sales: '📊 매출 현황', cashflow: '💰 현금흐름',
-  pipeline: '🔄 영업 파이프라인', customer: '🏭 고객사 관리',
-  marketing: '📣 마케팅 활동', meeting: '📝 미팅 로그'
-};
-function switchTab(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('tab-' + id).classList.add('active');
+// ━━ 탭/유틸 ━━
+const TABS={sales:'📊 매출 현황',cashflow:'💰 현금흐름',customer:'🏭 고객사 관리',marketing:'📣 마케팅 활동',meeting:'📝 미팅 로그'};
+function switchTab(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
   el.classList.add('active');
-  document.getElementById('pageTitle').textContent = tabTitles[id] || id;
+  set('pageTitle',TABS[id]);
 }
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 기간 필터
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const periodFallback = {
-  monthly: { tax: '1.25', income: '0.05', unpaid: '1.17', label: '2026년 4월' },
-  quarterly: { tax: '8.42', income: '5.63', unpaid: '1.42', label: '2026년 Q1' },
-  annual: { tax: '65.07', income: '18.21', unpaid: '2.63', label: '2026년 연간' },
-  total: { tax: '825.7', income: '273.2', unpaid: '11.6', label: '전체 누적 (2023~2026)' },
-};
-function setPeriod(key, el) {
-  document.querySelectorAll('.ppill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  const d = periodFallback[key];
-  if (d) {
-    updateText('kpi-tax', d.tax);
-    updateText('kpi-income', d.income);
-    updateText('kpi-unpaid', d.unpaid);
-    updateText('periodRange', d.label);
-    const r = Math.round(parseFloat(d.income) / parseFloat(d.tax) * 100);
-    updateText('kpi-rate', r + '%');
-  }
+function set(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
+function setSyncStatus(type,txt){
+  const d=document.getElementById('syncDot');
+  d.className='sync-dot'+(type==='live'?' live':type==='loading'?' loading':'');
+  set('syncStatus',txt);
 }
+setInterval(()=>{const n=new Date();set('clock',[n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':'));},1000);
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 유틸
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function updateText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-function showLoading(msg) { document.getElementById('loadingOverlay').classList.add('show'); updateText('loadingText', msg); }
-function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
-function setSyncStatus(type, text) {
-  const dot = document.getElementById('syncDot');
-  dot.className = 'sync-dot' + (type === 'live' ? ' live' : type === 'loading' ? ' loading' : '');
-  updateText('syncStatus', text);
-}
-
-// 시계
-setInterval(() => {
-  const n = new Date();
-  updateText('clock', [n.getHours(), n.getMinutes(), n.getSeconds()].map(v => String(v).padStart(2,'0')).join(':'));
-}, 1000);
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 이벤트 바인딩 & 시작
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('btnLogin').addEventListener('click', handleLogin);
-  document.getElementById('btnLogout').addEventListener('click', handleLogout);
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('btnLogin').addEventListener('click',login);
+  document.getElementById('btnLogout').addEventListener('click',logout);
   initApp();
 });
 </script>
