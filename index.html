@@ -440,7 +440,10 @@
       <div class="card">
         <div class="ch">
           <div class="ct"><div class="ci c2">📋</div>전시회 목록 상세</div>
-          <span style="font-size:10px;color:var(--t3)" id="exhSchedUpd">-</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:10px;color:var(--t3)" id="exhSchedUpd">-</span>
+            <button onclick="openExhModal(null)" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button>
+          </div>
         </div>
         <div class="cb" style="padding:10px 14px">
           <div class="tw"><table class="tbl" id="exhSchedTbl">
@@ -451,7 +454,7 @@
               <th>담당자</th><th>준비상태</th><th>비고</th><th></th>
             </tr></thead>
             <tbody id="exhSchedBody">
-              <tr><td colspan="11"><div class="sw"><div class="spr"></div></div></td></tr>
+              <tr><td colspan="11"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 번째 전시회 추가</button></div></div></td></tr>
             </tbody>
           </table></div>
         </div>
@@ -970,17 +973,20 @@ async function loadProject() {
     const raw=XLSX.utils.sheet_to_json(sh,{header:1,defval:""});
     PD=[];
     for(let i=6;i<raw.length;i++) {
-      const r=raw[i];
-      if(!r||!Array.isArray(r)||!r[1]||!r[4]) continue;
-      const 진행구분=String(r[1]||"").trim();
-      const 번호=String(r[4]||"").trim();
-      if(!번호||번호==="TOTAL"||!진행구분) continue;
-      PD.push({
-        진행구분, 프로젝트명:String(r[3]||""), 프로젝트번호:번호,
-        계약일:String(r[11]||""), 유형:String(r[12]||""),
-        거래처:String(r[13]||""), 책임자:String(r[16]||""),
-        PM:String(r[17]||""), 원화금액:N(r[19]||0),
-      });
+      try {
+        const r=raw[i];
+        if(!r||!Array.isArray(r)||r.length<5) continue;
+        const v1=r[1]!=null?String(r[1]).trim():"";
+        const v4=r[4]!=null?String(r[4]).trim():"";
+        if(!v1||!v4||v4==="TOTAL"||v1==="진행구분") continue;
+        const s=(idx)=>(r.length>idx&&r[idx]!=null)?String(r[idx]).trim():"";
+        const sN=(idx)=>{try{const v=parseFloat(r[idx]);return isNaN(v)?0:v;}catch{return 0;}};
+        PD.push({
+          진행구분:v1, 프로젝트명:s(3), 프로젝트번호:v4,
+          계약일:s(11), 유형:s(12), 거래처:s(13),
+          책임자:s(16), PM:s(17), 원화금액:sN(19),
+        });
+      } catch(_){}
     }
     updPlKPI(); renderPL(PD.filter(r=>["확정","작성"].includes(r.진행구분)));
     const tp=[...new Set(PD.map(r=>r.유형).filter(Boolean))].sort();
@@ -1744,36 +1750,69 @@ let exhEditIdx = -1;    // 수정 중인 인덱스 (-1: 신규)
 let teamsGroupId = null; // Teams 그룹 ID (자동 탐색)
 
 // Teams 그룹 ID 자동 탐색 (채널 ID로)
-let _findingGroup = false; // 중복 호출 방지
+let _findingGroup = false;
+// sessionStorage에 팀 ID 캐싱 → 재로그인 전까지 재탐색 불필요
 async function findTeamsGroup() {
   if(teamsGroupId) return teamsGroupId;
+  // 세션 캐시 확인
+  const cached = sessionStorage.getItem("enjet_teams_group_id");
+  if(cached) { teamsGroupId=cached; return cached; }
   if(_findingGroup) return null;
   _findingGroup = true;
   try {
-    // 1단계: 내가 속한 팀 목록
     const teams = await gGet("/me/joinedTeams");
     const teamList = teams.value||[];
-    console.log("팀 목록:", teamList.map(t=>t.displayName));
-
-    // 2단계: 각 팀의 채널에서 TEAMS_CHANNEL_ID 찾기
-    for(const team of teamList) {
-      try {
-        const channels = await gGet("/teams/"+team.id+"/channels");
-        const found = (channels.value||[]).find(c=>c.id===TEAMS_CHANNEL_ID);
-        if(found) {
-          teamsGroupId = team.id;
-          console.log("✅ Teams 그룹 찾음:", team.displayName, team.id);
-          _findingGroup = false;
-          return team.id;
-        }
-      } catch(e) { /* 채널 접근 권한 없는 팀 스킵 */ }
+    // "06.Back Office" 우선 탐색
+    const priority = ["Back Office","06.Back","06 Back","영업","ENJET"];
+    const sorted = [...teamList].sort((a,b)=>{
+      const aP = priority.some(p=>a.displayName.includes(p))?0:1;
+      const bP = priority.some(p=>b.displayName.includes(p))?0:1;
+      return aP-bP;
+    });
+    // 우선순위 팀들 병렬로 채널 조회 (최대 10개씩)
+    const batch = sorted.slice(0,10);
+    const results = await Promise.allSettled(
+      batch.map(team=>gGet("/teams/"+team.id+"/channels").then(r=>({team,channels:r.value||[]})))
+    );
+    for(const r of results) {
+      if(r.status!=="fulfilled") continue;
+      const {team,channels} = r.value;
+      const found = channels.find(c=>c.id===TEAMS_CHANNEL_ID) ||
+                    channels.find(c=>c.displayName&&(c.displayName.includes("전시회")||c.displayName.includes("마케팅")));
+      if(found) {
+        teamsGroupId=team.id;
+        sessionStorage.setItem("enjet_teams_group_id", team.id);
+        console.log("✅ Teams 그룹:", team.displayName, team.id);
+        _findingGroup=false; return team.id;
+      }
     }
-    console.warn("채널이 속한 팀을 찾지 못함. 채널 ID:", TEAMS_CHANNEL_ID);
-  } catch(e) {
-    console.error("Teams 그룹 탐색 실패:", e.message, "→ Azure AD에 Team.ReadBasic.All 권한 추가 필요");
-  }
-  _findingGroup = false;
-  return null;
+    // 나머지 팀들 병렬 조회
+    const rest = sorted.slice(10);
+    const results2 = await Promise.allSettled(
+      rest.map(team=>gGet("/teams/"+team.id+"/channels").then(r=>({team,channels:r.value||[]})))
+    );
+    for(const r of results2) {
+      if(r.status!=="fulfilled") continue;
+      const {team,channels} = r.value;
+      const found = channels.find(c=>c.id===TEAMS_CHANNEL_ID) ||
+                    channels.find(c=>c.displayName&&(c.displayName.includes("전시회")||c.displayName.includes("마케팅")));
+      if(found) {
+        teamsGroupId=team.id;
+        sessionStorage.setItem("enjet_teams_group_id", team.id);
+        console.log("✅ Teams 그룹:", team.displayName, team.id);
+        _findingGroup=false; return team.id;
+      }
+    }
+    // 최후: Back Office 팀 직접 사용
+    const bo = sorted.find(t=>t.displayName.includes("Back Office")||t.displayName.includes("06"));
+    if(bo) {
+      teamsGroupId=bo.id;
+      sessionStorage.setItem("enjet_teams_group_id", bo.id);
+      console.log("✅ Back Office 폴백:", bo.displayName);
+      _findingGroup=false; return bo.id;
+    }
+  } catch(e) { console.error("Teams 탐색 실패:", e.message); }
+  _findingGroup=false; return null;
 }
 
 // Teams 채널 캘린더에서 이벤트 읽기
@@ -1792,32 +1831,48 @@ async function syncExhFromTeams() {
   try {
     const gid = await findTeamsGroup();
     if(!gid) {
-      $("exhSchedUpd", "Teams 그룹 못찾음 → Azure AD: Team.ReadBasic.All 권한 추가 후 재로그인 필요");
-      if(badge){ badge.textContent="권한 필요"; badge.style.background="var(--rd)"; badge.style.color="var(--r)"; }
+      $("exhSchedUpd", "Teams 그룹 못찾음 → 로컬 데이터 사용");
+      if(badge){ badge.textContent="Teams 미연동"; badge.style.background="var(--yd)"; badge.style.color="var(--y)"; }
       await loadExhFromSP();
       return;
     }
 
     // 그룹 캘린더 이벤트 조회 (현재부터 2년)
-    const from = new Date().toISOString().split("T")[0];
-    const to = new Date(Date.now()+2*365*24*60*60*1000).toISOString().split("T")[0];
-    const events = await gGet("/groups/"+gid+"/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=50");
+    const from = "2026-01-01";
+    const to = "2028-12-31";
+    // 그룹 캘린더 조회 (타임아웃 10초)
+    const calUrl = "/groups/"+gid+"/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100&$orderby=start/dateTime";
+    const events = await Promise.race([
+      gGet(calUrl),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("캘린더 조회 타임아웃")),10000))
+    ]);
 
     // 이벤트를 전시회 형식으로 변환
-    const teamsEvts = (events.value||[]).map(e=>({
-      id: e.id,
-      name: e.subject||"",
-      start: e.start?.dateTime?.split("T")[0]||"",
-      end: e.end?.dateTime?.split("T")[0]||"",
-      region: e.location?.displayName?.includes("Korea")||e.location?.displayName?.includes("서울")||e.location?.displayName?.includes("COEX") ? "국내" : "해외",
-      type: "부스참가",
-      country: "", city: "",
-      venue: e.location?.displayName||"",
-      manager: e.organizer?.emailAddress?.name||"",
-      status: "준비중",
-      note: e.body?.content?.replace(/<[^>]*>/g,"")||"",
-      source: "teams",
-    }));
+    const teamsEvts = (events.value||[]).filter(e=>e.subject).map(e=>{
+      const loc = e.location?.displayName||"";
+      const isDOM = loc.includes("Korea")||loc.includes("서울")||loc.includes("COEX")||
+                    loc.includes("코엑스")||loc.includes("한국")||loc.includes("부산")||loc.includes("대전");
+      // 기존 로컬 이벤트와 매칭 (이름으로)
+      const existing = exhSchedule.find(x=>x.source==="local"&&x.name===e.subject);
+      return {
+        id: e.id,
+        name: e.subject,
+        start: (e.start?.dateTime||e.start?.date||"").split("T")[0],
+        end:   (e.end?.dateTime||e.end?.date||"").split("T")[0],
+        region: isDOM ? "국내" : "해외",
+        type: existing?.type||"부스참가",
+        country: existing?.country||"",
+        city: existing?.city||"",
+        venue: loc,
+        manager: existing?.manager||e.organizer?.emailAddress?.name||"",
+        managerEmail: existing?.managerEmail||"",
+        status: existing?.status||"준비중",
+        note: existing?.note||(e.body?.content||"").replace(/<[^>]*>/g,"").trim().substring(0,200),
+        source: "teams",
+        teamsEventId: e.id,
+      };
+    });
+    console.log("Teams 캘린더 이벤트:", teamsEvts.length, "개");
 
     // 기존 데이터와 병합 (Teams 이벤트는 덮어쓰기, 로컬은 유지)
     const localEvts = exhSchedule.filter(e=>e.source!=="teams");
@@ -1830,8 +1885,8 @@ async function syncExhFromTeams() {
     document.getElementById("exhSyncBadge").style.color = "var(--g)";
   } catch(e) {
     console.error("Teams 동기화 실패:", e.message);
-    $("exhSchedUpd", "Teams 동기화 실패 - 로컬 데이터 표시");
-    // 로컬 저장 데이터 로드
+    $("exhSchedUpd", "Teams 동기화 실패 → 로컬 데이터 사용: "+e.message.substring(0,50));
+    if(badge){badge.textContent="Teams 오류";badge.style.background="var(--rd)";badge.style.color="var(--r)";}
     await loadExhFromSP();
   }
 }
@@ -1849,6 +1904,7 @@ async function loadExhFromSP() {
     renderExhSched();
     $("exhSchedUpd", "로드: "+new Date().toLocaleTimeString("ko-KR"));
   } catch(e) {
+    console.log("exhibitions.json 없음 → 기본 데이터 사용 (첫 저장 시 생성됨)");
     // 파일 없으면 기본 데이터 (하드코딩 기존 전시회)
     exhSchedule = [
       {id:"s1",name:"SEMICON Korea 2026",start:"2026-01-22",end:"2026-01-24",region:"국내",type:"부스참가",country:"한국",city:"서울",venue:"COEX",manager:"성백훈",status:"완료",note:"부스 참가 완료",source:"local"},
@@ -1900,7 +1956,7 @@ function updateExhKPI(data) {
 // 타임라인 뷰 (월별 가로 바)
 function renderExhTimeline(data) {
   const el = document.getElementById("exhTimeline");
-  if(!data.length){ el.innerHTML='<div class="empty"><div class="ei">📅</div><div class="et">전시회 일정 없음</div><div style="font-size:11px;color:var(--t3);margin-top:4px">+ 추가 버튼으로 등록하거나 Teams 동기화해주세요</div></div>'; return; }
+  if(!data.length){ el.innerHTML='<div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div>'; return; }
 
   // 연도/월 범위 계산
   const dates = data.flatMap(e=>[e.start,e.end]).filter(Boolean).sort();
@@ -1970,7 +2026,7 @@ function renderExhTable(data) {
         <td><span style="font-size:10px;color:var(--p);cursor:pointer" onclick="openExhModal(exhSchedule[exhSchedule.indexOf(exhSchedule.find(x=>x.id==='${e.id}'))])">✏️</span>
             <span style="font-size:10px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteExh('${e.id}')">🗑️</span></td>
       </tr>`).join("")
-    : `<tr><td colspan="11"><div class="empty"><div class="ei">📅</div><div class="et">전시회 없음</div></div></td></tr>`;
+    : `<tr><td colspan="11"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div></td></tr>`;
 }
 
 // 모달 열기/닫기
@@ -2249,9 +2305,22 @@ async function deleteExh(id) {
 const _origGo2 = window.go;
 window.go = function(id, el) {
   _origGo2(id, el);
-  if(id==="marketing" && exhSchedule.length===0 && acct) {
-    // 자동 동기화 대신 로컬 데이터 먼저 로드 (Teams 동기화는 수동)
-    loadExhFromSP().catch(e=>console.log("SP 로드:", e.message));
+  if(id==="marketing" && acct) {
+    if(exhSchedule.length===0) {
+      // 최초: SP 로드 먼저 (빠름), 그 다음 Teams 동기화
+      loadExhFromSP().then(()=>{
+        setTimeout(()=>syncExhFromTeams(), 1000); // 1초 후 Teams 동기화
+      }).catch(()=>syncExhFromTeams());
+    }
+    // 3분마다 자동 동기화 (탭 떠나면 클리어)
+    if(window._exhSyncInterval) clearInterval(window._exhSyncInterval);
+    window._exhSyncInterval = setInterval(()=>{
+      if(document.getElementById("tab-marketing").classList.contains("on")) {
+        syncExhFromTeams();
+      } else {
+        clearInterval(window._exhSyncInterval);
+      }
+    }, 3*60*1000);
   }
 };
 
