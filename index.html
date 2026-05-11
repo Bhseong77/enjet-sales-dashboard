@@ -722,7 +722,7 @@ const SP_FOLDER = "📦영업/99.Dashboard(real-time)";
 const PX_SALES   = "[매출자료]";
 const PX_CONTACT = "[연락처]";
 const PX_PROJECT = "[프로젝트List]";
-const SCOPES = ["User.Read","Files.Read.All","Sites.Read.All","Calendars.ReadWrite","Group.ReadWrite.All","ChannelMessage.Send","Mail.Send"];
+const SCOPES = ["User.Read","Files.Read.All","Sites.Read.All","Calendars.ReadWrite","Group.ReadWrite.All","ChannelMessage.Send","Mail.Send","Team.ReadBasic.All","Channel.ReadBasic.All"];
 let msal_, acct, spSite, spDrive;
 const N = x => { try { const v=parseFloat(x); return isNaN(v)?0:v; } catch{return 0;} };
 const $ = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
@@ -1744,25 +1744,59 @@ let exhEditIdx = -1;    // 수정 중인 인덱스 (-1: 신규)
 let teamsGroupId = null; // Teams 그룹 ID (자동 탐색)
 
 // Teams 그룹 ID 자동 탐색 (채널 ID로)
+let _findingGroup = false; // 중복 호출 방지
 async function findTeamsGroup() {
   if(teamsGroupId) return teamsGroupId;
+  if(_findingGroup) return null;
+  _findingGroup = true;
   try {
+    // 1단계: 내가 속한 팀 목록
     const teams = await gGet("/me/joinedTeams");
-    for(const team of teams.value||[]) {
-      const channels = await gGet("/teams/"+team.id+"/channels");
-      const found = (channels.value||[]).find(c=>c.id===TEAMS_CHANNEL_ID);
-      if(found) { teamsGroupId=team.id; return team.id; }
+    const teamList = teams.value||[];
+    console.log("팀 목록:", teamList.map(t=>t.displayName));
+
+    // 2단계: 각 팀의 채널에서 TEAMS_CHANNEL_ID 찾기
+    for(const team of teamList) {
+      try {
+        const channels = await gGet("/teams/"+team.id+"/channels");
+        const found = (channels.value||[]).find(c=>c.id===TEAMS_CHANNEL_ID);
+        if(found) {
+          teamsGroupId = team.id;
+          console.log("✅ Teams 그룹 찾음:", team.displayName, team.id);
+          _findingGroup = false;
+          return team.id;
+        }
+      } catch(e) { /* 채널 접근 권한 없는 팀 스킵 */ }
     }
-  } catch(e) { console.warn("Teams 그룹 탐색 실패:", e.message); }
+    console.warn("채널이 속한 팀을 찾지 못함. 채널 ID:", TEAMS_CHANNEL_ID);
+  } catch(e) {
+    console.error("Teams 그룹 탐색 실패:", e.message, "→ Azure AD에 Team.ReadBasic.All 권한 추가 필요");
+  }
+  _findingGroup = false;
   return null;
 }
 
 // Teams 채널 캘린더에서 이벤트 읽기
 async function syncExhFromTeams() {
   $("exhSchedUpd", "Teams 동기화 중...");
+  const badge = document.getElementById("exhSyncBadge");
+
+  // 권한 체크 먼저
+  try {
+    await gGet("/me"); // 기본 권한 확인
+  } catch(e) {
+    $("exhSchedUpd", "로그인 필요");
+    return;
+  }
+
   try {
     const gid = await findTeamsGroup();
-    if(!gid) { $("exhSchedUpd", "Teams 그룹 없음 - 직접 입력 사용"); return; }
+    if(!gid) {
+      $("exhSchedUpd", "Teams 그룹 못찾음 → Azure AD: Team.ReadBasic.All 권한 추가 후 재로그인 필요");
+      if(badge){ badge.textContent="권한 필요"; badge.style.background="var(--rd)"; badge.style.color="var(--r)"; }
+      await loadExhFromSP();
+      return;
+    }
 
     // 그룹 캘린더 이벤트 조회 (현재부터 2년)
     const from = new Date().toISOString().split("T")[0];
@@ -2088,7 +2122,12 @@ async function createTeamsCalEvent(evt) {
     method, headers: { "Content-Type":"application/json", "Authorization":"Bearer "+t },
     body: JSON.stringify(body)
   });
-  if(!r.ok) { const e=await r.json(); throw new Error(e.error?.message||r.status); }
+  if(!r.ok) {
+    const e=await r.json();
+    const msg = e.error?.message||r.status;
+    if(r.status===403) throw new Error("권한 부족 (403): Azure AD에서 Calendars.ReadWrite + Group.ReadWrite.All 관리자 동의 확인");
+    throw new Error(msg);
+  }
   const data = await r.json();
   console.log("✅ Teams 캘린더 이벤트:", method==="POST"?"생성":"수정", data.id);
   return data.id;
@@ -2211,7 +2250,8 @@ const _origGo2 = window.go;
 window.go = function(id, el) {
   _origGo2(id, el);
   if(id==="marketing" && exhSchedule.length===0 && acct) {
-    syncExhFromTeams().catch(()=>loadExhFromSP());
+    // 자동 동기화 대신 로컬 데이터 먼저 로드 (Teams 동기화는 수동)
+    loadExhFromSP().catch(e=>console.log("SP 로드:", e.message));
   }
 };
 
