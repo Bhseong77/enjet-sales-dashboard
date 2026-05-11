@@ -34,7 +34,6 @@
 .bsm{padding:4px 11px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--sans);font-weight:600;display:none;}
 .bsm.p{background:var(--pd);border-color:var(--primary);color:var(--primary);}
 .content{padding:14px 18px;flex:1;}.page{display:none;}.page.on{display:block;}
-/* LOGIN */
 .lm{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
 .lm.hidden{display:none;}
 .lbox{background:#fff;border-radius:16px;padding:38px;width:400px;max-width:90vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);}
@@ -45,7 +44,6 @@
 .btn-ms:hover{background:#111;}.btn-ms:disabled{background:#999;}
 .mslogo{width:20px;height:20px;background-image:linear-gradient(to right,#f25022 50%,#7fba00 50%),linear-gradient(to right,#00a4ef 50%,#ffb900 50%);background-size:100% 50%;background-repeat:no-repeat;background-position:top,bottom;}
 .l-foot{margin-top:14px;font-size:10px;color:var(--text3);line-height:1.6;}
-/* KPI */
 .kr{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px;}
 .kpi{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px 15px;position:relative;overflow:hidden;}
 .kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;}
@@ -56,7 +54,6 @@
 .ks{font-size:10px;color:var(--text3);}
 .badge{font-size:9px;padding:2px 5px;border-radius:4px;font-weight:800;font-family:var(--mono);display:inline-block;}
 .badge.up{background:var(--gd);color:var(--green);}.badge.dn{background:var(--rd);color:var(--red);}.badge.warn{background:var(--yd);color:var(--yellow);}.badge.info{background:var(--pd);color:var(--primary);}.badge.gray{background:var(--bg3);color:var(--text2);}
-/* GRID/CARD */
 .g2{display:grid;grid-template-columns:1.5fr 1fr;gap:9px;margin-bottom:9px;}.g2b{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px;}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:9px;}
 .ch{padding:10px 15px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
@@ -64,7 +61,6 @@
 .ci{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;}
 .ci.c1{background:var(--pd);color:var(--primary);}.ci.c2{background:var(--gd);color:var(--green);}.ci.c3{background:var(--rd);color:var(--red);}.ci.c4{background:var(--ad);color:var(--accent);}
 .cb{padding:11px 15px;}.cn{font-size:9px;color:var(--text3);padding:5px 15px;border-top:1px solid var(--border);background:var(--bg3);}
-/* PERIOD BAR */
 .pbar{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:11px;flex-wrap:wrap;}
 .pl{font-size:11px;font-weight:700;color:var(--text2);}.pps{display:flex;gap:4px;flex-wrap:wrap;}.pw{position:relative;}
 .pp{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--border2);background:transparent;color:var(--text2);white-space:nowrap;transition:all .15s;}
@@ -76,7 +72,6 @@
 .di{font-size:11px;color:var(--text2);padding:6px 12px;cursor:pointer;white-space:nowrap;}
 .di:hover,.di.sel{background:var(--pd);color:var(--primary);}
 .pr{margin-left:auto;font-size:10px;color:var(--text3);font-family:var(--mono);}
-/* TABLE */
 .tw{overflow-x:auto;}
 .tbl{width:100%;border-collapse:collapse;}
 .tbl th{font-size:9px;color:var(--text3);text-transform:uppercase;font-weight:700;padding:0 7px 7px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
@@ -84,7 +79,6 @@
 .tbl td{padding:7px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;}
 .tbl tr:last-child td{border-bottom:none;}.tbl tr:hover td{background:var(--bg3);}
 .tn{color:var(--text);font-weight:700;}.tm{font-family:var(--mono);font-weight:600;}.tm.b{color:var(--primary);}.tm.g{color:var(--green);}.tm.r{color:var(--red);}
-/* BARS */
 .bl{display:flex;flex-direction:column;gap:7px;}
 .bi{display:flex;align-items:center;gap:8px;}
 .brnk{font-size:10px;font-family:var(--mono);color:var(--text3);width:18px;text-align:center;font-weight:700;flex-shrink:0;}.brnk.top{color:var(--yellow);}
@@ -94,7 +88,6 @@
 .bbg{flex:1;height:4px;background:var(--bg3);border-radius:3px;overflow:hidden;}
 .bfil{height:100%;border-radius:3px;transition:width .5s ease;}
 .bval{font-family:var(--mono);font-size:10px;color:var(--text2);white-space:nowrap;}
-/* CONTACTS */
 .cgd{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:7px;}
 .cc{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;transition:border-color .15s;}
 .cc:hover{border-color:var(--primary);}
@@ -111,7 +104,6 @@
 .co-nm{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .co-mt{font-size:10px;color:var(--text3);}
 .co-cn{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--primary);}
-/* PIPELINE */
 .pc{display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;}
 .si{flex:1;min-width:150px;padding:7px 11px;border:1px solid var(--border2);border-radius:7px;font-family:var(--sans);font-size:12px;background:var(--bg2);color:var(--text);}
 .si:focus{outline:none;border-color:var(--primary);}
@@ -119,7 +111,6 @@
 .qf{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
 .qb{padding:4px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--border2);background:transparent;color:var(--text2);transition:all .15s;}
 .qb.on{background:var(--primary);color:#fff;border-color:var(--primary);}.qb:hover:not(.on){border-color:var(--primary);color:var(--primary);}
-/* UNPAID */
 .ul{display:flex;flex-direction:column;gap:5px;}
 .ui{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);}
 .urk{font-size:10px;font-family:var(--mono);color:var(--text3);width:18px;font-weight:700;}.urk.top{color:var(--red);}
@@ -141,9 +132,9 @@
   <div class="lbox">
     <div class="l-logo">ENJET</div>
     <div class="l-sub">영업 대시보드 v5</div>
-    <div class="l-desc">ENJET 영업팀 전용 · Microsoft 365 계정으로 로그인<br>SharePoint 99.Dashboard(real-time) 자동 연동</div>
+    <div class="l-desc">ENJET 영업팀 전용<br>Microsoft 365 계정으로 로그인 후 SharePoint 자동 연동</div>
     <button class="btn-ms" id="btnLogin"><div class="mslogo"></div>Microsoft 계정으로 로그인</button>
-    <div class="l-foot">🔒 ENJET 조직 계정만 접근 가능</div>
+    <div class="l-foot">🔒 ENJET 조직 계정만 접근 가능<br>SharePoint 99.Dashboard(real-time) 폴더 자동 연동</div>
   </div>
 </div>
 
@@ -257,9 +248,9 @@
               <div class="di" onclick="selP('a',2023,0,'2023년',this)">2023년</div>
             </div>
           </div>
-          <div class="pp on" id="pp-all" onclick="selP('all',0,0,'전체누적',this)">전체</div>
+          <div class="pp on" id="pp-all" onclick="selP('all',0,0,'전체',this)">전체</div>
         </div>
-        <div class="pr" id="prange">전체 누적 · SharePoint 연동</div>
+        <div class="pr" id="prange">전체 · SharePoint 연동</div>
       </div>
       <div class="kr">
         <div class="kpi c1"><div class="kl">공급가액</div><div class="kv"><span id="k-tax">-</span><span style="font-size:11px;color:var(--text2)">억</span></div><div class="ks"><span class="badge info" id="k-badge">로딩중</span></div></div>
@@ -378,9 +369,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="ch">
-          <div class="ct"><div class="ci c1">📋</div>매출 세금계산서 내역 <span id="cf-tbl-l" style="font-size:10px;color:var(--text3);font-weight:400;margin-left:4px">로딩중...</span></div>
-        </div>
+        <div class="ch"><div class="ct"><div class="ci c1">📋</div>매출 세금계산서 내역 <span id="cf-tbl-l" style="font-size:10px;color:var(--text3);font-weight:400;margin-left:4px">로딩중...</span></div></div>
         <div class="cb" style="padding:10px 14px">
           <div class="tw"><table class="tbl">
             <thead><tr><th>날짜</th><th>청구처</th><th>프로젝트번호</th><th>구분</th><th class="r">공급가액</th><th class="r">입금</th><th class="r">잔금</th><th>담당자</th></tr></thead>
@@ -400,7 +389,7 @@
       </div>
       <div class="card">
         <div class="ch">
-          <div class="ct"><div class="ci c1">🔄</div>프로젝트 조회 <span id="pl-lbl" style="font-size:10px;color:var(--text3);font-weight:400;margin-left:4px">SharePoint 연동</span></div>
+          <div class="ct"><div class="ci c1">🔄</div>프로젝트 조회 <span id="pl-lbl" style="font-size:10px;color:var(--text3);font-weight:400;margin-left:4px">SharePoint 연동 대기</span></div>
           <span style="font-size:10px;color:var(--text3)" id="pl-upd">-</span>
         </div>
         <div class="cb" style="padding:10px 14px">
@@ -430,7 +419,7 @@
           </table></div>
           <div style="font-size:10px;color:var(--text3);margin-top:7px;text-align:right" id="pl-cnt2"></div>
         </div>
-        <div class="cn">※ _프로젝트List__[날짜]_Dashboard_실시간자료.xlsx · SharePoint 99.Dashboard(real-time) 자동 연동</div>
+        <div class="cn">※ SharePoint 99.Dashboard(real-time) 폴더의 '[프로젝트List] ...' 파일 자동 연동</div>
       </div>
     </div>
 
@@ -498,369 +487,513 @@
       </div>
     </div>
 
-    </div><!-- /content -->
-  </div><!-- /main -->
-</div><!-- /layout -->
+    </div>
+  </div>
+</div>
 
 <script>
-// ━━ MSAL 설정 ━━
-const MC={clientId:"76793776-3330-496f-97f1-9f0c034f3f07",tenantId:"58b310e1-9278-47ab-8e49-792728818c9e",redirectUri:window.location.href.split("?")[0].split("#")[0]};
-// SharePoint: 폴더에서 prefix로 파일 검색
-const SP={site:"enjetco.sharepoint.com:/sites/06.BackOffice",folder:"📦영업/99.Dashboard(real-time)",px:{sales:"'[매출자료]",contact:"'[연락처]",project:"'[프로젝트List]"}};
-const SCOPES=["User.Read","Files.Read.All","Sites.Read.All"];
-let msal_,acct,spSite,spDrive;
-const N=s=>parseFloat(s)||0;
+// ━━ 설정 ━━
+// clientId / tenantId: ENJET Azure AD 앱
+const MSAL_CLIENT_ID = "76793776-3330-496f-97f1-9f0c034f3f07";
+const MSAL_TENANT_ID = "58b310e1-9278-47ab-8e49-792728818c9e";
+const SP_SITE   = "enjetco.sharepoint.com:/sites/06.BackOffice";
+const SP_FOLDER = "📦영업/99.Dashboard(real-time)";
+// ★ SharePoint 실제 파일명 prefix (Teams에서 확인한 파일명 기준)
+// '[매출자료] 20260430_Dashboard_실시간자료-경영전략본부_r1.xlsx
+// '[연락처] 20260430_Dashboard_실시간자료-경영전략본부_r1.xlsx
+// '[프로젝트List] 20260430_Dashboard_실시간자료-경영전략본부_r1.xlsx
+const PX_SALES   = "'[매출자료]";
+const PX_CONTACT = "'[연락처]";
+const PX_PROJECT = "'[프로젝트List]";
 
-// ━━ MSAL ━━
-async function initApp(){
-  msal_=new msal.PublicClientApplication({auth:{clientId:MC.clientId,authority:`https://login.microsoftonline.com/${MC.tenantId}`,redirectUri:MC.redirectUri},cache:{cacheLocation:"sessionStorage"}});
+const SCOPES = ["User.Read","Files.Read.All","Sites.Read.All"];
+let msal_, acct, spSite, spDrive;
+const N = s => parseFloat(s) || 0;
+const $ = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+
+// ━━ MSAL 인증 ━━
+async function initApp() {
+  msal_ = new msal.PublicClientApplication({
+    auth: { clientId: MSAL_CLIENT_ID, authority: "https://login.microsoftonline.com/" + MSAL_TENANT_ID, redirectUri: location.href.split("?")[0].split("#")[0] },
+    cache: { cacheLocation: "sessionStorage" }
+  });
   await msal_.initialize();
-  const a=msal_.getAllAccounts();if(a.length>0){acct=a[0];onOK();}
+  const a = msal_.getAllAccounts();
+  if (a.length > 0) { acct = a[0]; onOK(); }
 }
-async function login(){
-  const b=document.getElementById("btnLogin");b.disabled=true;b.textContent="로그인 중...";
-  try{const r=await msal_.loginPopup({scopes:SCOPES,prompt:"select_account"});acct=r.account;onOK();}
-  catch(e){b.disabled=false;b.innerHTML='<div class="mslogo"></div>Microsoft 계정으로 로그인';alert("로그인 실패: "+e.message);}
+
+async function login() {
+  const b = document.getElementById("btnLogin");
+  b.disabled = true; b.textContent = "로그인 중...";
+  try {
+    const r = await msal_.loginPopup({ scopes: SCOPES, prompt: "select_account" });
+    acct = r.account; onOK();
+  } catch(e) {
+    b.disabled = false;
+    b.innerHTML = '<div class="mslogo"></div>Microsoft 계정으로 로그인';
+    alert("로그인 실패: " + e.message);
+  }
 }
-function logout(){msal_.logoutPopup({account:acct});acct=null;document.getElementById("lm").classList.remove("hidden");document.getElementById("ml").style.display="none";}
-function onOK(){
-  document.getElementById("lm").classList.add("hidden");document.getElementById("ml").style.display="flex";
-  document.getElementById("aus").className="aus ok";document.getElementById("aus").textContent="● "+(acct.name||acct.username);
-  document.getElementById("btnLogout").style.display="inline-block";document.getElementById("btnRefresh").style.display="inline-block";
-  initCharts();syncAll();
+
+function logout() {
+  msal_.logoutPopup({ account: acct });
+  acct = null;
+  document.getElementById("lm").classList.remove("hidden");
+  document.getElementById("ml").style.display = "none";
 }
-async function getToken(){
-  try{const r=await msal_.acquireTokenSilent({scopes:SCOPES,account:acct});return r.accessToken;}
-  catch(e){const r=await msal_.acquireTokenPopup({scopes:SCOPES});return r.accessToken;}
+
+function onOK() {
+  document.getElementById("lm").classList.add("hidden");
+  document.getElementById("ml").style.display = "flex";
+  document.getElementById("aus").className = "aus ok";
+  document.getElementById("aus").textContent = "● " + (acct.name || acct.username);
+  document.getElementById("btnLogout").style.display = "inline-block";
+  document.getElementById("btnRefresh").style.display = "inline-block";
+  initCharts();
+  syncAll();
 }
-async function gGet(url){
-  const t=await getToken();const r=await fetch("https://graph.microsoft.com/v1.0"+url,{headers:{Authorization:"Bearer "+t}});
-  if(!r.ok)throw new Error("Graph "+r.status+" "+url);return r.json();
+
+// ━━ Graph API ━━
+async function getToken() {
+  try { const r = await msal_.acquireTokenSilent({ scopes: SCOPES, account: acct }); return r.accessToken; }
+  catch(e) { const r = await msal_.acquireTokenPopup({ scopes: SCOPES }); return r.accessToken; }
 }
-async function getIds(){
-  if(!spSite){const d=await gGet("/sites/"+SP.site);spSite=d.id;}
-  if(!spDrive){const d=await gGet("/sites/"+spSite+"/drives");const dr=d.value.find(x=>x.name==="Documents"||x.name==="문서")||d.value[0];spDrive=dr.id;}
+
+async function gGet(url) {
+  const t = await getToken();
+  const r = await fetch("https://graph.microsoft.com/v1.0" + url, { headers: { Authorization: "Bearer " + t } });
+  if (!r.ok) {
+    const txt = await r.text();
+    throw new Error("Graph " + r.status + " " + url + " | " + txt.substring(0, 200));
+  }
+  return r.json();
 }
-async function readSP(prefix){
+
+async function getIds() {
+  if (!spSite) {
+    const d = await gGet("/sites/" + SP_SITE);
+    spSite = d.id;
+  }
+  if (!spDrive) {
+    const d = await gGet("/sites/" + spSite + "/drives");
+    const dr = d.value.find(x => x.name === "Documents" || x.name === "문서") || d.value[0];
+    spDrive = dr.id;
+  }
+}
+
+// ★ 핵심: SharePoint 폴더에서 prefix로 파일 검색
+async function readSP(prefix) {
   await getIds();
-  const fd=await gGet("/drives/"+spDrive+"/root:/"+SP.folder+":/children");
-  const f=fd.value.find(f=>f.name.startsWith(prefix)&&f.name.endsWith(".xlsx"));
-  if(!f)throw new Error("파일 없음: "+prefix);
-  const res=await fetch(f["@microsoft.graph.downloadUrl"]);const buf=await res.arrayBuffer();
-  return{wb:XLSX.read(buf,{type:"array"}),name:f.name};
+  // 폴더 내 파일 목록 조회
+  const encoded = SP_FOLDER.split("/").map(p => encodeURIComponent(p)).join("/");
+  let fd;
+  try {
+    fd = await gGet("/drives/" + spDrive + "/root:/" + encoded + ":/children");
+  } catch(e) {
+    // 인코딩 없이 재시도
+    fd = await gGet("/drives/" + spDrive + "/root:/" + SP_FOLDER + ":/children");
+  }
+  const files = fd.value || [];
+  // 콘솔에 파일 목록 출력 (디버깅용)
+  console.log("📁 " + SP_FOLDER + " 파일 목록:", files.map(f => f.name));
+  // prefix로 파일 찾기
+  const f = files.find(f => f.name.startsWith(prefix) && f.name.endsWith(".xlsx"));
+  if (!f) {
+    const names = files.map(f => f.name).join(", ");
+    throw new Error("파일 없음: " + prefix + "\n폴더 내 파일: " + names);
+  }
+  const res = await fetch(f["@microsoft.graph.downloadUrl"]);
+  const buf = await res.arrayBuffer();
+  return { wb: XLSX.read(buf, { type: "array" }), name: f.name };
 }
 
 // ━━ 데이터 ━━
-let SD=[],PD=[],CD=[],coMap={},selCo=null,cfF={type:"all"};
+let SD = [], PD = [], CD = [], coMap = {}, selCo = null, cfF = { type: "all" };
 
-async function syncAll(){
-  setSS("spin","동기화 중...");
-  try{
-    await Promise.allSettled([loadSales(),loadProject(),loadContacts()]);
-    setSS("live","실시간 연동");$("lsync","동기화: "+new Date().toLocaleTimeString("ko-KR"));
-  }catch(e){console.error(e);setSS("","연동 실패");}
+async function syncAll() {
+  setSS("spin", "동기화 중...");
+  try {
+    await Promise.allSettled([loadSales(), loadProject(), loadContacts()]);
+    setSS("live", "실시간 연동");
+    $("lsync", "동기화: " + new Date().toLocaleTimeString("ko-KR"));
+  } catch(e) {
+    console.error(e);
+    setSS("", "연동 실패");
+  }
 }
 
 // 매출 로드
-async function loadSales(){
-  try{
-    const{wb,name}=await readSP(SP.px.sales);
-    const sh=wb.Sheets["매출_세금계산서"];
-    const raw=XLSX.utils.sheet_to_json(sh,{defval:"",range:1});
-    SD=raw.filter(r=>{
-      const co=r["청구처"]||Object.values(r)[2]||"";
-      return co&&String(co).trim()&&String(co).trim()!=="청구처";
-    }).map(r=>{
-      const k=Object.keys(r);
-      return{
-        날짜:r["세금계산서일"]||r[k[0]]||"",번호:r["세금계산서번호"]||r[k[1]]||"",
-        청구처:r["청구처"]||r[k[2]]||"",구분:r["Local구분"]||r[k[3]]||"",
-        담당자:r["담당자"]||r[k[6]]||"",프번:r["프로젝트번호"]||r[k[7]]||"",
-        공급:N(r["원화판매금액"]||r[k[12]]||0),입금:N(r["입금액"]||r[k[15]]||0),
-        미수:N(r["미수금잔액"]||r[k[16]]||0),
+async function loadSales() {
+  try {
+    const { wb, name } = await readSP(PX_SALES);
+    const sh = wb.Sheets["매출_세금계산서"];
+    if (!sh) throw new Error("매출_세금계산서 시트 없음");
+    const raw = XLSX.utils.sheet_to_json(sh, { defval: "", range: 1 });
+    SD = raw.filter(r => {
+      const co = r["청구처"] || Object.values(r)[2] || "";
+      return co && String(co).trim() && String(co).trim() !== "청구처";
+    }).map(r => {
+      const k = Object.keys(r);
+      return {
+        날짜: r["세금계산서일"] || r[k[0]] || "",
+        청구처: r["청구처"] || r[k[1]] || "",
+        구분: r["Local구분"] || r[k[2]] || "",
+        프번: r["프로젝트번호"] || r[k[3]] || "",
+        담당자: r["담당자"] || r[k[10]] || "",
+        공급: N(r["공급가액"] || r[k[5]] || 0),
+        입금: N(r["입금액"] || r[k[8]] || 0),
+        미수: N(r["잔금(미수금)"] || r["잔금"] || r[k[9]] || 0),
       };
     });
     updateSalesKPI(SD);
-    renderBars(calcCust(SD),"전체");
+    renderBars(calcCust(SD), "전체");
     renderCFTable();
     renderUnpaid(SD);
-    console.log("매출 로드:",SD.length,"건 ←",name);
-  }catch(e){console.error("매출 실패:",e);renderBars([],"연동 실패");}
+    console.log("✅ 매출 로드:", SD.length, "건 ←", name);
+  } catch(e) {
+    console.error("❌ 매출 실패:", e.message);
+    renderBars([], "연동 실패");
+    $("k-badge", "연동 실패");
+  }
 }
 
-function updateSalesKPI(data){
-  const t=data.reduce((s,r)=>s+r.공급,0);
-  const i=data.reduce((s,r)=>s+r.입금,0);
-  const u=data.reduce((s,r)=>s+r.미수,0);
-  const rate=t>0?Math.round(i/t*100):0;
-  $("k-tax",(t/1e8).toFixed(2));$("k-inc",(i/1e8).toFixed(2));$("k-unp",(u/1e8).toFixed(2));$("k-rate",rate+"%");
-  $("cf-tax",(t/1e8).toFixed(2));$("cf-inc",(i/1e8).toFixed(2));$("cf-unp",(u/1e8).toFixed(2));$("cf-rate",rate+"%");
-  $("cf-cnt",data.length);$("cf-tbl-l",data.length+"건");$("k-badge","전체");
+function updateSalesKPI(data) {
+  const t = data.reduce((s, r) => s + r.공급, 0);
+  const i = data.reduce((s, r) => s + r.입금, 0);
+  const u = data.reduce((s, r) => s + r.미수, 0);
+  const rate = t > 0 ? Math.round(i / t * 100) : 0;
+  $("k-tax", (t/1e8).toFixed(2)); $("k-inc", (i/1e8).toFixed(2)); $("k-unp", (u/1e8).toFixed(2)); $("k-rate", rate + "%");
+  $("cf-tax", (t/1e8).toFixed(2)); $("cf-inc", (i/1e8).toFixed(2)); $("cf-unp", (u/1e8).toFixed(2)); $("cf-rate", rate + "%");
+  $("cf-cnt", data.length); $("cf-tbl-l", data.length + "건"); $("k-badge", "전체");
 }
 
-function calcCust(data){
-  const b={};data.forEach(r=>{if(r.공급>0)b[r.청구처]=(b[r.청구처]||0)+r.공급;});
-  return Object.entries(b).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([n,t])=>({n:n.substring(0,22),t:t/1e8}));
+function calcCust(data) {
+  const b = {};
+  data.forEach(r => { if (r.공급 > 0) b[r.청구처] = (b[r.청부처] || b[r.청구처] || 0) + r.공급; });
+  return Object.entries(b).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([n, t]) => ({ n: n.substring(0, 22), t: t/1e8 }));
 }
 
-function renderUnpaid(data){
-  const b={};
-  data.filter(r=>r.미수>0).forEach(r=>{
-    if(!b[r.청구처])b[r.청구처]={amt:0,gong:0,ing:0};
-    b[r.청구처].amt+=r.미수;b[r.청구처].gong+=r.공급;b[r.청구처].ing+=r.입금;
+function renderUnpaid(data) {
+  const b = {};
+  data.filter(r => r.미수 > 0).forEach(r => {
+    if (!b[r.청구처]) b[r.청구처] = { amt: 0, g: 0, i: 0 };
+    b[r.청구처].amt += r.미수; b[r.청구처].g += r.공급; b[r.청구처].i += r.입금;
   });
-  const sorted=Object.entries(b).sort((a,b)=>b[1].amt-a[1].amt);
-  const total=sorted.reduce((s,[,v])=>s+v.amt,0);
-  $("unp-total",(total/1e8).toFixed(2)+"억");
-  const SC={"에이치비솔루션":"top","울산":"top","인벤티지":"top"};
-  document.getElementById("unpaidList").innerHTML=sorted.slice(0,10).map(([co,v],i)=>{
-    const rate=v.gong>0?Math.round(v.ing/v.gong*100):0;
-    const isTop=i<3?"top":"";
-    const color=i<3?"var(--red)":"var(--text2)";
-    return `<div class="ui"><div class="urk ${isTop}">${String(i+1).padStart(2,"0")}</div><div class="uinf"><div class="unm">${co.substring(0,22)}</div><div class="urt">수금률 ${rate}%</div></div><div class="ubg"><div class="ufil" style="width:${rate}%"></div></div><div class="uamt" style="color:${color}">${(v.amt/1e8).toFixed(3)}억</div></div>`;
-  }).join("")+`<div style="padding:8px 0 0;font-size:10px;color:var(--text3)">※ 에이치비솔루션 BM26001 5.26억은 세금계산서 미발행으로 별도 관리<br>※ 아이센스원주공장은 2025년 완납 확인됨</div>`;
+  const sorted = Object.entries(b).sort((a, b) => b[1].amt - a[1].amt);
+  const total = sorted.reduce((s, [, v]) => s + v.amt, 0);
+  $("unp-total", (total/1e8).toFixed(2) + "억");
+  document.getElementById("unpaidList").innerHTML = sorted.slice(0, 10).map(([co, v], i) => {
+    const rate = v.g > 0 ? Math.round(v.i / v.g * 100) : 0;
+    const color = i < 3 ? "var(--red)" : "var(--text2)";
+    return `<div class="ui"><div class="urk ${i<3?"top":""}">${String(i+1).padStart(2,"0")}</div><div class="uinf"><div class="unm">${co.substring(0,22)}</div><div class="urt">수금률 ${rate}%</div></div><div class="ubg"><div class="ufil" style="width:${rate}%"></div></div><div class="uamt" style="color:${color}">${(v.amt/1e8).toFixed(3)}억</div></div>`;
+  }).join("") + `<div style="padding:8px 0 0;font-size:10px;color:var(--text3)">※ 에이치비솔루션 BM26001 5.26억 세금계산서 미발행 (잔금과 별도)<br>※ 아이센스원주공장 2025년 완납 확인됨</div>`;
 }
 
 // 현금흐름 테이블
-function renderCFTable(){
-  let d=SD;const{type,yr,sub}=cfF;
-  if(type==="m"&&yr&&sub)d=SD.filter(r=>{try{const dt=new Date(r.날짜);return dt.getFullYear()===yr&&(dt.getMonth()+1)===sub;}catch{return false;}});
-  else if(type==="q"&&yr&&sub){const qm={1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[sub];d=SD.filter(r=>{try{const dt=new Date(r.날짜);return dt.getFullYear()===yr&&qm.includes(dt.getMonth()+1);}catch{return false;}});}
-  else if(type==="a"&&yr)d=SD.filter(r=>{try{return new Date(r.날짜).getFullYear()===yr;}catch{return false;}});
-  const t=d.reduce((s,r)=>s+r.공급,0),i=d.reduce((s,r)=>s+r.입금,0),u=d.reduce((s,r)=>s+r.미수,0);
-  const rate=t>0?Math.round(i/t*100):0;
-  $("cf-tax",(t/1e8).toFixed(2));$("cf-inc",(i/1e8).toFixed(2));$("cf-unp",(u/1e8).toFixed(2));$("cf-rate",rate+"%");$("cf-cnt",d.length);$("cf-tbl-l",d.length+"건");
-  document.getElementById("cfTb").innerHTML=d.slice(0,300).map(r=>{
-    const dt=r.날짜?String(r.날짜).substring(0,10):"-";
+function renderCFTable() {
+  let d = SD;
+  const { type, yr, sub } = cfF;
+  if (type === "m" && yr && sub) d = SD.filter(r => { try { const dt = new Date(r.날짜); return dt.getFullYear() === yr && (dt.getMonth()+1) === sub; } catch { return false; } });
+  else if (type === "q" && yr && sub) { const qm = {1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[sub]; d = SD.filter(r => { try { const dt = new Date(r.날짜); return dt.getFullYear() === yr && qm.includes(dt.getMonth()+1); } catch { return false; } }); }
+  else if (type === "a" && yr) d = SD.filter(r => { try { return new Date(r.날짜).getFullYear() === yr; } catch { return false; } });
+  const t = d.reduce((s, r) => s + r.공급, 0);
+  const i = d.reduce((s, r) => s + r.입금, 0);
+  const u = d.reduce((s, r) => s + r.미수, 0);
+  const rate = t > 0 ? Math.round(i/t*100) : 0;
+  $("cf-tax", (t/1e8).toFixed(2)); $("cf-inc", (i/1e8).toFixed(2)); $("cf-unp", (u/1e8).toFixed(2));
+  $("cf-rate", rate + "%"); $("cf-cnt", d.length); $("cf-tbl-l", d.length + "건");
+  document.getElementById("cfTb").innerHTML = d.slice(0, 300).map(r => {
+    const dt = r.날짜 ? String(r.날짜).substring(0, 10) : "-";
     return `<tr><td style="font-size:10px;color:var(--text3)">${dt}</td><td>${String(r.청구처||"").substring(0,16)}</td><td><span class="tm" style="font-size:10px">${r.프번||""}</span></td><td><span class="badge ${r.구분==="수출"?"warn":"info"}" style="font-size:9px">${r.구분||""}</span></td><td class="r"><span class="tm b">${r.공급>0?(r.공급/1e4).toFixed(0)+"만":"-"}</span></td><td class="r"><span class="tm g">${r.입금>0?(r.입금/1e4).toFixed(0)+"만":"0"}</span></td><td class="r"><span class="tm ${r.미수>0?"r":""}">${r.미수>0?(r.미수/1e4).toFixed(0)+"만":"0"}</span></td><td style="font-size:10px">${r.담당자||""}</td></tr>`;
   }).join("");
 }
 
-function selCF(type,yr,sub,label,el){
+function selCF(type, yr, sub, label, el) {
   event.stopPropagation();
-  document.querySelectorAll("[id^='dm-cf']").forEach(d=>d.classList.remove("open"));
-  document.querySelectorAll(".di").forEach(d=>d.classList.remove("sel"));el.classList.add("sel");
-  document.querySelectorAll("[id^='cf-'].pp").forEach(p=>p.classList.remove("on"));
-  (el.closest(".pw")?.querySelector(".pp")||document.getElementById("cf-all")).classList.add("on");
-  $("cf-range",label);cfF={type,yr,sub};
-  if(SD.length>0)renderCFTable();
+  document.querySelectorAll("[id^='dm-cf']").forEach(d => d.classList.remove("open"));
+  document.querySelectorAll(".di").forEach(d => d.classList.remove("sel")); el.classList.add("sel");
+  document.querySelectorAll("[id^='cf-'].pp").forEach(p => p.classList.remove("on"));
+  (el.closest(".pw")?.querySelector(".pp") || document.getElementById("cf-all")).classList.add("on");
+  $("cf-range", label); cfF = { type, yr, sub };
+  if (SD.length > 0) renderCFTable();
 }
 
 // 프로젝트 로드
-async function loadProject(){
-  try{
-    const{wb,name}=await readSP(SP.px.project);
-    const sh=wb.Sheets["Sheet1"];
-    const raw=XLSX.utils.sheet_to_json(sh,{header:1,defval:""});
-    PD=raw.slice(6).filter(r=>r[1]&&r[1]!=="TOTAL"&&r[4]).map(r=>({
-      진행구분:r[1]||"",프로젝트명:r[3]||"",프로젝트번호:r[4]||"",
-      계약일:r[11]||"",유형:r[12]||"",거래처:r[13]||"",
-      책임자:r[16]||"",PM:r[17]||"",금액:N(r[18]||0),원화금액:N(r[19]||0),
-    })).filter(r=>r.프로젝트번호&&r.진행구분);
+async function loadProject() {
+  try {
+    const { wb, name } = await readSP(PX_PROJECT);
+    const sh = wb.Sheets["Sheet1"];
+    if (!sh) throw new Error("Sheet1 없음");
+    const raw = XLSX.utils.sheet_to_json(sh, { header: 1, defval: "" });
+    // 헤더는 4행(index 4), 데이터는 6행부터 (TOTAL 행 제외)
+    PD = raw.slice(6).filter(r => r[1] && r[1] !== "TOTAL" && r[4]).map(r => ({
+      진행구분: String(r[1] || ""),
+      프로젝트명: String(r[3] || ""),
+      프로젝트번호: String(r[4] || ""),
+      계약일: String(r[11] || ""),
+      유형: String(r[12] || ""),
+      거래처: String(r[13] || ""),
+      책임자: String(r[16] || ""),
+      PM: String(r[17] || ""),
+      원화금액: N(r[19] || 0),
+    })).filter(r => r.프로젝트번호 && r.진행구분);
     updPlKPI();
-    renderPL(PD.filter(r=>["확정","작성"].includes(r.진행구분)));
-    const tp=[...new Set(PD.map(r=>r.유형).filter(Boolean))].sort();
-    const mg=[...new Set(PD.map(r=>r.책임자).filter(Boolean))].sort();
-    const ts=document.getElementById("plTp"),ms=document.getElementById("plMg");
-    tp.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=t;ts.appendChild(o);});
-    mg.forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;ms.appendChild(o);});
-    $("pl-upd","동기화: "+new Date().toLocaleTimeString("ko-KR"));
-    $("pl-lbl",name);
-    console.log("프로젝트:",PD.length,"건 ←",name);
-  }catch(e){
-    console.error("프로젝트 실패:",e);
-    document.getElementById("plTb").innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">⚠️</div><div class="et">SharePoint 연결 실패</div><div style="font-size:11px;color:var(--text3)">파일명: _프로젝트List__[날짜]_Dashboard_실시간자료.xlsx</div></div></td></tr>`;
+    renderPL(PD.filter(r => ["확정","작성"].includes(r.진행구분)));
+    // 필터 옵션 채우기
+    const tp = [...new Set(PD.map(r => r.유형).filter(Boolean))].sort();
+    const mg = [...new Set(PD.map(r => r.책임자).filter(Boolean))].sort();
+    const ts = document.getElementById("plTp");
+    const ms = document.getElementById("plMg");
+    // 기존 옵션 제거 후 추가
+    while (ts.options.length > 1) ts.remove(1);
+    while (ms.options.length > 1) ms.remove(1);
+    tp.forEach(t => { const o = new Option(t, t); ts.add(o); });
+    mg.forEach(m => { const o = new Option(m, m); ms.add(o); });
+    $("pl-upd", "동기화: " + new Date().toLocaleTimeString("ko-KR"));
+    $("pl-lbl", name);
+    console.log("✅ 프로젝트:", PD.length, "건 ←", name);
+  } catch(e) {
+    console.error("❌ 프로젝트 실패:", e.message);
+    document.getElementById("plTb").innerHTML = `<tr><td colspan="9"><div class="empty"><div class="ei">⚠️</div><div class="et">SharePoint 연결 실패</div><div style="font-size:11px;color:var(--text3)">파일명: ${e.message}</div></div></td></tr>`;
   }
 }
 
-function updPlKPI(){
-  const act=PD.filter(r=>["확정","작성"].includes(r.진행구분));
-  const amt=act.reduce((s,r)=>s+r.원화금액,0);
-  const don=PD.filter(r=>r.진행구분==="완료").length;
-  const stp=PD.filter(r=>r.진행구분==="중단").length;
-  $("pl-tot",PD.length);$("pl-act",act.length);$("pl-act-amt",(amt/1e8).toFixed(1)+"억");
-  $("pl-don",don);$("pl-stp",stp);$("badge-pl",act.length);$("k-proj",act.length);$("k-proj-amt",(amt/1e8).toFixed(1)+"억");
-  $("ql-a",PD.length);$("ql-act",act.length);
-  $("ql-확",PD.filter(r=>r.진행구분==="확정").length);
-  $("ql-작",PD.filter(r=>r.진행구분==="작성").length);
-  $("ql-완",don);$("ql-중",stp);
+function updPlKPI() {
+  const act = PD.filter(r => ["확정","작성"].includes(r.진행구분));
+  const amt = act.reduce((s, r) => s + r.원화금액, 0);
+  const don = PD.filter(r => r.진행구분 === "완료").length;
+  const stp = PD.filter(r => r.진행구분 === "중단").length;
+  $("pl-tot", PD.length); $("pl-act", act.length); $("pl-act-amt", (amt/1e8).toFixed(1) + "억");
+  $("pl-don", don); $("pl-stp", stp); $("badge-pl", act.length); $("k-proj", act.length); $("k-proj-amt", (amt/1e8).toFixed(1) + "억");
+  $("ql-a", PD.length); $("ql-act", act.length);
+  $("ql-확", PD.filter(r => r.진행구분 === "확정").length);
+  $("ql-작", PD.filter(r => r.진행구분 === "작성").length);
+  $("ql-완", don); $("ql-중", stp);
 }
 
-let plQF="active";
-function qf(t,el){plQF=t;document.querySelectorAll(".qb").forEach(b=>b.classList.remove("on"));el.classList.add("on");filterPL();}
-function filterPL(){
-  const q=document.getElementById("plSrch").value.toLowerCase();
-  const st=document.getElementById("plSt").value,tp=document.getElementById("plTp").value,mg=document.getElementById("plMg").value;
-  let d=PD;
-  if(plQF==="active")d=d.filter(r=>["확정","작성"].includes(r.진행구분));
-  else if(plQF)d=d.filter(r=>r.진행구분===plQF);
-  if(q)d=d.filter(r=>[r.프로젝트명,r.프로젝트번호,r.거래처].some(v=>String(v||"").toLowerCase().includes(q)));
-  if(st)d=d.filter(r=>r.진행구분===st);if(tp)d=d.filter(r=>r.유형===tp);if(mg)d=d.filter(r=>r.책임자===mg);
+let plQF = "active";
+function qf(t, el) { plQF = t; document.querySelectorAll(".qb").forEach(b => b.classList.remove("on")); el.classList.add("on"); filterPL(); }
+function filterPL() {
+  const q = document.getElementById("plSrch").value.toLowerCase();
+  const st = document.getElementById("plSt").value;
+  const tp = document.getElementById("plTp").value;
+  const mg = document.getElementById("plMg").value;
+  let d = PD;
+  if (plQF === "active") d = d.filter(r => ["확정","작성"].includes(r.진행구분));
+  else if (plQF) d = d.filter(r => r.진행구분 === plQF);
+  if (q) d = d.filter(r => [r.프로젝트명, r.프로젝트번호, r.거래처].some(v => String(v||"").toLowerCase().includes(q)));
+  if (st) d = d.filter(r => r.진행구분 === st);
+  if (tp) d = d.filter(r => r.유형 === tp);
+  if (mg) d = d.filter(r => r.책임자 === mg);
   renderPL(d);
 }
-function renderPL(data){
-  const SC={확정:"up",작성:"warn",완료:"info",중단:"dn"};
-  const tb=document.getElementById("plTb");
-  if(!data.length){tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div></td></tr>`;return;}
-  tb.innerHTML=data.slice(0,300).map(r=>{
-    const amt=r.원화금액>0?(r.원화금액/1e8).toFixed(3)+"억":"-";
-    const dt=r.계약일?String(r.계약일).substring(0,10):"-";
-    const nm=r.프로젝트명.replace(/\(.*?\)/g,"").trim().substring(0,28);
+function renderPL(data) {
+  const SC = { 확정:"up", 작성:"warn", 완료:"info", 중단:"dn" };
+  const tb = document.getElementById("plTb");
+  if (!data.length) { tb.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div></td></tr>`; return; }
+  tb.innerHTML = data.slice(0, 300).map(r => {
+    const amt = r.원화금액 > 0 ? (r.원화금액/1e8).toFixed(3) + "억" : "-";
+    const dt = r.계약일 ? String(r.계약일).substring(0, 10) : "-";
+    const nm = r.프로젝트명.replace(/\(.*?\)/g, "").trim().substring(0, 28);
     return `<tr><td><span class="tm" style="font-size:10px">${r.프로젝트번호}</span></td><td><span class="tn" style="font-size:11px" title="${r.프로젝트명}">${nm}</span></td><td style="max-width:110px;overflow:hidden;text-overflow:ellipsis">${String(r.거래처||"").substring(0,14)}</td><td style="font-size:10px;color:var(--text3)">${r.유형||""}</td><td class="r"><span class="tm b">${amt}</span></td><td><span class="badge ${SC[r.진행구분]||"gray"}">${r.진행구분}</span></td><td style="font-size:10px;color:var(--text3)">${dt}</td><td style="font-size:10px">${r.책임자||""}</td><td style="font-size:10px;color:var(--text3)">${r.PM||""}</td></tr>`;
   }).join("");
-  $("pl-cnt2",data.length+"건 (최대 300건 표시)");
+  $("pl-cnt2", data.length + "건 (최대 300건 표시)");
 }
 
 // 연락처 로드
-async function loadContacts(){
-  try{
-    const{wb,name}=await readSP(SP.px.contact);
-    const sh=wb.Sheets["Remember"];
-    CD=XLSX.utils.sheet_to_json(sh,{defval:""}).filter(r=>r["이름"]||r["회사"]);
-    coMap={};CD.forEach(r=>{const co=r["회사"]||"미상";if(!coMap[co])coMap[co]=[];coMap[co].push(r);});
-    const cos=Object.keys(coMap).filter(c=>c!=="미상").sort();
-    const dom=CD.filter(r=>!String(r["휴대폰"]||"").startsWith("+"));
-    const intl=CD.filter(r=>String(r["휴대폰"]||"").startsWith("+"));
-    $("ct-tot",CD.length);$("ct-co",cos.length);$("ct-dom",dom.length);$("ct-int",intl.length);$("badge-ct",CD.length);
-    $("ct-upd","동기화: "+new Date().toLocaleTimeString("ko-KR"));
-    renderCos(cos);console.log("연락처:",CD.length,"명 ←",name);
-  }catch(e){console.error("연락처 실패:",e);}
+async function loadContacts() {
+  try {
+    const { wb, name } = await readSP(PX_CONTACT);
+    const sh = wb.Sheets["Remember"];
+    if (!sh) throw new Error("Remember 시트 없음");
+    CD = XLSX.utils.sheet_to_json(sh, { defval: "" }).filter(r => r["이름"] || r["회사"]);
+    coMap = {};
+    CD.forEach(r => { const co = r["회사"] || "미상"; if (!coMap[co]) coMap[co] = []; coMap[co].push(r); });
+    const cos = Object.keys(coMap).filter(c => c !== "미상").sort();
+    const dom = CD.filter(r => !String(r["휴대폰"] || "").startsWith("+"));
+    const intl = CD.filter(r => String(r["휴대폰"] || "").startsWith("+"));
+    $("ct-tot", CD.length); $("ct-co", cos.length); $("ct-dom", dom.length); $("ct-int", intl.length); $("badge-ct", CD.length);
+    $("ct-upd", "동기화: " + new Date().toLocaleTimeString("ko-KR"));
+    renderCos(cos);
+    console.log("✅ 연락처:", CD.length, "명 ←", name);
+  } catch(e) {
+    console.error("❌ 연락처 실패:", e.message);
+  }
 }
-function renderCos(cos){
-  const q=document.getElementById("coSrch").value.toLowerCase(),tp=document.getElementById("coTp").value;
-  window._cmap={};let ri=0;
-  const f=cos.filter(c=>{
-    if(q&&!c.toLowerCase().includes(q))return false;
-    const isI=coMap[c]?.some(r=>String(r["휴대폰"]||"").startsWith("+"));
-    if(tp==="국내"&&isI)return false;if(tp==="해외"&&!isI)return false;return true;
+
+function renderCos(cos) {
+  const q = document.getElementById("coSrch").value.toLowerCase();
+  const tp = document.getElementById("coTp").value;
+  const f = cos.filter(c => {
+    if (q && !c.toLowerCase().includes(q)) return false;
+    const isI = coMap[c]?.some(r => String(r["휴대폰"] || "").startsWith("+"));
+    if (tp === "국내" && isI) return false;
+    if (tp === "해외" && !isI) return false;
+    return true;
   });
-  document.getElementById("coList").innerHTML=f.slice(0,80).map(co=>{
-    const cts=coMap[co]||[],isI=cts.some(r=>String(r["휴대폰"]||"").startsWith("+"));
-    const roles=cts.map(r=>r["직함"]||"").filter(Boolean).slice(0,2).join(" · ")||"담당자 "+cts.length+"명";
-    const s=co===selCo?"sel":"";
-    const _ci='c'+(ri++);window._cmap[_ci]=co;
-    return `<div class="coi ${s}" onclick="pickCoId('${_ci}',this)"><div class="co-ic">${co.charAt(0)}</div><div class="co-in"><div class="co-nm">${co}</div><div class="co-mt">${isI?"🌏 해외":"🇰🇷 국내"} · ${roles}</div></div><div class="co-cn">${cts.length}</div></div>`;
+  // ★ 정규식 없이 data-idx 방식으로 onclick 처리
+  window._coArr = [];
+  document.getElementById("coList").innerHTML = f.slice(0, 80).map((co, idx) => {
+    window._coArr.push(co);
+    const cts = coMap[co] || [];
+    const isI = cts.some(r => String(r["휴대폰"] || "").startsWith("+"));
+    const roles = cts.map(r => r["직함"] || "").filter(Boolean).slice(0, 2).join(" · ") || "담당자 " + cts.length + "명";
+    const s = co === selCo ? "sel" : "";
+    return `<div class="coi ${s}" data-idx="${idx}" onclick="pickCoIdx(${idx},this)"><div class="co-ic">${co.charAt(0)}</div><div class="co-in"><div class="co-nm">${co}</div><div class="co-mt">${isI ? "🌏 해외" : "🇰🇷 국내"} · ${roles}</div></div><div class="co-cn">${cts.length}</div></div>`;
   }).join("");
 }
-function pickCoId(cid,el){ const co=window._cmap&&window._cmap[cid]||""; 
-  selCo=co;document.querySelectorAll(".coi").forEach(e=>e.classList.remove("sel"));el.classList.add("sel");
-  $("selCoNm",co);$("ctCnt",(coMap[co]||[]).length+"명");renderCtCards(coMap[co]||[]);
+
+function pickCoIdx(idx, el) {
+  const co = window._coArr && window._coArr[idx];
+  if (!co) return;
+  selCo = co;
+  document.querySelectorAll(".coi").forEach(e => e.classList.remove("sel")); el.classList.add("sel");
+  $("selCoNm", co); $("ctCnt", (coMap[co] || []).length + "명");
+  renderCtCards(coMap[co] || []);
 }
-function renderCtCards(cts){
-  const q=document.getElementById("ctSrch").value.toLowerCase();
-  const f=cts.filter(r=>!q||[r["이름"],r["직함"],r["부서"]].some(v=>String(v||"").toLowerCase().includes(q)));
-  if(!f.length){document.getElementById("ctGrid").innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div>`;return;}
-  const isI=cts.some(r=>String(r["휴대폰"]||"").startsWith("+"));
-  document.getElementById("ctGrid").innerHTML=f.map(r=>`<div class="cc"><div class="cc-nm">${r["이름"]||"-"}</div><div class="cc-co">${r["회사"]||"-"}</div><div class="cc-rl">${[r["직함"],r["부서"]].filter(Boolean).join(" · ")||"-"}</div><div class="cc-if">${r["휴대폰"]?`<span>📱 ${r["휴대폰"]}</span>`:""}${r["전자 메일 주소"]?`<span>✉️ ${r["전자 메일 주소"]}</span>`:""}${r["근무처 전화"]?`<span>📞 ${r["근무처 전화"]}</span>`:""}</div><span class="ctag" style="background:${isI?"var(--ad)":"var(--pd)"};color:${isI?"var(--accent)":"var(--primary)"}">${isI?"🌏 해외":"🇰🇷 국내"}</span>${r["명함 등록자"]?`<span class="ctag" style="background:var(--gd);color:var(--green)">${r["명함 등록자"]}</span>`:""}</div>`).join("");
+
+function renderCtCards(cts) {
+  const q = document.getElementById("ctSrch").value.toLowerCase();
+  const f = cts.filter(r => !q || [r["이름"], r["직함"], r["부서"]].some(v => String(v || "").toLowerCase().includes(q)));
+  if (!f.length) { document.getElementById("ctGrid").innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div>`; return; }
+  const isI = cts.some(r => String(r["휴대폰"] || "").startsWith("+"));
+  document.getElementById("ctGrid").innerHTML = f.map(r => `<div class="cc"><div class="cc-nm">${r["이름"] || "-"}</div><div class="cc-co">${r["회사"] || "-"}</div><div class="cc-rl">${[r["직함"], r["부서"]].filter(Boolean).join(" · ") || "-"}</div><div class="cc-if">${r["휴대폰"] ? "<span>📱 " + r["휴대폰"] + "</span>" : ""}${r["전자 메일 주소"] ? "<span>✉️ " + r["전자 메일 주소"] + "</span>" : ""}${r["근무처 전화"] ? "<span>📞 " + r["근무처 전화"] + "</span>" : ""}</div><span class="ctag" style="background:${isI ? "var(--ad)" : "var(--pd)"};color:${isI ? "var(--accent)" : "var(--primary)"}">${isI ? "🌏 해외" : "🇰🇷 국내"}</span>${r["명함 등록자"] ? "<span class='ctag' style='background:var(--gd);color:var(--green)'>" + r["명함 등록자"] + "</span>" : ""}</div>`).join("");
 }
-function filterCos(){renderCos(Object.keys(coMap).filter(c=>c!=="미상").sort());}
-function filterCtP(){if(selCo)renderCtCards(coMap[selCo]||[]);}
+function filterCos() { renderCos(Object.keys(coMap).filter(c => c !== "미상").sort()); }
+function filterCtP() { if (selCo) renderCtCards(coMap[selCo] || []); }
 
 // 기간 필터 (매출)
-document.addEventListener("click",()=>document.querySelectorAll(".dm").forEach(d=>d.classList.remove("open")));
-function tdrop(t,el){
+document.addEventListener("click", () => document.querySelectorAll(".dm").forEach(d => d.classList.remove("open")));
+function tdrop(t, el) {
   event.stopPropagation();
-  document.querySelectorAll(".dm").forEach(d=>{if(d.id!=="dm-"+t)d.classList.remove("open");});
-  document.getElementById("dm-"+t)?.classList.toggle("open");
-  document.querySelectorAll(".pps .pp").forEach(p=>{if(p!==el)p.classList.remove("on");});el.classList.add("on");
+  document.querySelectorAll(".dm").forEach(d => { if (d.id !== "dm-" + t) d.classList.remove("open"); });
+  document.getElementById("dm-" + t)?.classList.toggle("open");
+  document.querySelectorAll(".pps .pp").forEach(p => { if (p !== el) p.classList.remove("on"); }); el.classList.add("on");
 }
-function selP(type,yr,sub,label,el){
+function selP(type, yr, sub, label, el) {
   event.stopPropagation();
-  document.querySelectorAll(".di").forEach(d=>d.classList.remove("sel"));el.classList.add("sel");
-  document.querySelectorAll(".dm").forEach(d=>d.classList.remove("open"));
-  document.querySelectorAll("#tab-sales .pp").forEach(p=>p.classList.remove("on"));
-  (el.closest(".pw")?.querySelector(".pp")||document.getElementById("pp-all")).classList.add("on");
-  $("prange",label);$("k-badge",label.substring(0,10));
-  // 데이터 필터
-  let d=SD;
-  if(type==="m"&&yr&&sub)d=SD.filter(r=>{try{const dt=new Date(r.날짜);return dt.getFullYear()===yr&&(dt.getMonth()+1)===sub;}catch{return false;}});
-  else if(type==="q"&&yr&&sub){const qm={1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[sub];d=SD.filter(r=>{try{const dt=new Date(r.날짜);return dt.getFullYear()===yr&&qm.includes(dt.getMonth()+1);}catch{return false;}});}
-  else if(type==="h"&&yr&&sub){const hm={1:[1,2,3,4,5,6],2:[7,8,9,10,11,12]}[sub];d=SD.filter(r=>{try{const dt=new Date(r.날짜);return dt.getFullYear()===yr&&hm.includes(dt.getMonth()+1);}catch{return false;}});}
-  else if(type==="a"&&yr)d=SD.filter(r=>{try{return new Date(r.날짜).getFullYear()===yr;}catch{return false;}});
-  const t=d.reduce((s,r)=>s+r.공급,0),i=d.reduce((s,r)=>s+r.입금,0),u=d.reduce((s,r)=>s+r.미수,0);
-  const rate=t>0?Math.round(i/t*100):0;
-  $("k-tax",(t/1e8).toFixed(2));$("k-inc",(i/1e8).toFixed(2));$("k-unp",(u/1e8).toFixed(2));$("k-rate",rate+"%");
-  renderBars(calcCust(d),type==="all"?"전체":yr+"년");
+  document.querySelectorAll(".di").forEach(d => d.classList.remove("sel")); el.classList.add("sel");
+  document.querySelectorAll(".dm").forEach(d => d.classList.remove("open"));
+  document.querySelectorAll("#tab-sales .pp").forEach(p => p.classList.remove("on"));
+  (el.closest(".pw")?.querySelector(".pp") || document.getElementById("pp-all")).classList.add("on");
+  $("prange", label); $("k-badge", label.substring(0, 10));
+  let d = SD;
+  if (type === "m" && yr && sub) d = SD.filter(r => { try { const dt = new Date(r.날짜); return dt.getFullYear() === yr && (dt.getMonth()+1) === sub; } catch { return false; } });
+  else if (type === "q" && yr && sub) { const qm = {1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[sub]; d = SD.filter(r => { try { const dt = new Date(r.날짜); return dt.getFullYear() === yr && qm.includes(dt.getMonth()+1); } catch { return false; } }); }
+  else if (type === "h" && yr && sub) { const hm = {1:[1,2,3,4,5,6],2:[7,8,9,10,11,12]}[sub]; d = SD.filter(r => { try { const dt = new Date(r.날짜); return dt.getFullYear() === yr && hm.includes(dt.getMonth()+1); } catch { return false; } }); }
+  else if (type === "a" && yr) d = SD.filter(r => { try { return new Date(r.날짜).getFullYear() === yr; } catch { return false; } });
+  const t = d.reduce((s, r) => s + r.공급, 0);
+  const i = d.reduce((s, r) => s + r.입금, 0);
+  const u = d.reduce((s, r) => s + r.미수, 0);
+  const rate = t > 0 ? Math.round(i/t*100) : 0;
+  $("k-tax", (t/1e8).toFixed(2)); $("k-inc", (i/1e8).toFixed(2)); $("k-unp", (u/1e8).toFixed(2)); $("k-rate", rate + "%");
+  renderBars(calcCust(d), type === "all" ? "전체" : yr + "년");
   // 월별 차트 업데이트
-  const byMonth={};
-  d.forEach(r=>{try{const dt=new Date(r.날짜);const m=dt.getMonth()+1;if(!byMonth[m])byMonth[m]={t:0,i:0};byMonth[m].t+=r.공급;byMonth[m].i+=r.입금;}catch{}});
-  if(Object.keys(byMonth).length>0)updMChart(byMonth,label);
+  const byM = {};
+  d.forEach(r => { try { const dt = new Date(r.날짜); const m = dt.getMonth()+1; if (!byM[m]) byM[m] = {t:0,i:0}; byM[m].t += r.공급; byM[m].i += r.입금; } catch {} });
+  if (Object.keys(byM).length > 0) updMChart(byM, label);
 }
 
 // 차트
-Chart.defaults.color="#6b7280";Chart.defaults.font.family="'Pretendard',sans-serif";Chart.defaults.font.size=10;
-const TT={backgroundColor:"#1f2937",borderColor:"rgba(0,0,0,.1)",borderWidth:1,padding:9};
-const CH={};function dC(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
+Chart.defaults.color = "#6b7280";
+Chart.defaults.font.family = "'Pretendard',sans-serif";
+Chart.defaults.font.size = 10;
+const TT = { backgroundColor: "#1f2937", borderColor: "rgba(0,0,0,.1)", borderWidth: 1, padding: 9 };
+const CH = {};
+function dC(id) { if (CH[id]) { CH[id].destroy(); delete CH[id]; } }
 
-function initCharts(){
-  // 연도별 (감사보고서)
+function initCharts() {
   dC("yrC");
-  CH.yr=new Chart(document.getElementById("yrC"),{type:"bar",
-    data:{labels:["2023(감사)","2024(감사)","2025(감사)","2026(기록부)"],
-      datasets:[{label:"공급가액",data:[120.73,62.60,53.75,25.51],backgroundColor:"rgba(26,111,212,.75)",borderRadius:4,borderSkipped:false},
-                {label:"입금",data:[120.73,62.60,48.5,18.2],backgroundColor:"rgba(0,135,90,.75)",borderRadius:4,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top",labels:{usePointStyle:true}},tooltip:TT},
-      scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:"rgba(0,0,0,.05)"},border:{display:false},ticks:{callback:v=>v+"억"}}}}});
-  // 월별 (기본: 로딩 대기)
-  initMChart({},"로딩중");
-  // 국내/해외
+  CH.yr = new Chart(document.getElementById("yrC"), { type: "bar",
+    data: { labels: ["2023(감사)","2024(감사)","2025(감사)","2026(기록부)"],
+      datasets: [
+        { label: "공급가액", data: [120.73, 62.60, 53.75, 25.51], backgroundColor: "rgba(26,111,212,.75)", borderRadius: 4, borderSkipped: false },
+        { label: "입금", data: [120.73, 62.60, 48.5, 18.2], backgroundColor: "rgba(0,135,90,.75)", borderRadius: 4, borderSkipped: false }
+      ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: "top", labels: { usePointStyle: true } }, tooltip: TT },
+      scales: { x: { grid: { display: false }, border: { display: false } }, y: { grid: { color: "rgba(0,0,0,.05)" }, border: { display: false }, ticks: { callback: v => v + "억" } } } }});
+  initMChart({}, "로딩중");
   dC("typeC");
-  CH.type=new Chart(document.getElementById("typeC"),{type:"doughnut",
-    data:{labels:["국내","해외"],datasets:[{data:[0,0],backgroundColor:["#1a6fd4","#d95f00"],borderWidth:0,hoverOffset:5}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:"60%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,padding:10}},tooltip:TT}}});
-  // 현금흐름 (감사보고서 기준)
+  CH.type = new Chart(document.getElementById("typeC"), { type: "doughnut",
+    data: { labels: ["국내","해외"], datasets: [{ data: [0,0], backgroundColor: ["#1a6fd4","#d95f00"], borderWidth: 0, hoverOffset: 5 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "60%", plugins: { legend: { position: "bottom", labels: { usePointStyle: true, padding: 10 } }, tooltip: TT } }});
   dC("cfC");
-  CH.cf=new Chart(document.getElementById("cfC"),{type:"bar",
-    data:{labels:["2023","2024","2025","2026(~4월)"],
-      datasets:[{label:"공급가액",data:[120.73,62.60,53.75,25.51],backgroundColor:"rgba(26,111,212,.75)",borderRadius:4},
-                {label:"입금",data:[120.73,62.60,48.5,18.2],backgroundColor:"rgba(0,135,90,.75)",borderRadius:4},
-                {label:"잔금",data:[4.64,2.67,1.71,2.63],backgroundColor:"rgba(200,32,30,.6)",borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top",labels:{usePointStyle:true}},tooltip:TT},
-      scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:"rgba(0,0,0,.05)"},border:{display:false},ticks:{callback:v=>v+"억"}}}}});
+  CH.cf = new Chart(document.getElementById("cfC"), { type: "bar",
+    data: { labels: ["2023","2024","2025","2026(~4월)"],
+      datasets: [
+        { label: "공급가액", data: [120.73, 62.60, 53.75, 25.51], backgroundColor: "rgba(26,111,212,.75)", borderRadius: 4 },
+        { label: "입금", data: [120.73, 62.60, 48.5, 18.2], backgroundColor: "rgba(0,135,90,.75)", borderRadius: 4 },
+        { label: "잔금", data: [4.64, 2.67, 1.71, 2.63], backgroundColor: "rgba(200,32,30,.6)", borderRadius: 4 }
+      ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: "top", labels: { usePointStyle: true } }, tooltip: TT },
+      scales: { x: { grid: { display: false }, border: { display: false } }, y: { grid: { color: "rgba(0,0,0,.05)" }, border: { display: false }, ticks: { callback: v => v + "억" } } } }});
 }
 
-function initMChart(mData,label){
-  dC("mC");$("m-lbl",label);
-  const ks=Object.keys(mData).sort((a,b)=>a-b);
-  CH.m=new Chart(document.getElementById("mC"),{type:"bar",
-    data:{labels:ks.length?ks.map(k=>k+"월"):["로딩중"],
-      datasets:[{label:"공급가액",data:ks.map(k=>mData[k].t/1e8),backgroundColor:"rgba(26,111,212,.75)",borderRadius:4},
-                {label:"입금",data:ks.map(k=>mData[k].i/1e8),backgroundColor:"rgba(0,135,90,.75)",borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top",labels:{usePointStyle:true}},tooltip:TT},
-      scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:"rgba(0,0,0,.05)"},border:{display:false},ticks:{callback:v=>v+"억"}}}}});
-}
-function updMChart(m,label){
-  if(CH.m){CH.m.data.labels=Object.keys(m).sort((a,b)=>a-b).map(k=>k+"월");CH.m.data.datasets[0].data=Object.keys(m).sort((a,b)=>a-b).map(k=>m[k].t/1e8);CH.m.data.datasets[1].data=Object.keys(m).sort((a,b)=>a-b).map(k=>m[k].i/1e8);CH.m.update();$("m-lbl",label);}
-  else initMChart(m,label);
-}
-
-// SD 로드 후 국내/해외 차트 업데이트
-function updTypeChart(){
-  if(!CH.type)return;
-  const dom=SD.filter(r=>r.구분==="내수").reduce((s,r)=>s+r.공급,0);
-  const intl=SD.filter(r=>r.구분!=="내수").reduce((s,r)=>s+r.공급,0);
-  CH.type.data.datasets[0].data=[dom/1e8,intl/1e8];CH.type.update();
+function initMChart(mData, label) {
+  dC("mC"); $("m-lbl", label);
+  const ks = Object.keys(mData).map(Number).sort((a,b) => a-b);
+  CH.m = new Chart(document.getElementById("mC"), { type: "bar",
+    data: { labels: ks.length ? ks.map(k => k + "월") : ["로딩중"],
+      datasets: [
+        { label: "공급가액", data: ks.map(k => mData[k].t/1e8), backgroundColor: "rgba(26,111,212,.75)", borderRadius: 4 },
+        { label: "입금", data: ks.map(k => mData[k].i/1e8), backgroundColor: "rgba(0,135,90,.75)", borderRadius: 4 }
+      ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: "top", labels: { usePointStyle: true } }, tooltip: TT },
+      scales: { x: { grid: { display: false }, border: { display: false } }, y: { grid: { color: "rgba(0,0,0,.05)" }, border: { display: false }, ticks: { callback: v => v + "억" } } } }});
 }
 
-function renderBars(data,label){
-  const top=(data||[]).filter(r=>r.t>0).slice(0,8);const max=top[0]?.t||1;
-  const cols=["var(--primary)","var(--primary)","var(--accent)","var(--accent)","var(--green)","var(--green)","var(--yellow)","var(--yellow)"];
-  document.getElementById("custBars").innerHTML=top.length?top.map((r,i)=>`<div class="bi"><div class="brnk ${i<3?"top":""}">${String(i+1).padStart(2,"0")}</div><div class="binf"><div class="bnm">${r.n}</div><div class="brow"><div class="bbg"><div class="bfil" style="width:${Math.round(r.t/max*100)}%;background:${cols[i]}"></div></div><div class="bval">${r.t.toFixed(2)}억</div></div></div></div>`).join(""):`<div class="empty"><div class="ei">📊</div><div class="et">데이터 로딩중</div></div>`;
-  $("bar-yr",label);
-  // 월별 차트도 전체 기준으로 업데이트
-  if(SD.length>0&&label==="전체"){const byM={};SD.forEach(r=>{try{const dt=new Date(r.날짜);const m=dt.getMonth()+1;if(!byM[m])byM[m]={t:0,i:0};byM[m].t+=r.공급;byM[m].i+=r.입금;}catch{}});updMChart(byM,"전체");updTypeChart();}
+function updMChart(m, label) {
+  if (CH.m) {
+    const ks = Object.keys(m).map(Number).sort((a,b) => a-b);
+    CH.m.data.labels = ks.map(k => k + "월");
+    CH.m.data.datasets[0].data = ks.map(k => m[k].t/1e8);
+    CH.m.data.datasets[1].data = ks.map(k => m[k].i/1e8);
+    CH.m.update(); $("m-lbl", label);
+  } else initMChart(m, label);
+}
+
+function renderBars(data, label) {
+  const top = (data || []).filter(r => r.t > 0).slice(0, 8);
+  const max = top[0]?.t || 1;
+  const cols = ["var(--primary)","var(--primary)","var(--accent)","var(--accent)","var(--green)","var(--green)","var(--yellow)","var(--yellow)"];
+  document.getElementById("custBars").innerHTML = top.length
+    ? top.map((r, i) => `<div class="bi"><div class="brnk ${i<3?"top":""}">${String(i+1).padStart(2,"0")}</div><div class="binf"><div class="bnm">${r.n}</div><div class="brow"><div class="bbg"><div class="bfil" style="width:${Math.round(r.t/max*100)}%;background:${cols[i]}"></div></div><div class="bval">${r.t.toFixed(2)}억</div></div></div></div>`).join("")
+    : `<div class="empty"><div class="ei">📊</div><div class="et">데이터 로딩중</div></div>`;
+  $("bar-yr", label);
+  if (SD.length > 0 && label === "전체") {
+    const byM = {};
+    SD.forEach(r => { try { const dt = new Date(r.날짜); const m = dt.getMonth()+1; if (!byM[m]) byM[m] = {t:0,i:0}; byM[m].t += r.공급; byM[m].i += r.입금; } catch {} });
+    updMChart(byM, "전체");
+    const dom = SD.filter(r => r.구분 === "내수").reduce((s,r) => s+r.공급, 0);
+    const intl = SD.filter(r => r.구분 !== "내수").reduce((s,r) => s+r.공급, 0);
+    if (CH.type) { CH.type.data.datasets[0].data = [dom/1e8, intl/1e8]; CH.type.update(); }
+  }
 }
 
 // 탭/유틸
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 관리",marketing:"📣 마케팅 활동",meeting:"📝 미팅 로그"};
-function go(id,el){document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));document.querySelectorAll(".ni").forEach(n=>n.classList.remove("on"));document.getElementById("tab-"+id).classList.add("on");el.classList.add("on");$("ptitle",TITLES[id]);}
-function $(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
-function setSS(t,txt){const d=document.getElementById("sd");d.className="dot"+(t==="live"?" live":t==="spin"?" spin":"");$("ss",txt);}
-setInterval(()=>{const n=new Date();$("clock",[n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,"0")).join(":"));},1000);
+const TITLES = { sales:"📊 매출 현황", cashflow:"💰 현금흐름", pipeline:"🔄 파이프라인", customer:"🏭 고객사 관리", marketing:"📣 마케팅 활동", meeting:"📝 미팅 로그" };
+function go(id, el) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("on"));
+  document.querySelectorAll(".ni").forEach(n => n.classList.remove("on"));
+  document.getElementById("tab-" + id).classList.add("on");
+  el.classList.add("on"); $("ptitle", TITLES[id]);
+}
+function setSS(t, txt) {
+  const d = document.getElementById("sd");
+  d.className = "dot" + (t === "live" ? " live" : t === "spin" ? " spin" : "");
+  $("ss", txt);
+}
+setInterval(() => {
+  const n = new Date();
+  $("clock", [n.getHours(), n.getMinutes(), n.getSeconds()].map(v => String(v).padStart(2,"0")).join(":"));
+}, 1000);
 
-window.addEventListener("DOMContentLoaded",()=>{
-  document.getElementById("btnLogin").addEventListener("click",login);
-  document.getElementById("btnLogout").addEventListener("click",logout);
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btnLogin").addEventListener("click", login);
+  document.getElementById("btnLogout").addEventListener("click", logout);
   initApp();
 });
 </script>
