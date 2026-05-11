@@ -669,7 +669,7 @@ function updateSalesKPI(data) {
 
 function calcCust(data) {
   const b = {};
-  data.forEach(r => { if (r.공급 > 0) b[r.청구처] = (b[r.청부처] || b[r.청구처] || 0) + r.공급; });
+  data.forEach(r => { if (r.공급 > 0) b[r.청구처] = (b[r.청구처] || 0) + r.공급; });
   return Object.entries(b).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([n, t]) => ({ n: n.substring(0, 22), t: t/1e8 }));
 }
 
@@ -724,19 +724,27 @@ async function loadProject() {
     const { wb, name } = await readSP(PX_PROJECT);
     const sh = wb.Sheets["Sheet1"];
     if (!sh) throw new Error("Sheet1 없음");
+    // 프로젝트 파일: header=4행, 데이터 6행부터
     const raw = XLSX.utils.sheet_to_json(sh, { header: 1, defval: "" });
-    // 헤더는 4행(index 4), 데이터는 6행부터 (TOTAL 행 제외)
-    PD = raw.slice(6).filter(r => r[1] && r[1] !== "TOTAL" && r[4]).map(r => ({
-      진행구분: String(r[1] || ""),
-      프로젝트명: String(r[3] || ""),
-      프로젝트번호: String(r[4] || ""),
-      계약일: String(r[11] || ""),
-      유형: String(r[12] || ""),
-      거래처: String(r[13] || ""),
-      책임자: String(r[16] || ""),
-      PM: String(r[17] || ""),
-      원화금액: N(r[19] || 0),
-    })).filter(r => r.프로젝트번호 && r.진행구분);
+    PD = [];
+    for (let i = 6; i < raw.length; i++) {
+      const r = raw[i];
+      if (!r || !Array.isArray(r)) continue;
+      const 진행구분 = String(r[1] || "").trim();
+      const 번호 = String(r[4] || "").trim();
+      if (!번호 || 번호 === "TOTAL" || !진행구분) continue;
+      PD.push({
+        진행구분: 진행구분,
+        프로젝트명: String(r[3] || ""),
+        프로젝트번호: 번호,
+        계약일: String(r[11] || ""),
+        유형: String(r[12] || ""),
+        거래처: String(r[13] || ""),
+        책임자: String(r[16] || ""),
+        PM: String(r[17] || ""),
+        원화금액: N(r[19] || 0),
+      });
+    }
     updPlKPI();
     renderPL(PD.filter(r => ["확정","작성"].includes(r.진행구분)));
     // 필터 옵션 채우기
