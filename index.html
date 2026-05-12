@@ -4038,9 +4038,8 @@ async function syncExhFromTeams() {
   $("exhSchedUpd", "Teams 동기화 중...");
   const badge = document.getElementById("exhSyncBadge");
 
-  // 권한 체크 먼저
   try {
-    await gGet("/me"); // 기본 권한 확인
+    await gGet("/me");
   } catch(e) {
     $("exhSchedUpd", "로그인 필요");
     return;
@@ -4048,6 +4047,8 @@ async function syncExhFromTeams() {
 
   try {
     const gid = await findTeamsGroup();
+    console.log("📅 마케팅 동기화 - 그룹 ID:", gid);
+
     if(!gid) {
       $("exhSchedUpd", "Teams 그룹 못찾음 → 로컬 데이터 사용");
       if(badge){ badge.textContent="Teams 미연동"; badge.style.background="var(--yd)"; badge.style.color="var(--y)"; }
@@ -4056,14 +4057,24 @@ async function syncExhFromTeams() {
     }
 
     // 그룹 캘린더 이벤트 조회 (현재부터 2년)
-    const from = "2026-01-01";
+    const from = "2024-01-01";
     const to = "2028-12-31";
-    // 그룹 캘린더 조회 (타임아웃 10초)
     const calUrl = "/groups/"+gid+"/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100&$orderby=start/dateTime";
     const events = await Promise.race([
       gGet(calUrl),
       new Promise((_,reject)=>setTimeout(()=>reject(new Error("캘린더 조회 타임아웃")),10000))
     ]);
+
+    // 전체 이벤트 목록 출력 (디버깅)
+    const allEvts = events.value||[];
+    console.log(`📅 그룹 캘린더 전체 이벤트 ${allEvts.length}개:`,
+      allEvts.map(e=>({
+        subject: e.subject,
+        start: e.start?.date||e.start?.dateTime?.split("T")[0],
+        cats: e.categories,
+        isAllDay: e.isAllDay
+      }))
+    );
 
     // 이벤트를 전시회 형식으로 변환
     // 필터: [전시회]/[마케팅] 제목 prefix OR 전시회/마케팅 카테고리 → 마케팅 활동
@@ -4468,16 +4479,19 @@ async function saveExhEvent() {
 
   // 2. Teams 그룹 캘린더에 등록
   let teamsEventId = null;
+  let teamsCalError = null;
   if(optTeamsCal) try {
     teamsEventId = await createTeamsCalEvent(evt);
     if(teamsEventId) {
       evt.teamsEventId = teamsEventId;
       evt.source = "teams";
-      // SP 다시 저장 (teamsEventId 포함)
       await saveExhToSP();
       $("exhSchedUpd","Teams 캘린더 등록 완료");
     }
-  } catch(e) { console.warn("Teams 캘린더 등록 실패:", e.message); }
+  } catch(e) {
+    teamsCalError = e.message;
+    console.warn("Teams 캘린더 등록 실패:", e.message);
+  }
 
   // 3. 담당자 이메일 초대장 발송
   if(optEmail && evt.managerEmail) {
@@ -4494,19 +4508,19 @@ async function saveExhEvent() {
   } catch(e) { console.warn("Teams 메시지 실패:", e.message); }
 
   alert("✅ 저장 완료!\n" + [
-    "📅 그룹 캘린더: " + (teamsEventId?"등록됨":"실패(권한확인)"),
+    "📅 그룹 캘린더: " + (teamsEventId ? "✅ 등록됨" : "❌ 실패" + (teamsCalError ? " — "+teamsCalError.substring(0,60) : " (권한 확인)")),
     evt.managerEmail ? "📧 이메일 초대: 발송됨" : "📧 이메일: 이메일 없음",
     "💬 채널 알림: 발송됨",
     "💾 SharePoint: 저장됨",
     "",
-    "💡 Teams 채널의 [📅 그룹 일정] 탭에서 확인 가능합니다.",
+    teamsCalError ? "⚠️ F12 콘솔에서 에러 상세 확인 가능" : "💡 Teams 채널의 [📅 그룹 일정] 탭에서 확인 가능합니다.",
   ].join("\n"));
 }
 
 // Teams 그룹 캘린더에 이벤트 생성
 async function createTeamsCalEvent(evt) {
   const gid = await findTeamsGroup();
-  if(!gid) throw new Error("Teams 그룹 없음");
+  if(!gid) throw new Error("Teams 그룹을 찾을 수 없음 (futresales@enjet.co.kr)");
   const t = await getToken();
 
   const url = evt.teamsEventId
@@ -4520,47 +4534,52 @@ async function createTeamsCalEvent(evt) {
     return d.toISOString().split("T")[0];
   })();
 
-  // allDay 이벤트: date 형식만 사용 (timeZone 불가 - Graph API 규칙)
+  // allDay 이벤트: date 형식만 사용 (timeZone 불가)
   const body = {
     subject: evt.name.startsWith("[마케팅]")||evt.name.startsWith("[전시회]")
               ? evt.name : "[마케팅] "+evt.name,
     start: { date: evt.start },
     end:   { date: endDatePlusOne },
     isAllDay: true,
-    location: { displayName: [evt.venue, evt.city, evt.country].filter(Boolean).join(", ") },
+    location: { displayName: [evt.venue, evt.city, evt.country].filter(Boolean).join(", ")||"" },
     body: {
       contentType: "HTML",
       content: `<b>마케팅 활동: ${evt.name}</b><br>
 구분: ${evt.region||"-"} | 유형: ${evt.type||"-"}<br>
-장소: ${evt.venue||""} (${evt.city||""}, ${evt.country||""})<br>
-담당자: ${evt.manager||"-"}<br>
-상태: ${evt.status||"-"}<br>
-비고: ${evt.note||""}<br><br>
-<i>ENJET 영업 대시보드에서 등록됨</i>`
+장소: ${[evt.venue,evt.city,evt.country].filter(Boolean).join(", ")||"-"}<br>
+담당자: ${evt.manager||"-"}<br>상태: ${evt.status||"-"}<br>
+비고: ${evt.note||""}<br><br><i>ENJET 영업 대시보드에서 등록됨</i>`
     },
     categories: [evt.region==="국내" ? "국내전시회" : "해외전시회"],
   };
 
   if(evt.managerEmail) {
     body.attendees = [{
-      emailAddress: { address: evt.managerEmail, name: evt.manager||evt.managerEmail },
-      type: "required"
+      emailAddress:{ address:evt.managerEmail, name:evt.manager||evt.managerEmail },
+      type:"required"
     }];
   }
 
+  console.log(`📅 Teams 캘린더 ${method}:`, url.split("/").pop(), JSON.stringify(body).substring(0,200));
+
   const r = await fetch(url, {
-    method, headers: { "Content-Type":"application/json", "Authorization":"Bearer "+t },
+    method,
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
     body: JSON.stringify(body)
   });
+
   if(!r.ok) {
-    const e=await r.json();
-    const msg = e.error?.message||r.status;
-    if(r.status===403) throw new Error("권한 부족 (403): Calendars.ReadWrite + Group.ReadWrite.All 관리자 동의 필요");
-    if(r.status===400) throw new Error("잘못된 요청 (400): "+msg);
-    throw new Error(msg);
+    const errBody = await r.json().catch(()=>({error:{message:r.statusText}}));
+    const msg = errBody.error?.message || r.statusText;
+    console.error(`Teams 캘린더 ${method} 실패 (${r.status}):`, msg, '\n요청 body:', JSON.stringify(body));
+    if(r.status===403) throw new Error(`권한 부족 (403) — Azure AD에서 Calendars.ReadWrite 관리자 동의 필요\n${msg}`);
+    if(r.status===400) throw new Error(`요청 형식 오류 (400): ${msg}`);
+    if(r.status===404) throw new Error(`그룹/이벤트 없음 (404): ${msg}`);
+    throw new Error(`(${r.status}) ${msg}`);
   }
+
   const data = await r.json();
-  console.log("✅ Teams 캘린더:", method==="POST"?"생성":"수정", data.id);
+  console.log(`✅ Teams 캘린더 ${method==="POST"?"생성":"수정"}:`, data.id, data.subject);
   return data.id;
 }
 
