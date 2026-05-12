@@ -560,13 +560,20 @@
             <textarea class="si" id="sl-f-note" placeholder="제품, 수량, 특이사항 등" style="width:100%;height:70px;resize:vertical"></textarea>
           </div>
 
+          <!-- 참석자 (이메일) -->
+          <div style="margin-bottom:14px">
+            <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">참석자 이메일 <span style="color:var(--t3);font-weight:400">(쉼표로 구분, 채널 메시지 + DM 발송용)</span></label>
+            <input class="si" type="text" id="sl-f-attendees" placeholder="예: hnkim@enjet.co.kr, dybyun@enjet.co.kr" style="width:100%;font-size:14px">
+          </div>
+
           <!-- 자동 실행 옵션 -->
           <div style="margin-bottom:14px;padding:12px;background:var(--bg3);border-radius:8px">
             <div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:8px">저장 시 자동 실행</div>
             <div style="display:flex;gap:14px;flex-wrap:wrap">
               <label style="display:flex;align-items:center;gap:5px;font-size:14px;cursor:pointer"><input type="checkbox" id="sl-opt-folder" checked> 📁 SP 폴더 생성</label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:14px;cursor:pointer"><input type="checkbox" id="sl-opt-teams" checked> 📅 Teams 캘린더 등록</label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:14px;cursor:pointer"><input type="checkbox" id="sl-opt-msg" checked> 💬 Teams 채널 알림</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:14px;cursor:pointer"><input type="checkbox" id="sl-opt-teams" checked> 📅 그룹 캘린더 등록</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:14px;cursor:pointer"><input type="checkbox" id="sl-opt-msg" checked> 💬 채널 카드 (원클릭 등록 버튼)</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:14px;cursor:pointer"><input type="checkbox" id="sl-opt-dm" checked> 📨 참석자 DM (수락/거부)</label>
             </div>
           </div>
 
@@ -3274,18 +3281,17 @@ async function syncSLFromTeams() {
     } catch(e){ console.warn("그룹 캘린더 조회 실패:", e.message); }
 
     const events = {value: allEvents};
-    // 필터: [영업] prefix OR 영업활동 카테고리 → 영업활동
-    //       [전시회] prefix OR 전시회 카테고리 → 제외
+    // 필터: [영업] prefix OR 영업활동 카테고리 → 영업활동만 (엄격 매칭)
+    //       [전시회]/[마케팅] prefix OR 마케팅 카테고리 → 제외
     slCalData = (events.value||[]).filter(e=>{
       if(!e.subject) return false;
       const cats = e.categories||[];
       const title = e.subject||"";
-      // [전시회] prefix 또는 전시회 카테고리 → 제외
-      if(title.startsWith("[전시회]") || cats.some(c=>["국내전시회","해외전시회","전시회"].includes(c))) return false;
-      // [영업] prefix 또는 영업활동 카테고리 → 포함
+      // 마케팅/전시회 prefix 또는 카테고리 → 제외
+      if(title.startsWith("[전시회]") || title.startsWith("[마케팅]") || cats.some(c=>["국내전시회","해외전시회","전시회","마케팅"].includes(c))) return false;
+      // [영업] prefix 또는 영업활동 카테고리만 포함 (엄격)
       if(title.startsWith("[영업]") || title.startsWith("[영업활동]") || cats.includes("영업활동")) return true;
-      // 아무 prefix도 카테고리도 없으면 → 영업활동 기본 포함
-      if(!cats.length && !title.startsWith("[")) return true;
+      // prefix/카테고리 없으면 → 포함하지 않음 (마케팅·기타와 꼬임 방지)
       return false;
     }).map(e=>({
       id: e.id,
@@ -4782,12 +4788,14 @@ function openSLModal(act) {
     document.getElementById("sl-f-start").value=act.start||"";
     document.getElementById("sl-f-end").value=act.end||"";
     document.getElementById("sl-f-note").value=act.note||"";
+    const _att=document.getElementById("sl-f-attendees"); if(_att) _att.value=act.attendees||"";
     const _st=document.getElementById("sl-f-stime"); if(_st) _st.value=act.startTime||"09:00";
     const _et=document.getElementById("sl-f-etime"); if(_et) _et.value=act.endTime||"18:00";
   } else {
     slEditId=null;
     document.getElementById("slModalTitle").textContent="영업활동 추가";
     ["sl-f-company","sl-f-pjcode","sl-f-custmgr","sl-f-salesmgr","sl-f-note"].forEach(id=>{document.getElementById(id).value="";});
+    const _att=document.getElementById("sl-f-attendees"); if(_att) _att.value="";
     document.getElementById("sl-f-status").value="신규";
     document.getElementById("sl-f-start").value=new Date().toISOString().split("T")[0];
     document.getElementById("sl-f-end").value="";
@@ -4795,12 +4803,69 @@ function openSLModal(act) {
 }
 function closeSLModal(){document.getElementById("slModal").style.display="none";}
 
-// ─── 저장 (폴더 생성 + Teams 등록) ───
+// ─── 신규 차수 자동 부여 헬퍼 ───
+// 같은 고객사에 "신규N차" 패턴이 몇 개 있는지 보고 다음 차수 반환
+function nextNewSeqForCompany(company) {
+  if(!company) return "신규1차";
+  const re = /^신규(\d+)차$/;
+  let maxN = 0;
+  (slData||[]).forEach(a=>{
+    if(a.company !== company) return;
+    if(!a.pjcode) return;
+    const m = re.exec(a.pjcode);
+    if(m) maxN = Math.max(maxN, parseInt(m[1],10));
+  });
+  return "신규"+(maxN+1)+"차";
+}
+
+// ─── 같은 고객사의 "신규N차" 활동 중 가장 최근 것 찾기 (프로젝트코드 부여 매칭용) ───
+// 사용자가 프로젝트코드만 입력하고 저장하면 기존 신규차수 활동을 업데이트
+function findExistingNewActivity(company) {
+  if(!company) return null;
+  const re = /^신규\d+차$/;
+  const matches = (slData||[]).filter(a=>a.company===company && a.pjcode && re.test(a.pjcode));
+  if(!matches.length) return null;
+  // 가장 최근 updatedAt 기준
+  matches.sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||""));
+  return matches[0];
+}
+
+// ─── 저장 (폴더 생성 + Teams 등록 + 채널 카드 + DM) ───
 async function saveSLActivity() {
   const company = document.getElementById("sl-f-company").value.trim();
   if(!company){alert("고객사명을 입력해주세요.");return;}
-  const pjcode  = document.getElementById("sl-f-pjcode").value.trim();
+  let pjcode  = document.getElementById("sl-f-pjcode").value.trim();
   const status  = document.getElementById("sl-f-status").value;
+
+  // ── 차수 자동 부여 / 기존 매칭 로직 ──
+  // 1) 수정 모드(slEditId 있음) → 입력값 그대로 사용
+  // 2) 신규 모드 + pjcode 비어있음 → 다음 신규N차 자동 부여
+  // 3) 신규 모드 + pjcode가 "정식 프로젝트코드" (신규N차 아님) → 기존 신규N차 활동이 있으면 그것을 업데이트 (slEditId 자동 설정)
+  let autoMatched = false;
+  let oldPjCodeForRename = null;
+  const isNewSeq = /^신규\d+차$/.test(pjcode);
+  if(!slEditId) {
+    if(!pjcode) {
+      // 빈 칸 → 자동 차수
+      pjcode = nextNewSeqForCompany(company);
+    } else if(!isNewSeq) {
+      // 정식 프로젝트코드 입력 → 기존 신규차수 활동 찾기
+      const exist = findExistingNewActivity(company);
+      if(exist) {
+        slEditId = exist.id;
+        oldPjCodeForRename = exist.pjcode; // 폴더명 변경용
+        autoMatched = true;
+        console.log("✅ 기존 활동 매칭:", exist.pjcode, "→", pjcode);
+      }
+    }
+  } else {
+    // 수정 모드에서 신규차수 → 정식코드로 바뀐 경우 폴더명 변경 필요
+    const oldAct = slData.find(x=>x.id===slEditId);
+    if(oldAct && oldAct.pjcode !== pjcode) {
+      oldPjCodeForRename = oldAct.pjcode;
+    }
+  }
+
   const act = {
     id: slEditId || "sl_"+Date.now(),
     company, pjcode, status,
@@ -4808,8 +4873,12 @@ async function saveSLActivity() {
     salesMgr:  document.getElementById("sl-f-salesmgr").value.trim(),
     start:     document.getElementById("sl-f-start").value,
     end:       document.getElementById("sl-f-end").value,
+    startTime: document.getElementById("sl-f-stime")?.value || "09:00",
+    endTime:   document.getElementById("sl-f-etime")?.value || "18:00",
     note:      document.getElementById("sl-f-note").value.trim(),
+    attendees: document.getElementById("sl-f-attendees")?.value.trim() || "",
     files:     slEditId ? (slData.find(x=>x.id===slEditId)?.files||{}) : {},
+    teamsEventId: slEditId ? (slData.find(x=>x.id===slEditId)?.teamsEventId||null) : null,
     createdAt: slEditId ? (slData.find(x=>x.id===slEditId)?.createdAt||new Date().toISOString()) : new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -4825,35 +4894,67 @@ async function saveSLActivity() {
   const optFolder = document.getElementById("sl-opt-folder")?.checked!==false;
   const optTeams  = document.getElementById("sl-opt-teams")?.checked!==false;
   const optMsg    = document.getElementById("sl-opt-msg")?.checked!==false;
+  const optDM     = document.getElementById("sl-opt-dm")?.checked!==false;
   const results = [];
 
-  // SP 폴더 생성
-  if(optFolder && !slEditId) {
-    try {
-      await createSLFolders(act);
-      results.push("📁 SP 폴더 생성됨");
-    } catch(e){ results.push("📁 폴더 생성 실패: "+e.message); }
+  // 매칭 알림 메시지
+  if(autoMatched) {
+    results.push("🔄 기존 활동 매칭: "+oldPjCodeForRename+" → "+pjcode);
   }
 
-  // Teams 캘린더 등록
+  // SP 폴더 처리
+  if(optFolder) {
+    if(autoMatched && oldPjCodeForRename) {
+      // 기존 신규차수 활동을 정식 코드로 업데이트 → 폴더명 변경
+      try {
+        await renameSLFolder(act, oldPjCodeForRename);
+        results.push("📁 폴더명 변경: "+oldPjCodeForRename+" → "+pjcode);
+      } catch(e){ results.push("📁 폴더 변경 실패: "+e.message.substring(0,30)); }
+    } else if(!slEditId || (slEditId && !autoMatched && oldPjCodeForRename && oldPjCodeForRename!==pjcode)) {
+      // 완전 신규 또는 수정 모드에서 코드 변경
+      if(slEditId && oldPjCodeForRename && oldPjCodeForRename!==pjcode) {
+        try {
+          await renameSLFolder(act, oldPjCodeForRename);
+          results.push("📁 폴더명 변경: "+oldPjCodeForRename+" → "+pjcode);
+        } catch(e){ results.push("📁 폴더 변경 실패: "+e.message.substring(0,30)); }
+      } else {
+        try {
+          await createSLFolders(act);
+          results.push("📁 SP 폴더 생성됨 ("+pjcode+")");
+        } catch(e){ results.push("📁 폴더 생성 실패: "+e.message); }
+      }
+    }
+  }
+
+  // 그룹 캘린더 등록 (Outlook 그룹 캘린더 - 데이터 영구 보관용)
   if(optTeams && act.start) {
     try {
       const eid = await createSLTeamsEvent(act);
       if(eid){ act.teamsEventId=eid; await saveSLToSP(); }
-      results.push("📅 Teams 등록됨");
-    } catch(e){ results.push("📅 Teams 실패: "+e.message.substring(0,30)); }
+      results.push("📅 그룹 캘린더 등록됨");
+    } catch(e){ results.push("📅 그룹 캘린더 실패: "+e.message.substring(0,30)); }
   }
 
-  // Teams 채널 메시지
+  // 채널에 Adaptive Card 게시 (주최자용 원클릭 등록 버튼)
   if(optMsg) {
     try {
-      await postSLTeamsMsg(act, slEditId?"수정":"신규등록");
-      results.push("💬 채널 알림됨");
-    } catch(e){ results.push("💬 채널 실패"); }
+      await postSLChannelCardWithButton(act);
+      results.push("💬 채널 카드 게시됨 (등록 버튼 포함)");
+    } catch(e){ results.push("💬 채널 실패: "+e.message.substring(0,30)); }
+  }
+
+  // 참석자 1:1 DM 발송
+  if(optDM && act.attendees) {
+    try {
+      const r = await sendSLAttendeeDM(act);
+      if(r.sent>0) results.push("📨 DM "+r.sent+"명 발송"+(r.failed>0?" / "+r.failed+"명 실패":""));
+      else if(r.failed>0) results.push("📨 DM 전체 실패");
+    } catch(e){ results.push("📨 DM 실패: "+e.message.substring(0,30)); }
   }
 
   $("slUpd","저장 완료: "+new Date().toLocaleTimeString("ko-KR"));
-  alert("✅ 저장 완료!\n"+results.join("\n"));
+  const titlePreview = "[영업] "+act.company+"-"+act.pjcode;
+  alert("✅ 저장 완료!\n\n📝 일정 제목: "+titlePreview+"\n\n"+results.join("\n")+"\n\n💡 Channel Calendar 등록은 채널 메시지의 [등록] 버튼을 클릭하세요.");
 }
 
 // ─── SP 폴더 구조 생성 ───
@@ -4895,6 +4996,139 @@ async function renameSLFolder(act, oldPjCode) {
   } catch(e){ console.warn("폴더명 변경 실패:", e.message); }
 }
 
+// ─── Channel Calendar 등록용 Teams 딥링크 생성 ───
+function buildChannelMeetingDeepLink(act) {
+  const startDate = act.start || new Date().toISOString().split("T")[0];
+  const endDate   = act.end || startDate;
+  const sTime = act.startTime || "09:00";
+  const eTime = act.endTime   || "18:00";
+  const eventTitle = "[영업] "+act.company+"-"+(act.pjcode||"신규1차");
+  // Teams 새 회의 딥링크 (https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/deep-links)
+  // 채널 회의는 사용자가 채널을 선택해야 하지만 제목/시간/내용은 미리 채워짐
+  const content = "고객사: "+act.company+"\n"+
+                  "진행상태: "+act.status+"\n"+
+                  "프로젝트: "+(act.pjcode||"신규(미발급)")+"\n"+
+                  "고객담당: "+(act.custMgr||"-")+"\n"+
+                  "영업담당: "+(act.salesMgr||"-")+"\n"+
+                  (act.note?"비고: "+act.note+"\n":"")+
+                  "\n[ENJET 영업 대시보드에서 자동 발송]";
+  const attendees = (act.attendees||"").split(",").map(s=>s.trim()).filter(s=>s.includes("@")).join(",");
+  const params = new URLSearchParams();
+  params.set("subject", eventTitle);
+  params.set("startTime", startDate+"T"+sTime+":00");
+  params.set("endTime", endDate+"T"+eTime+":00");
+  params.set("content", content);
+  if(attendees) params.set("attendees", attendees);
+  return "https://teams.microsoft.com/l/meeting/new?"+params.toString();
+}
+
+// ─── Channel Calendar 탭 직접 열기 딥링크 ───
+function buildChannelCalendarTabLink() {
+  // 캡처에서 확인된 채널 캘린더 탭 ID
+  return "https://teams.microsoft.com/l/channel/19%3A15cae7e9dec84ce1ae4909e6f7c25634%40thread.tacv2/tab%3A%3Af4a239f0-f994-45ae-8f68-7497d449b23d?context=%7B%22channelId%22%3A%2219%3A15cae7e9dec84ce1ae4909e6f7c25634%40thread.tacv2%22%7D&tenantId=58b310e1-9278-47ab-8e49-792728818c9e";
+}
+
+// ─── 채널에 Adaptive Card 게시 (주최자용 원클릭 등록 버튼 포함) ───
+async function postSLChannelCardWithButton(act) {
+  if(!teamsGroupId && !sessionStorage.getItem("enjet_teams_group_id")) await findTeamsGroup();
+  const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
+  if(!gid) throw new Error("Teams 그룹 없음");
+  const t = await getToken();
+  const chId = await ensureSLChannelId();
+  const eventTitle = "[영업] "+act.company+"-"+(act.pjcode||"신규1차");
+  const startDate = act.start || new Date().toISOString().split("T")[0];
+  const endDate = act.end || startDate;
+  const sTime = act.startTime || "09:00";
+  const eTime = act.endTime || "18:00";
+  const deepLink = buildChannelMeetingDeepLink(act);
+  const calTabLink = buildChannelCalendarTabLink();
+  // HTML 메시지 - 버튼은 <a> 태그로 (Teams가 자동으로 버튼 형태로 렌더링)
+  const html = `<div>
+<h3>📅 ${eventTitle}</h3>
+<table>
+<tr><td><b>고객사</b></td><td>${act.company}</td></tr>
+<tr><td><b>일시</b></td><td>${startDate} ${sTime} ~ ${endDate} ${eTime}</td></tr>
+<tr><td><b>진행상태</b></td><td>${act.status}</td></tr>
+<tr><td><b>영업담당</b></td><td>${act.salesMgr||"-"}</td></tr>
+<tr><td><b>고객담당</b></td><td>${act.custMgr||"-"}</td></tr>
+${act.note?'<tr><td><b>비고</b></td><td>'+act.note+'</td></tr>':''}
+</table>
+<p><b>⚠️ 채널 캘린더 등록</b><br>
+아래 버튼을 클릭하면 Teams가 새 채널 회의 생성 화면을 열어줍니다.<br>
+제목·시간·참석자가 미리 채워져 있으니 채널만 확인 후 "보내기" 누르면 등록 완료됩니다.</p>
+<p>
+<a href="${deepLink}" style="display:inline-block;padding:10px 20px;background:#5b5fc7;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;margin-right:8px">📅 Channel Calendar에 등록</a>
+<a href="${calTabLink}" style="display:inline-block;padding:10px 20px;background:#666;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">👁 Channel Calendar 열기</a>
+</p>
+<p><i>ENJET 영업 대시보드 자동 발송</i></p>
+</div>`;
+  const r = await fetch("https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(chId)+"/messages",{
+    method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+    body: JSON.stringify({body:{contentType:"html", content: html}})
+  });
+  if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status); }
+  console.log("✅ 채널 카드 게시 - [등록] 버튼 포함");
+}
+
+// ─── 참석자 개인에게 1:1 DM 발송 (이메일 → userId 조회 후) ───
+async function sendSLAttendeeDM(act) {
+  const attendees = (act.attendees||"").split(",").map(s=>s.trim()).filter(s=>s.includes("@"));
+  if(!attendees.length) return {sent:0, failed:0};
+  const t = await getToken();
+  const eventTitle = "[영업] "+act.company+"-"+(act.pjcode||"신규1차");
+  const startDate = act.start || new Date().toISOString().split("T")[0];
+  const endDate = act.end || startDate;
+  const sTime = act.startTime || "09:00";
+  const eTime = act.endTime || "18:00";
+  const deepLink = buildChannelMeetingDeepLink(act);
+  // 본인(주최자) ID
+  let myId = null;
+  try { const me = await gGet("/me"); myId = me.id; } catch(e){ console.warn("내 ID 조회 실패", e.message); return {sent:0, failed:attendees.length}; }
+  let sent=0, failed=0;
+  for(const email of attendees) {
+    try {
+      // 1. 이메일 → 사용자 ID 조회
+      const userR = await fetch("https://graph.microsoft.com/v1.0/users/"+encodeURIComponent(email),
+        {headers:{Authorization:"Bearer "+t}});
+      if(!userR.ok) { console.warn("사용자 조회 실패:", email); failed++; continue; }
+      const user = await userR.json();
+      // 2. 1:1 채팅 생성 또는 가져오기
+      const chatR = await fetch("https://graph.microsoft.com/v1.0/chats",{
+        method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+        body: JSON.stringify({
+          chatType: "oneOnOne",
+          members: [
+            {"@odata.type":"#microsoft.graph.aadUserConversationMember", roles:["owner"], "user@odata.bind":"https://graph.microsoft.com/v1.0/users('"+myId+"')"},
+            {"@odata.type":"#microsoft.graph.aadUserConversationMember", roles:["owner"], "user@odata.bind":"https://graph.microsoft.com/v1.0/users('"+user.id+"')"}
+          ]
+        })
+      });
+      if(!chatR.ok) { console.warn("채팅 생성 실패:", email, await chatR.text()); failed++; continue; }
+      const chat = await chatR.json();
+      // 3. 메시지 발송
+      const html = `<div>
+<h3>📅 영업 일정 참여 요청</h3>
+<p>${user.displayName||""} 님, 다음 영업 일정에 초대되었습니다.</p>
+<table>
+<tr><td><b>제목</b></td><td>${eventTitle}</td></tr>
+<tr><td><b>일시</b></td><td>${startDate} ${sTime} ~ ${endDate} ${eTime}</td></tr>
+<tr><td><b>영업담당</b></td><td>${act.salesMgr||"-"}</td></tr>
+${act.note?'<tr><td><b>비고</b></td><td>'+act.note+'</td></tr>':''}
+</table>
+<p><a href="${deepLink}" style="display:inline-block;padding:10px 20px;background:#5b5fc7;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">📅 내 캘린더에 추가</a></p>
+<p><i>ENJET 영업 대시보드 · 성백훈</i></p>
+</div>`;
+      const msgR = await fetch("https://graph.microsoft.com/v1.0/chats/"+chat.id+"/messages",{
+        method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+        body: JSON.stringify({body:{contentType:"html", content:html}})
+      });
+      if(msgR.ok) { sent++; console.log("✅ DM 발송:", email); }
+      else { failed++; console.warn("DM 발송 실패:", email, await msgR.text()); }
+    } catch(e) { failed++; console.warn("DM 처리 실패:", email, e.message); }
+  }
+  return {sent, failed};
+}
+
 // ─── Teams 캘린더 등록 ───
 async function createSLTeamsEvent(act) {
   if(!teamsGroupId && !sessionStorage.getItem("enjet_teams_group_id")) await findTeamsGroup();
@@ -4905,7 +5139,7 @@ async function createSLTeamsEvent(act) {
   const endDate   = act.end || startDate;
   const sTime = act.startTime || "09:00";
   const eTime = act.endTime   || "18:00";
-  const eventTitle = "[영업] "+act.company+(act.pjcode?"-"+act.pjcode:"");
+  const eventTitle = "[영업] "+act.company+"-"+(act.pjcode||"신규1차");
 
   const eventBody = {
     subject: eventTitle,
