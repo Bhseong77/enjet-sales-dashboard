@@ -407,6 +407,17 @@
         <div class="kpi c4"><div class="kl">완료/마감</div><div class="kv"><span id="sl-done">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"><span class="badge up">완료</span></div></div>
       </div>
 
+      <!-- 최근 영업활동 카드 -->
+      <div class="card" style="margin-bottom:9px">
+        <div class="ch">
+          <div class="ct"><div class="ci c2">🔥</div>최근 영업활동</div>
+          <span style="font-size:10px;color:var(--t3)">최근 5건</span>
+        </div>
+        <div class="cb" style="padding:8px 14px" id="recentSLCard">
+          <div class="sw"><div class="spr"></div></div>
+        </div>
+      </div>
+
       <!-- Teams 캘린더 -->
       <div class="card">
         <div class="ch">
@@ -438,6 +449,7 @@
             <select class="ss" id="slStatusFilter" onchange="filterSL()" style="font-size:11px">
               <option value="">전체 상태</option>
               <option value="신규">🆕 신규</option>
+              <option value="제안">💡 제안</option>
               <option value="견적">📋 견적</option>
               <option value="발주">📦 발주</option>
               <option value="진행">▶️ 진행</option>
@@ -455,8 +467,10 @@
           <div class="tw"><table class="tbl">
             <thead><tr>
               <th>고객사</th><th>프로젝트코드</th><th>진행상태</th>
+              <th>최근활동일</th>
               <th>고객담당자</th><th>영업담당자</th>
               <th style="text-align:center">📝 회의록</th>
+              <th style="text-align:center">💡 제안자료</th>
               <th style="text-align:center">📄 견적서</th>
               <th style="text-align:center">📦 발주서</th>
               <th style="text-align:center">📑 계약서</th>
@@ -464,7 +478,7 @@
               <th></th>
             </tr></thead>
             <tbody id="slBody">
-              <tr><td colspan="11"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
+              <tr><td colspan="12"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
             </tbody>
           </table></div>
           <div style="font-size:10px;color:var(--t3);margin-top:6px;text-align:right" id="slCnt"></div>
@@ -489,7 +503,7 @@
             <div>
               <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">진행상태 *</label>
               <select class="ss" id="sl-f-status" style="width:100%">
-                <option value="신규">🆕 신규</option><option value="견적">📋 견적</option>
+                <option value="신규">🆕 신규</option><option value="제안">💡 제안</option><option value="견적">📋 견적</option>
                 <option value="발주">📦 발주</option><option value="진행">▶️ 진행</option>
                 <option value="납품완료">✅ 납품완료</option><option value="세금계산서미발행">🧾 세금계산서미발행</option>
                 <option value="세금계산서완료">✅ 세금계산서완료</option><option value="잔금">💰 잔금</option>
@@ -2757,15 +2771,17 @@ async function deleteExh(id) {
 const SL_TEAMS_CHANNEL_ID = "19:15cae7e9dec84ce1ae4909e6f7c25634@thread.tacv2";
 const SL_SP_BASE   = "📦영업/7.영업활동";
 const SL_SP_JSON   = "📦영업/99.Dashboard(real-time)/sales-activities.json";
-const SL_SUB_FOLDERS = ["회의록","견적서","발주서","계약서","세금계산서"];
+const SL_ADMIN_EMAIL = "baekhoon@enjet.co.kr";
+const SL_ADMIN_NAME  = "성백훈";
+const SL_SUB_FOLDERS = ["회의록","제안자료","견적서","발주서","계약서","세금계산서"];
 const STATUS_BADGE_SL = {
-  "신규":"gray","견적":"info","발주":"warn","진행":"info",
+  "신규":"gray","제안":"info","견적":"info","발주":"warn","진행":"info",
   "납품완료":"up","세금계산서미발행":"warn","세금계산서완료":"up",
   "잔금":"dn","유지보수(무상)":"gray","종료":"dn"
 };
 const STATUS_PROGRESS = {
-  "신규":5,"견적":20,"발주":35,"진행":50,"납품완료":65,
-  "세금계산서미발행":75,"세금계산서완료":85,"잔금":92,"유지보수(무상)":96,"종료":100
+  "신규":5,"제안":15,"견적":25,"발주":40,"진행":55,"납품완료":68,
+  "세금계산서미발행":78,"세금계산서완료":87,"잔금":93,"유지보수(무상)":97,"종료":100
 };
 let slData = [];     // 영업활동 목록
 let slCalData = [];  // Teams 캘린더 이벤트
@@ -2934,11 +2950,12 @@ function renderSLAll() {
   filterSL();
   updateSLKPI(slData);
   $("badge-sl", slData.length);
+  renderRecentSLCard();
 }
 
 function updateSLKPI(data) {
   $("sl-tot",data.length);
-  $("sl-new",data.filter(d=>["신규","견적"].includes(d.status)).length);
+  $("sl-new",data.filter(d=>["신규","제안","견적"].includes(d.status)).length);
   $("sl-active",data.filter(d=>["발주","진행","납품완료","세금계산서미발행","세금계산서완료","잔금"].includes(d.status)).length);
   $("sl-done",data.filter(d=>["유지보수(무상)","종료"].includes(d.status)).length);
 }
@@ -2956,6 +2973,7 @@ function filterSL() {
 function renderSLTable(data) {
   const FILE_TYPES = [
     {key:"minutes",  label:"📝",  col:"회의록"},
+    {key:"proposal", label:"💡",  col:"제안자료"},
     {key:"estimate", label:"📄",  col:"견적서"},
     {key:"order",    label:"📦",  col:"발주서"},
     {key:"contract", label:"📑",  col:"계약서"},
@@ -2973,8 +2991,20 @@ function renderSLTable(data) {
     const db = b.lastActivity||b.start||b.updatedAt||"";
     return db.localeCompare(da);
   });
+  const ALL_STATUS = ["신규","제안","견적","발주","진행","납품완료","세금계산서미발행","세금계산서완료","잔금","유지보수(무상)","종료"];
   body.innerHTML=sorted.map(r=>{
     const prog=STATUS_PROGRESS[r.status]||0;
+    // 프로젝트코드 표시 - 제안 상태면 발급요청 버튼
+    const pjDisplay = r.pjcode
+      ? `<span class="tm" style="font-size:10px">${r.pjcode}</span>`
+      : r.status==="제안"
+        ? `<button onclick="requestPJCode('${r.id}')" style="padding:2px 8px;border-radius:5px;border:1.5px solid var(--a);background:var(--ad);color:var(--a);font-size:9px;cursor:pointer;font-weight:700;animation:pulse 2s infinite">📋 발급요청</button>`
+        : `<span style="color:var(--t3);font-size:10px">미발급</span>`;
+    // 진행상태 인라인 드롭다운
+    const statusSelect = `<select onchange="updateSLStatus('${r.id}',this.value)"
+      style="padding:2px 5px;border-radius:5px;border:1px solid var(--border2);font-size:9px;font-family:var(--s);background:transparent;cursor:pointer;color:var(--t)">
+      ${ALL_STATUS.map(s=>`<option value="${s}" ${s===r.status?"selected":""}>${s}</option>`).join("")}
+    </select>`;
     const fileCols=FILE_TYPES.map(ft=>{
       const cnt=(r.files?.[ft.key]||[]).length;
       return `<td style="text-align:center">
@@ -2991,8 +3021,8 @@ function renderSLTable(data) {
           <div style="height:100%;width:${prog}%;background:var(--p);border-radius:2px;transition:width .5s"></div>
         </div>
       </td>
-      <td><span class="tm" style="font-size:10px">${r.pjcode||"<span style=\'color:var(--t3)\'>미발급</span>"}</span></td>
-      <td><span class="badge ${STATUS_BADGE_SL[r.status]||"gray"}" style="font-size:9px;white-space:nowrap">${r.status}</span></td>
+      <td>${pjDisplay}</td>
+      <td>${statusSelect}</td>
       <td style="font-size:10px;color:var(--t3)">${(r.lastActivity||r.start||"").substring(0,10)||"-"}</td>
       <td style="font-size:11px">${r.custMgr||"-"}</td>
       <td style="font-size:11px">${r.salesMgr||"-"}</td>
@@ -3136,11 +3166,14 @@ async function createSLTeamsEvent(act) {
   const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
   if(!gid) throw new Error("Teams 그룹 없음");
   const t = await getToken();
-  const endDate = act.end||act.start;
-  const endPlus = (()=>{const d=new Date(endDate+"T00:00:00");d.setDate(d.getDate()+1);return d.toISOString().split("T")[0];})();
+  const startDate = act.start || new Date().toISOString().split("T")[0];
+  const endDate   = act.end || startDate;
+  const endPlus   = (()=>{const d=new Date(endDate+"T00:00:00Z");d.setDate(d.getDate()+1);return d.toISOString().split("T")[0];})();
   const body = {
     subject: "[영업] "+act.company+(act.pjcode?" ("+act.pjcode+")":""),
-    start:{date:act.start}, end:{date:endPlus}, isAllDay:true,
+    start:{ dateTime: startDate+"T09:00:00", timeZone:"Asia/Seoul" },
+    end:{   dateTime: endDate+"T18:00:00",   timeZone:"Asia/Seoul" },
+    isAllDay: false,
     body:{contentType:"HTML",content:`<b>${act.company}</b><br>진행상태: ${act.status}<br>프로젝트: ${act.pjcode||"신규(미발급)"}<br>고객담당: ${act.custMgr||"-"}<br>영업담당: ${act.salesMgr||"-"}<br>비고: ${act.note||""}`},
     categories:["영업활동"],
   };
@@ -3170,7 +3203,7 @@ async function postSLTeamsMsg(act, action) {
 async function uploadSLFile(actId, fileType) {
   const act = slData.find(x=>x.id===actId);
   if(!act) return;
-  const FOLDER_MAP = {minutes:"회의록",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
+  const FOLDER_MAP = {minutes:"회의록",proposal:"제안자료",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
   const LABEL_MAP  = {minutes:"회의록",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
   const subFolder = FOLDER_MAP[fileType];
   const coFolder  = act.company.replace(/[\\/:*?"<>|]/g,"").trim();
@@ -3212,8 +3245,8 @@ async function uploadSLFile(actId, fileType) {
 async function openSLFileModal(actId, fileType) {
   const act=slData.find(x=>x.id===actId);
   if(!act) return;
-  const FOLDER_MAP={minutes:"회의록",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
-  const LABEL_MAP ={minutes:"📝 회의록",estimate:"📄 견적서",order:"📦 발주서",contract:"📑 계약서",tax:"🧾 세금계산서"};
+  const FOLDER_MAP={minutes:"회의록",proposal:"제안자료",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
+  const LABEL_MAP ={minutes:"📝 회의록",proposal:"💡 제안자료",estimate:"📄 견적서",order:"📦 발주서",contract:"📑 계약서",tax:"🧾 세금계산서"};
   const modal=document.getElementById("slFileModal");
   const title=document.getElementById("slFileModalTitle");
   const body=document.getElementById("slFileModalBody");
