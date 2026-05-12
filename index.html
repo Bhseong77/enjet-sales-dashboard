@@ -500,7 +500,22 @@
       </div>
       <div class="g2">
         <div class="card" style="margin-bottom:0">
-          <div class="ch"><div class="ct"><div class="ci c1">🏢</div>고객사 목록</div><span style="font-size:14px;color:var(--t3)" id="ct-upd">-</span></div>
+          <div class="ch">
+            <div class="ct"><div class="ci c1">🏢</div>고객사 목록</div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span style="font-size:14px;color:var(--t3)" id="ct-upd">-</span>
+              <button onclick="syncFromSharedOutlookContacts()" id="btnSyncShared"
+                style="padding:4px 9px;border-radius:7px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)"
+                title="팀원이 공유한 Outlook ENJET 고객사 폴더를 읽어서 통합합니다">
+                🔗 팀원 Outlook 읽기
+              </button>
+              <button onclick="syncContactsToOutlook()" id="btnSyncOutlook"
+                style="padding:4px 9px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)"
+                title="전체 연락처를 내 Outlook에 동기화">
+                📤 Outlook 내보내기
+              </button>
+            </div>
+          </div>
           <div class="cb" style="padding:8px 12px">
             <div style="display:flex;gap:6px;margin-bottom:8px">
               <input class="si" type="text" placeholder="🔍 회사명..." id="coSrch" oninput="filterCos()">
@@ -512,10 +527,20 @@
         <div class="card" style="margin-bottom:0">
           <div class="ch">
             <div class="ct"><div class="ci c2">👥</div>담당자 <span id="selCoNm" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:3px">회사를 선택하세요</span></div>
-            <span style="font-size:14px;color:var(--t3)" id="ctCnt"></span>
+            <div style="display:flex;align-items:center;gap:5px">
+              <span style="font-size:14px;color:var(--t3)" id="ctCnt"></span>
+              <button onclick="openNewContactModal()" 
+                style="padding:3px 10px;border-radius:7px;border:none;background:var(--g);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규</button>
+            </div>
           </div>
           <div class="cb" style="padding:8px 12px">
-            <div style="margin-bottom:8px"><input class="si" type="text" placeholder="🔍 이름 / 직함..." id="ctSrch" oninput="filterCtP()"></div>
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <input class="si" type="text" placeholder="🔍 이름 / 직함..." id="ctSrch" oninput="filterCtP()" style="flex:1">
+              <!-- D: 등록자 필터 -->
+              <select class="ss" id="ctRegFilter" onchange="filterCtP()" style="min-width:90px">
+                <option value="">전체</option>
+              </select>
+            </div>
             <div class="cgd" id="ctGrid" style="max-height:440px;overflow-y:auto">
               <div class="empty" style="grid-column:1/-1"><div class="ei">👈</div><div class="et">좌측에서 회사를 선택하세요</div></div>
             </div>
@@ -1054,6 +1079,86 @@
       </div>
 
       <!-- 프로젝트코드 검색 + 신규등록 모달 -->
+      <!-- 고객사 탭 신규 담당자 직접 등록 모달 (옵션 A) -->
+      <div id="newContactModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div class="modal-inner" style="background:#fff;border-radius:16px;padding:24px;width:580px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
+          <button onclick="closeNewContactModal()"
+            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:6px">👤 신규 담당자 등록</div>
+          <div style="font-size:13px;color:var(--t3);margin-bottom:16px">고객사 관리 탭 + Outlook 연락처 + 팀원 공유에 자동 반영됩니다</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label style="font-size:13px;color:var(--t2);font-weight:600">고객사 *</label>
+              <input id="nc-company" type="text" placeholder="예: 엠플러스"
+                style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:7px;font-size:14px;font-family:var(--s);margin-top:3px">
+            </div>
+            <div>
+              <label style="font-size:13px;color:var(--t2);font-weight:600">담당자명 *</label>
+              <input id="nc-name" type="text" placeholder="예: 홍길동"
+                style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:7px;font-size:14px;font-family:var(--s);margin-top:3px">
+            </div>
+            <div>
+              <label style="font-size:13px;color:var(--t2);font-weight:600">직책</label>
+              <input id="nc-title" type="text" placeholder="예: 과장·팀장"
+                style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:7px;font-size:14px;font-family:var(--s);margin-top:3px">
+            </div>
+            <div>
+              <label style="font-size:13px;color:var(--t2);font-weight:600">부서</label>
+              <input id="nc-dept" type="text" placeholder="예: 구매팀"
+                style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:7px;font-size:14px;font-family:var(--s);margin-top:3px">
+            </div>
+            <div>
+              <label style="font-size:13px;color:var(--t2);font-weight:600">이메일</label>
+              <input id="nc-email" type="email" placeholder="hong@company.com"
+                style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:7px;font-size:14px;font-family:var(--s);margin-top:3px">
+            </div>
+            <div>
+              <label style="font-size:13px;color:var(--t2);font-weight:600">휴대폰</label>
+              <input id="nc-mobile" type="text" placeholder="010-1234-5678"
+                style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:7px;font-size:14px;font-family:var(--s);margin-top:3px">
+            </div>
+            <div>
+              <label style="font-size:13px;color:var(--t2);font-weight:600">근무처 전화</label>
+              <input id="nc-phone" type="text" placeholder="02-1234-5678"
+                style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:7px;font-size:14px;font-family:var(--s);margin-top:3px">
+            </div>
+            <div>
+              <label style="font-size:13px;color:var(--t2);font-weight:600">국내/해외</label>
+              <select id="nc-region" style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:7px;font-size:14px;font-family:var(--s);margin-top:3px">
+                <option value="국내">🇰🇷 국내</option>
+                <option value="해외">🌏 해외</option>
+              </select>
+            </div>
+            <div style="grid-column:1/-1">
+              <label style="font-size:13px;color:var(--t2);font-weight:600">비고</label>
+              <input id="nc-note" type="text" placeholder="제품·관심사항·메모"
+                style="width:100%;padding:8px 10px;border:1.5px solid var(--border2);border-radius:7px;font-size:14px;font-family:var(--s);margin-top:3px">
+            </div>
+          </div>
+
+          <!-- 추가 옵션 -->
+          <div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px">
+            <div style="font-size:13px;color:var(--t2);font-weight:700;margin-bottom:8px">저장 옵션</div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:5px">
+              <input type="checkbox" id="nc-opt-outlook" checked>
+              📤 내 Outlook "ENJET 고객사" 폴더에도 저장
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+              <input type="checkbox" id="nc-opt-sp" checked>
+              💾 SharePoint customer-contacts.json에 저장 (팀 공유)
+            </label>
+          </div>
+
+          <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+            <button onclick="closeNewContactModal()"
+              style="padding:8px 16px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+            <button onclick="saveNewContact()"
+              style="padding:8px 20px;border-radius:8px;border:none;background:var(--g);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
+          </div>
+        </div>
+      </div>
+
       <div id="pjCodePickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div class="modal-inner" style="background:#fff;border-radius:16px;padding:24px;width:760px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
           <button onclick="closePjCodePicker()"
@@ -1946,48 +2051,483 @@ function renderCtCards(cts) {
 function filterCos(){renderCos(Object.keys(coMap).filter(c=>c!=="미상").sort());}
 function filterCtP(){
   const q=(document.getElementById("ctSrch")?.value||"").toLowerCase().trim();
-  if(!q && !selCo) {
-    // 검색어 없고 회사도 안 골랐으면 안내 메시지
+  const regFilter = (document.getElementById("ctRegFilter")?.value||"").trim(); // D: 등록자 필터
+
+  if(!q && !selCo && !regFilter) {
     document.getElementById("ctGrid").innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="ei">👈</div><div class="et">좌측에서 회사를 선택하세요</div><div style="font-size:13px;color:var(--t3);margin-top:6px">또는 이름·직함·회사로 전체 검색</div></div>`;
     $("ctCnt","");
     $("selCoNm","회사를 선택하세요");
     return;
   }
-  if(selCo) {
-    // 회사 선택됨 → 그 회사 안에서 검색
+  if(selCo && !q && !regFilter) {
     renderCtCards(coMap[selCo]||[]);
     return;
   }
-  // 회사 선택 안 함 + 검색어 있음 → 전체 (CD + exhData) 통합 검색
-  const fromCD = (CD||[]).filter(r=>
-    [r["이름"], r["직함"], r["회사"], r["부서"], r["전자 메일 주소"], r["휴대폰"]]
+
+  // 전체 검색 (검색어 또는 등록자 필터 있을 때)
+  let fromCD = (CD||[]);
+  if(selCo) fromCD = fromCD.filter(r=>r["회사"]===selCo);
+  if(regFilter) fromCD = fromCD.filter(r=>(r["명함 등록자"]||"")=== regFilter);
+  if(q) fromCD = fromCD.filter(r=>
+    [r["이름"],r["직함"],r["회사"],r["부서"],r["전자 메일 주소"],r["휴대폰"],r["명함 등록자"]]
       .some(v=>String(v||"").toLowerCase().includes(q))
   );
-  // exhData도 같은 형식으로 정규화해서 합치기
-  const fromExh = (exhData||[]).filter(r=>
-    [r.name, r.title, r.company, r.email, r.phone, r.product]
-      .some(v=>String(v||"").toLowerCase().includes(q))
-  ).map(r=>({
+  const fromExh = (exhData||[]).filter(r=>!regFilter || (r._source==="dashboard")).filter(r=>{
+    if(regFilter && r._source!=="dashboard") return false;
+    if(q) return [r.name,r.title,r.company,r.email,r.phone].some(v=>String(v||"").toLowerCase().includes(q));
+    return !regFilter; // 등록자 필터만 있으면 exhData는 별도 처리
+  }).map(r=>({
     "이름": r.name,
     "직함": r.title,
     "회사": r.company,
     "부서": r.product||"",
     "휴대폰": r.phone,
     "전자 메일 주소": r.email,
+    "명함 등록자": r.note?.match(/^(.+?) 직접등록/)?.[1]||"직접등록",
     "_source": "exhData",
   }));
-  // 중복 제거 (같은 회사+이름)
+
   const seen = new Set();
   const combined = [];
   for(const r of [...fromCD, ...fromExh]) {
-    const key = (r["회사"]||"")+"|"+(r["이름"]||"")+"|"+(r["전자 메일 주소"]||"");
+    const key=(r["회사"]||"")+(r["이름"]||"")+(r["전자 메일 주소"]||"");
     if(seen.has(key)) continue;
     seen.add(key);
     combined.push(r);
   }
-  $("selCoNm", `전체 검색 결과 "${q}"`);
+  const label = selCo ? selCo : (regFilter ? regFilter+" 등록" : (q?`"${q}" 검색 결과`:"전체"));
+  $("selCoNm", label);
   $("ctCnt", combined.length+"명");
   renderCtCards(combined);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📤 Outlook 연락처 동기화 (고객사 관리 → Outlook/Teams)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 옵션 A: 고객사 탭 신규 담당자 직접 등록
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openNewContactModal(prefillCompany) {
+  const modal = document.getElementById("newContactModal");
+  if(!modal) return;
+  document.getElementById("nc-company").value = prefillCompany || (selCo || "");
+  document.getElementById("nc-name").value = "";
+  document.getElementById("nc-title").value = "";
+  document.getElementById("nc-dept").value = "";
+  document.getElementById("nc-email").value = "";
+  document.getElementById("nc-mobile").value = "";
+  document.getElementById("nc-phone").value = "";
+  document.getElementById("nc-note").value = "";
+  document.getElementById("nc-region").value = "국내";
+  modal.style.display = "flex";
+  setTimeout(()=>document.getElementById("nc-company").focus(), 100);
+}
+function closeNewContactModal() {
+  document.getElementById("newContactModal").style.display = "none";
+}
+
+async function saveNewContact() {
+  const company = document.getElementById("nc-company").value.trim();
+  const name = document.getElementById("nc-name").value.trim();
+  if(!company) { alert("고객사를 입력해주세요."); return; }
+  if(!name) { alert("담당자명을 입력해주세요."); return; }
+
+  const now = new Date();
+  const newEntry = {
+    "이름": name,
+    "회사": company,
+    "직함": document.getElementById("nc-title").value.trim(),
+    "부서": document.getElementById("nc-dept").value.trim(),
+    "전자 메일 주소": document.getElementById("nc-email").value.trim(),
+    "휴대폰": document.getElementById("nc-mobile").value.trim(),
+    "근무처 전화": document.getElementById("nc-phone").value.trim(),
+    "명함 등록자": acct?.name || "직접등록",
+    "국가": document.getElementById("nc-region").value === "해외" ? "해외" : "국내",
+    "_note": document.getElementById("nc-note").value.trim(),
+    "_source": "dashboard",
+    "_createdAt": now.toISOString(),
+  };
+
+  // 1) 메모리에 즉시 추가
+  if(!Array.isArray(CD)) window.CD = [];
+  CD.push(newEntry);
+  if(!coMap[company]) coMap[company] = [];
+  coMap[company].push(newEntry);
+
+  // KPI 갱신
+  const cosNow = Object.keys(coMap).filter(c=>c!=="미상").sort();
+  $("ct-tot", CD.length);
+  $("ct-co", cosNow.length);
+  $("badge-ct", CD.length);
+  updateRegFilters(); // D: 등록자 필터 갱신
+
+  // 2) exhData에도 추가 (영업활동 모달 검색용)
+  exhData.push({
+    exh: "직접등록",
+    company, name,
+    title: newEntry["직함"],
+    country: newEntry["국가"],
+    email: newEntry["전자 메일 주소"],
+    phone: newEntry["휴대폰"],
+    product: newEntry["_note"],
+    status: "신규등록",
+    followup: "",
+    note: "대시보드 직접등록 "+now.toISOString().split("T")[0],
+    _source: "dashboard",
+  });
+
+  // 3) UI 즉시 갱신
+  closeNewContactModal();
+  renderCos(cosNow);
+  selCo = company;
+  $("selCoNm", company);
+  $("ctCnt", coMap[company].length+"명");
+  renderCtCards(coMap[company]);
+
+  // 4) SharePoint 저장 (옵션 선택 시)
+  let saved = false;
+  if(document.getElementById("nc-opt-sp")?.checked) {
+    saved = await saveCustContactsToSP();
+  }
+
+  // 5) Outlook 저장 (옵션 선택 시)
+  let outlookOk = false;
+  if(document.getElementById("nc-opt-outlook")?.checked) {
+    try {
+      const t = await getToken();
+      const fid = await getOrCreateContactFolder(t, "ENJET 고객사");
+      const body = buildContactBody({_type:"cd", ...newEntry});
+      const r = await fetch(
+        `https://graph.microsoft.com/v1.0/me/contactFolders/${fid}/contacts`,
+        { method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+          body: JSON.stringify(body) }
+      );
+      if(r.ok) outlookOk = true;
+    } catch(e) { console.warn("Outlook 저장 실패:", e.message); }
+  }
+
+  console.log("✅ 신규 담당자 등록:", name, "@", company);
+  const msg = [
+    `✅ "${name} (${company})" 등록 완료!`,
+    saved ? "💾 SharePoint 저장됨" : "",
+    outlookOk ? "📤 Outlook 저장됨" : "",
+  ].filter(Boolean).join("\n");
+  alert(msg);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 옵션 D: 등록자별 필터 (팀원 현황)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function updateRegFilters() {
+  const sel = document.getElementById("ctRegFilter");
+  if(!sel) return;
+  const cur = sel.value;
+  // 등록자 목록 추출
+  const regs = new Set();
+  for(const r of (CD||[])) if(r["명함 등록자"]) regs.add(r["명함 등록자"]);
+  for(const r of (exhData||[])) if(r._source==="dashboard" && r.note) {
+    const m = r.note.match(/^(.+?) 직접등록/);
+    if(m) regs.add(m[1]);
+  }
+  // 옵션 갱신
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">전체 등록자</option>' +
+    [...regs].sort().map(r=>`<option value="${r}"${r===prev?" selected":""}>${r}</option>`).join("");
+  // 등록자별 건수 표시
+  const regCount = {};
+  for(const r of (CD||[])) {
+    const reg = r["명함 등록자"]||"";
+    if(reg) regCount[reg] = (regCount[reg]||0)+1;
+  }
+  [...sel.options].forEach(o=>{
+    if(o.value && regCount[o.value]) o.text = o.value + " ("+regCount[o.value]+")";
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 옵션 C: Outlook 공유 폴더 읽기 + 통합
+// (팀원이 "ENJET 고객사" 폴더를 성백훈님에게 공유한 경우)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function syncFromSharedOutlookContacts() {
+  const btn = document.getElementById("btnSyncShared");
+  if(btn) { btn.disabled=true; btn.textContent="⏳ 읽는 중..."; }
+  try {
+    const t = await getToken();
+    // futresales 그룹 멤버 조회
+    const gid = await findTeamsGroup();
+    if(!gid) throw new Error("그룹을 찾을 수 없습니다.");
+    const members = await gGet("/groups/"+gid+"/members?$select=id,displayName,userPrincipalName");
+    const memberList = (members.value||[]).filter(m=>m.userPrincipalName);
+    console.log("👥 그룹 멤버:", memberList.map(m=>m.displayName));
+
+    let totalAdded = 0;
+    const seen = new Set(CD.map(r=>(r["이름"]||"")+(r["전자 메일 주소"]||"")));
+
+    for(const member of memberList) {
+      try {
+        // 각 멤버의 공유된 "ENJET 고객사" 폴더 탐색
+        const folders = await fetch(
+          `https://graph.microsoft.com/v1.0/users/${member.id}/contactFolders?$filter=displayName eq 'ENJET 고객사'`,
+          { headers:{"Authorization":"Bearer "+t} }
+        );
+        if(!folders.ok) continue; // 공유 안 한 멤버는 스킵
+        const fd = await folders.json();
+        const folder = (fd.value||[])[0];
+        if(!folder) continue;
+
+        // 폴더 내 연락처 읽기 (공유/위임된 경우만 성공)
+        const contacts = await fetch(
+          `https://graph.microsoft.com/v1.0/users/${member.id}/contactFolders/${folder.id}/contacts?$top=500&$select=displayName,givenName,surname,companyName,jobTitle,department,emailAddresses,mobilePhone,businessPhones,personalNotes`,
+          { headers:{"Authorization":"Bearer "+t} }
+        );
+        if(!contacts.ok) continue;
+        const cd = await contacts.json();
+
+        for(const c of (cd.value||[])) {
+          const nm = c.givenName || c.displayName || "";
+          const em = c.emailAddresses?.[0]?.address || "";
+          const key = nm + em;
+          if(seen.has(key)) continue;
+          seen.add(key);
+
+          const newEntry = {
+            "이름": nm,
+            "회사": c.companyName||"",
+            "직함": c.jobTitle||"",
+            "부서": c.department||"",
+            "전자 메일 주소": em,
+            "휴대폰": c.mobilePhone||"",
+            "근무처 전화": c.businessPhones?.[0]||"",
+            "명함 등록자": member.displayName,
+            "_source": "outlook-shared",
+          };
+          CD.push(newEntry);
+          if(!coMap[c.companyName||"미상"]) coMap[c.companyName||"미상"] = [];
+          coMap[c.companyName||"미상"].push(newEntry);
+          totalAdded++;
+        }
+        console.log(`✅ ${member.displayName}: ${(cd.value||[]).length}건 읽음`);
+      } catch(e) {
+        console.log(`ℹ️ ${member.displayName}: 공유 미설정 또는 접근 불가 (${e.message})`);
+      }
+    }
+
+    if(totalAdded > 0) {
+      // SP에 저장
+      await saveCustContactsToSP();
+      // UI 갱신
+      const cosNow = Object.keys(coMap).filter(c=>c!=="미상").sort();
+      $("ct-tot", CD.length);
+      $("ct-co", cosNow.length);
+      $("badge-ct", CD.length);
+      updateRegFilters();
+      renderCos(cosNow);
+      alert(`✅ 팀원 Outlook 읽기 완료!\n새로 추가: ${totalAdded}명\n전체: ${CD.length}명`);
+    } else {
+      alert(`ℹ️ 새로 추가된 연락처 없음\n\n팀원들이 Outlook → "ENJET 고객사" 폴더를 먼저 공유 설정해야 합니다.\n\n공유 방법:\nOutlook → 연락처 → "ENJET 고객사" 우클릭\n→ 공유 → ${acct?.username||"성백훈님"} 검색 → 공유`);
+    }
+  } catch(e) {
+    alert("읽기 실패: " + e.message);
+    console.error("공유 연락처 읽기 실패:", e);
+  } finally {
+    if(btn) { btn.disabled=false; btn.textContent="🔗 팀원 Outlook 읽기"; }
+  }
+}
+
+async function syncContactsToOutlook() {
+  const btn = document.getElementById("btnSyncOutlook");
+  // 데이터 준비
+  const allContacts = getAllContactsForSync();
+  if(allContacts.length === 0) {
+    alert("동기화할 연락처가 없습니다.\n먼저 고객사 연락처 엑셀을 업로드해주세요.");
+    return;
+  }
+  const confirmed = confirm(
+    `📤 Outlook 연락처 동기화\n\n` +
+    `총 ${allContacts.length}명을 Outlook에 동기화합니다.\n` +
+    `• 저장 위치: 내 Outlook → "ENJET 고객사" 폴더\n` +
+    `• Teams 전화 앱에서도 검색 가능\n` +
+    `• Outlook 이메일 자동완성 지원\n` +
+    `• 기존 "ENJET 고객사" 폴더 내 연락처는 갱신됩니다\n\n` +
+    `진행할까요?`
+  );
+  if(!confirmed) return;
+
+  btn.disabled = true;
+  btn.textContent = "⏳ 동기화 중...";
+
+  try {
+    const t = await getToken();
+    // 1단계: "ENJET 고객사" 폴더 생성 or 조회
+    const folderId = await getOrCreateContactFolder(t, "ENJET 고객사");
+    // 2단계: 기존 폴더 연락처 목록 조회 (중복 방지)
+    const existing = await getExistingFolderContacts(t, folderId);
+    const existingMap = {}; // key: "이름|회사"
+    for(const c of existing) {
+      const k = (c.displayName||"") + "|" + (c.companyName||"");
+      existingMap[k] = c.id;
+    }
+
+    // 3단계: 배치로 연락처 추가/갱신
+    let added = 0, updated = 0, failed = 0;
+    const BATCH = 20; // 20개씩 처리
+    const total = allContacts.length;
+
+    for(let i=0; i<total; i+=BATCH) {
+      const chunk = allContacts.slice(i, i+BATCH);
+      btn.textContent = `⏳ ${Math.min(i+BATCH, total)}/${total} 처리 중...`;
+
+      await Promise.allSettled(chunk.map(async (c)=>{
+        try {
+          const body = buildContactBody(c);
+          const key = (body.displayName||"") + "|" + (body.companyName||"");
+          if(existingMap[key]) {
+            // 기존 연락처 갱신 (PATCH)
+            await fetch(
+              `https://graph.microsoft.com/v1.0/me/contactFolders/${folderId}/contacts/${existingMap[key]}`,
+              { method:"PATCH", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+                body: JSON.stringify(body) }
+            );
+            updated++;
+          } else {
+            // 신규 추가 (POST)
+            await fetch(
+              `https://graph.microsoft.com/v1.0/me/contactFolders/${folderId}/contacts`,
+              { method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+                body: JSON.stringify(body) }
+            );
+            added++;
+          }
+        } catch(e) {
+          failed++;
+          console.warn("연락처 추가 실패:", c["이름"]||c.name, e.message);
+        }
+      }));
+      // API 과부하 방지 (20개 배치마다 0.3초 대기)
+      await new Promise(r=>setTimeout(r, 300));
+    }
+
+    const msg = `✅ Outlook 동기화 완료!\n\n` +
+      `• 신규 추가: ${added}명\n` +
+      `• 갱신: ${updated}명\n` +
+      (failed>0 ? `• 실패: ${failed}명\n` : "") +
+      `\n이제 다음에서 고객사 담당자 검색 가능합니다:\n` +
+      `📱 Teams → 통화 → 이름 검색\n` +
+      `✉️ Outlook → 이메일 받는사람 자동완성\n` +
+      `📒 Outlook → 연락처 → "ENJET 고객사" 폴더`;
+    alert(msg);
+    console.log("✅ Outlook 동기화:", {added, updated, failed, total});
+
+  } catch(e) {
+    alert("동기화 실패: " + e.message + "\n\n권한 오류라면 로그아웃 후 다시 로그인해주세요.");
+    console.error("Outlook 동기화 실패:", e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "📤 Outlook 동기화";
+  }
+}
+
+// 동기화할 전체 연락처 통합 (CD + exhData)
+function getAllContactsForSync() {
+  const result = [];
+  const seen = new Set();
+  // 1. CD (리멤버 연락처 엑셀)
+  if(typeof CD !== "undefined" && Array.isArray(CD)) {
+    for(const r of CD) {
+      if(!r["이름"] && !r["회사"]) continue;
+      const key = (r["이름"]||"") + "|" + (r["회사"]||"");
+      if(seen.has(key)) continue;
+      seen.add(key);
+      result.push({ _type:"cd", ...r });
+    }
+  }
+  // 2. exhData (전시회/직접등록 연락처)
+  if(typeof exhData !== "undefined" && Array.isArray(exhData)) {
+    for(const r of exhData) {
+      if(!r.name && !r.company) continue;
+      const key = (r.name||"") + "|" + (r.company||"");
+      if(seen.has(key)) continue;
+      seen.add(key);
+      result.push({ _type:"exh", ...r });
+    }
+  }
+  return result;
+}
+
+// Graph API 연락처 바디 생성
+function buildContactBody(c) {
+  if(c._type === "exh") {
+    // exhData 형식
+    const nameParts = (c.name||"").split(" ");
+    return {
+      displayName: [c.name, c.company].filter(Boolean).join(" / "),
+      givenName: nameParts[0]||"",
+      surname: nameParts.slice(1).join(" ")||"",
+      companyName: c.company||"",
+      jobTitle: c.title||"",
+      emailAddresses: c.email ? [{ address:c.email, name:c.name||c.company }] : [],
+      mobilePhone: c.phone||"",
+      businessPhones: c.phone ? [c.phone] : [],
+      categories: ["ENJET고객사"],
+      personalNotes: [c.product, c.note, "전시회:"+c.exh].filter(Boolean).join(" / "),
+    };
+  } else {
+    // CD (리멤버) 형식
+    const nm = c["이름"]||"";
+    const nameParts = nm.split(" ");
+    return {
+      displayName: [nm, c["회사"]].filter(Boolean).join(" / "),
+      givenName: nameParts[0]||"",
+      surname: nameParts.slice(1).join(" ")||"",
+      companyName: c["회사"]||"",
+      jobTitle: c["직함"]||"",
+      department: c["부서"]||"",
+      emailAddresses: c["전자 메일 주소"] ? [{ address:c["전자 메일 주소"], name:nm||c["회사"] }] : [],
+      mobilePhone: c["휴대폰"]||"",
+      businessPhones: [c["근무처 전화"]].filter(Boolean),
+      categories: ["ENJET고객사"],
+      personalNotes: c["명함 등록자"] ? "등록자: "+c["명함 등록자"] : "",
+    };
+  }
+}
+
+// "ENJET 고객사" 폴더 조회 or 생성
+async function getOrCreateContactFolder(token, folderName) {
+  // 기존 폴더 조회
+  const r = await fetch(
+    "https://graph.microsoft.com/v1.0/me/contactFolders",
+    { headers:{"Authorization":"Bearer "+token} }
+  );
+  const data = await r.json();
+  const existing = (data.value||[]).find(f=>f.displayName===folderName);
+  if(existing) {
+    console.log("✅ 기존 폴더 사용:", folderName, existing.id);
+    return existing.id;
+  }
+  // 없으면 생성
+  const cr = await fetch(
+    "https://graph.microsoft.com/v1.0/me/contactFolders",
+    { method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+      body: JSON.stringify({ displayName: folderName }) }
+  );
+  const newFolder = await cr.json();
+  console.log("✅ 폴더 생성:", folderName, newFolder.id);
+  return newFolder.id;
+}
+
+// 폴더 내 기존 연락처 조회 (중복 방지용)
+async function getExistingFolderContacts(token, folderId) {
+  let contacts = [], url =
+    `https://graph.microsoft.com/v1.0/me/contactFolders/${folderId}/contacts?$select=id,displayName,companyName&$top=500`;
+  while(url) {
+    const r = await fetch(url, { headers:{"Authorization":"Bearer "+token} });
+    const d = await r.json();
+    contacts = contacts.concat(d.value||[]);
+    url = d["@odata.nextLink"]||null;
+  }
+  console.log("기존 연락처:", contacts.length+"건");
+  return contacts;
 }
 
 // ━━ 드롭다운 ━━
@@ -7323,6 +7863,7 @@ function go(id, el) {
   // 고객사 관리 탭
   if(id==="customer") {
     if(exhData.length === 0) loadCustContactsFromSP();
+    updateRegFilters(); // D: 등록자 필터 갱신
   }
 }
 // ─── 모바일 탭바 헬퍼 ───
