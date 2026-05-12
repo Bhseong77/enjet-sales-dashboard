@@ -4578,15 +4578,19 @@ function syncSLActivityFromEvent(evt, save) {
   const today = (evt.start||"").substring(0,10);
 
   // ── 매칭: 프로젝트코드 우선, 없으면 고객사명 ──
+  // ⚠️ 프로젝트코드(또는 신규N차)가 다르면 별도 활동으로 처리 (매칭 X)
   let existing = null;
   if(pjcode) {
+    // pjcode가 있으면: 같은 고객사 + 같은 pjcode 만 매칭
     existing = slData.find(x=>x.company===company && x.pjcode===pjcode);
-    if(!existing) existing = slData.find(x=>x.pjcode===pjcode && pjcode.length>3);
+    // pjcode 길이가 4자 이상이고 정확히 같은 정식 코드면 회사명 무관하게 매칭
+    if(!existing && pjcode.length>3 && !pjcode.startsWith("신규"))
+      existing = slData.find(x=>x.pjcode===pjcode);
+  } else {
+    // pjcode 없으면: 같은 고객사 + pjcode도 없는 활동만 매칭
+    existing = slData.find(x=>x.company===company && !x.pjcode);
   }
-  if(!existing) {
-    existing = slData.find(x=>x.company===company && (!x.pjcode||x.pjcode===pjcode));
-    if(!existing) existing = slData.find(x=>x.company&&(x.company.includes(company)||company.includes(x.company)));
-  }
+  // ⚠️ 회사명 부분일치(includes) 매칭은 제거 - 다른 차수가 합쳐지는 문제 방지
 
   if(existing) {
     if(today > (existing.lastActivity||"")) existing.lastActivity = today;
