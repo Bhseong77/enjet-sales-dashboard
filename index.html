@@ -614,11 +614,25 @@
           <div class="ct"><div class="ci c1">📅</div>영업활동 일정
             <span id="slSyncBadge" style="font-size:14px;padding:1px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Outlook 그룹</span>
           </div>
-          <div style="display:flex;gap:6px;align-items:center">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
             <div style="display:flex;gap:3px">
               <button class="pp on" id="sl-view-w" onclick="setSLView('week',this)" style="padding:3px 10px;font-size:15px">주간</button>
               <button class="pp" id="sl-view-m" onclick="setSLView('month',this)" style="padding:3px 10px;font-size:15px">월간</button>
               <button class="pp" id="sl-view-a" onclick="setSLView('all',this)" style="padding:3px 10px;font-size:15px">전체</button>
+            </div>
+            <!-- ◀ 날짜 ▶ 네비게이션 (주간/월간에서만 표시) -->
+            <div id="slCalNav" style="display:flex;align-items:center;gap:4px">
+              <button onclick="slNavPrev()" style="padding:3px 10px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:16px;cursor:pointer;font-weight:700;color:var(--t2)">◀</button>
+              <button onclick="slNavToday()" id="slNavLabel"
+                style="padding:3px 10px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-weight:600;font-family:var(--s);color:var(--t);min-width:100px;text-align:center">
+                오늘
+              </button>
+              <button onclick="slNavNext()" style="padding:3px 10px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:16px;cursor:pointer;font-weight:700;color:var(--t2)">▶</button>
+              <!-- 달력 아이콘 → 날짜 input 숨겨서 피커 열기 -->
+              <button onclick="document.getElementById('slCalDatePicker').showPicker?document.getElementById('slCalDatePicker').showPicker():document.getElementById('slCalDatePicker').click()"
+                style="padding:3px 8px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:16px;cursor:pointer" title="날짜 선택">📅</button>
+              <input type="date" id="slCalDatePicker" onchange="slNavGoToDate(this.value)"
+                style="position:absolute;opacity:0;pointer-events:none;width:0;height:0">
             </div>
             <button onclick="syncSLFromTeams()" style="padding:4px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">🔄 동기화</button>
             <button onclick="openSLModal(null)" style="padding:4px 10px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button>
@@ -4183,7 +4197,8 @@ async function uploadExhFile(exhId, fileType) {
   const input = document.createElement("input");
   input.type = "file";
   input.multiple = true;
-  input.accept = "*/*";
+  // 안드로이드 카메라만 뜨는 문제 방지: 문서 파일 명시
+  input.accept = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.hwp,.zip,.rar";
   input.onchange = async()=>{
     const files = Array.from(input.files);
     if(!files.length) return;
@@ -4740,6 +4755,8 @@ function setSLView(v,el) {
   slView=v;
   document.querySelectorAll("#tab-sales-log .pp").forEach(b=>b.classList.remove("on"));
   el.classList.add("on");
+  slNavBase = new Date(); // 탭 전환 시 오늘로 리셋
+  slNavUpdateLabel();
   syncSLFromTeams();
 }
 
@@ -4781,7 +4798,75 @@ function getSLCalEventsAll() {
   return merged;
 }
 
+// ─── 캘린더 네비게이션 날짜 기준점 ───
+let slNavBase = new Date(); // 현재 보고 있는 기준 날짜
+
+function slNavUpdateLabel() {
+  const label = document.getElementById("slNavLabel");
+  const nav = document.getElementById("slCalNav");
+  if(!label) return;
+  if(slView==="all") { if(nav) nav.style.display="none"; return; }
+  if(nav) nav.style.display="flex";
+  const y = slNavBase.getFullYear();
+  const m = slNavBase.getMonth()+1;
+  if(slView==="week") {
+    // 현재 주의 월~일 표시
+    const mon = new Date(slNavBase);
+    mon.setDate(slNavBase.getDate()-slNavBase.getDay()+1);
+    const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+    const mStr = `${mon.getMonth()+1}/${mon.getDate()}`;
+    const sStr = `${sun.getMonth()+1}/${sun.getDate()}`;
+    label.textContent = `${y}년 ${mStr}~${sStr}`;
+    // 오늘 주면 "오늘"
+    const todayMon = new Date(); todayMon.setDate(todayMon.getDate()-todayMon.getDay()+1);
+    if(mon.toDateString()===todayMon.toDateString()) label.textContent = "이번 주";
+  } else {
+    label.textContent = `${y}년 ${m}월`;
+    const now = new Date();
+    if(y===now.getFullYear() && m===now.getMonth()+1) label.textContent = "이번 달";
+  }
+}
+
+function slNavPrev() {
+  if(slView==="week") {
+    slNavBase.setDate(slNavBase.getDate()-7);
+  } else {
+    slNavBase.setMonth(slNavBase.getMonth()-1);
+  }
+  slNavUpdateLabel();
+  renderSLCalendar();
+}
+
+function slNavNext() {
+  if(slView==="week") {
+    slNavBase.setDate(slNavBase.getDate()+7);
+  } else {
+    slNavBase.setMonth(slNavBase.getMonth()+1);
+  }
+  slNavUpdateLabel();
+  renderSLCalendar();
+}
+
+function slNavToday() {
+  slNavBase = new Date();
+  slNavUpdateLabel();
+  renderSLCalendar();
+}
+
+function slNavGoToDate(dateStr) {
+  if(!dateStr) return;
+  slNavBase = new Date(dateStr);
+  slNavUpdateLabel();
+  renderSLCalendar();
+  // 날짜 피커 값 초기화 (다음 번 다시 열릴 수 있도록)
+  setTimeout(()=>{
+    const picker = document.getElementById("slCalDatePicker");
+    if(picker) picker.value = "";
+  }, 100);
+}
+
 function renderSLCalendar() {
+  slNavUpdateLabel(); // 네비 레이블 항상 최신화
   const el = document.getElementById("slCalendar");
   if(!el) return;
   const events = getSLCalEventsAll();
@@ -4798,8 +4883,9 @@ function renderSLCalendar() {
 function renderSLWeek(events) {
   events = events || getSLCalEventsAll();
   const el = document.getElementById("slCalendar");
+  const base = slNavBase || new Date();
   const now = new Date();
-  const mon = new Date(now); mon.setDate(now.getDate()-now.getDay()+1);
+  const mon = new Date(base); mon.setDate(base.getDate()-base.getDay()+1);
   const days = Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
   const KOR_DAY=["일","월","화","수","목","금","토"];
   el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
@@ -4818,8 +4904,9 @@ function renderSLWeek(events) {
 function renderSLMonth(events) {
   events = events || getSLCalEventsAll();
   const el = document.getElementById("slCalendar");
+  const base = slNavBase || new Date();
   const now = new Date();
-  const year=now.getFullYear(), month=now.getMonth();
+  const year=base.getFullYear(), month=base.getMonth();
   const firstDay=new Date(year,month,1).getDay();
   const daysInMonth=new Date(year,month+1,0).getDate();
   const KOR_DAY=["일","월","화","수","목","금","토"];
@@ -4934,6 +5021,7 @@ async function uploadSLFileToSubfolder(actId, subfolderName) {
 
   const input = document.createElement("input");
   input.type = "file"; input.multiple = true;
+  input.accept = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.hwp,.zip";
   input.onchange = async()=>{
     const files = Array.from(input.files);
     if(!files.length) return;
@@ -6440,12 +6528,25 @@ function renderSLCards(data, container, FILE_TYPES) {
               </span>
             </div>
 
-            <!-- 담당자 -->
-            <div class="sl-card-meta" style="margin-bottom:8px">
-              <span class="sl-card-tag" style="cursor:pointer" onclick="openCustMgrPicker('${r.id}','${r.company.replace(/'/g,"\\'")}')")>
-                👤 ${r.custMgr ? r.custMgr.split(" <")[0] : "담당자 선택"}
-              </span>
-              ${r.salesMgr?`<span class="sl-card-tag">🏢 ${r.salesMgr}</span>`:""}
+            <!-- 담당자 + 오른쪽 액션 버튼 -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px">
+              <div style="display:flex;gap:5px;flex-wrap:wrap;flex:1;min-width:0">
+                <span class="sl-card-tag" style="cursor:pointer" onclick="openCustMgrPicker('${r.id}','${r.company.replace(/'/g,"\\'")}')")>
+                  👤 ${r.custMgr ? r.custMgr.split(" <")[0] : "담당자"}
+                </span>
+                ${r.salesMgr?`<span class="sl-card-tag">🏢 ${r.salesMgr}</span>`:""}
+              </div>
+              <!-- 오른쪽: 진행상태 + 삭제 -->
+              <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+                <select onchange="updateSLStatus('${r.id}',this.value)"
+                  style="padding:4px 6px;border-radius:7px;border:1.5px solid ${statusColor};background:${statusBg};font-size:12px;font-weight:700;color:${statusColor};font-family:var(--s);cursor:pointer;max-width:80px">
+                  ${ALL_STATUS.map(s=>`<option value="${s}" ${s===r.status?"selected":""}>${s}</option>`).join("")}
+                </select>
+                <button onclick="openSLModal(slData.find(x=>x.id==='${r.id}'))"
+                  style="padding:4px 8px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer">✏️</button>
+                <button onclick="deleteSLActivity('${r.id}')"
+                  style="padding:4px 8px;border-radius:7px;border:1px solid var(--r);background:var(--rd);font-size:14px;cursor:pointer">🗑️</button>
+              </div>
             </div>
 
             <!-- 파일 버튼들 -->
@@ -6456,11 +6557,6 @@ function renderSLCards(data, container, FILE_TYPES) {
               <button onclick="openSLModal(slData.find(x=>x.id==='${r.id}'))">✏️ 수정</button>
               <button onclick="deleteSLActivity('${r.id}')" style="color:var(--r);border-color:var(--r)">🗑️ 삭제</button>
             </div>
-
-            <!-- 모바일 스와이프 힌트 (처음 2번만 표시) -->
-            <div class="sl-swipe-hint" id="hint-${r.id}" style="display:none;text-align:right;font-size:11px;color:var(--t3);margin-top:4px;padding-top:4px">
-              ← 밀어서 상태변경·삭제
-            </div>
           </div>
         </div>
       </td>
@@ -6470,12 +6566,6 @@ function renderSLCards(data, container, FILE_TYPES) {
   // 렌더 후 스와이프 이벤트 바인딩 (requestAnimationFrame으로 DOM 완성 후)
   requestAnimationFrame(()=>{
     bindSwipeGestures();
-    // 처음 사용자에게 힌트 표시 (세션에서 한 번만)
-    if(!sessionStorage.getItem("sl_swipe_hint_shown") && sorted.length > 0) {
-      const firstHint = document.getElementById("hint-"+sorted[0].id);
-      if(firstHint) firstHint.style.display = "block";
-      sessionStorage.setItem("sl_swipe_hint_shown", "1");
-    }
   });
 }
 
@@ -8118,6 +8208,16 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
 
   const input = document.createElement("input");
   input.type="file"; input.multiple=true;
+  // 파일 유형별 accept 설정 (안드로이드 카메라 기본 방지)
+  const ACCEPT_MAP = {
+    minutes:  "audio/*,video/*,application/pdf,.mp3,.mp4,.m4a,.wav,.webm,.txt,.vtt,.srt,.docx,.doc",
+    proposal: "application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.ppt,.pptx,.doc,.docx,.hwp,.zip",
+    estimate: "application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,image/*,.pdf,.xlsx,.xls,.hwp,.doc,.docx",
+    order:    "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx,.xlsx",
+    contract: "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx",
+    tax:      "application/pdf,image/*,.pdf,.jpg,.jpeg,.png",
+  };
+  input.accept = ACCEPT_MAP[fileType] || "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*,.pdf,.doc,.docx,.xls,.xlsx,.hwp,.txt,.zip";
   input.onchange = async()=>{
     const files=Array.from(input.files);
     if(!files.length) return;
@@ -8404,6 +8504,67 @@ function go(id, el) {
   }
 }
 // ─── 모바일 탭바 헬퍼 ───
+// ━━ 뒤로가기 두 번 눌러야 앱 나가기 (모바일 UX) ━━
+let _backPressTime = 0;
+window.addEventListener("popstate", (e)=>{
+  // 모달이 열려 있으면 모달 닫기
+  const openModals = [
+    "slModal","slHistoryModal","custMgrPickerModal","pjCodePickerModal",
+    "newContactModal","quoteModal","slFileModal","slSubfolderModal"
+  ];
+  for(const id of openModals) {
+    const m = document.getElementById(id);
+    if(m && m.style.display !== "none") {
+      m.style.display = "none";
+      history.pushState(null, "", location.href); // 히스토리 유지
+      return;
+    }
+  }
+  // 모바일 더보기 패널 열려있으면 닫기
+  const mobMore = document.getElementById("mobMore");
+  if(mobMore && mobMore.classList.contains("open")) {
+    closeMobMore();
+    history.pushState(null, "", location.href);
+    return;
+  }
+  // 두 번째 뒤로가기 → 나가기 확인
+  const now = Date.now();
+  if(now - _backPressTime < 2000) {
+    // 2초 안에 두 번 → 나가기
+    return; // 기본 동작 허용 (앱 종료)
+  }
+  _backPressTime = now;
+  // 첫 번째 뒤로가기 → 토스트 메시지
+  showBackToast();
+  history.pushState(null, "", location.href); // 히스토리 유지
+});
+
+// 초기 히스토리 항목 추가 (popstate 작동 위해 필요)
+history.pushState(null, "", location.href);
+
+function showBackToast() {
+  let toast = document.getElementById("backToast");
+  if(!toast) {
+    toast = document.createElement("div");
+    toast.id = "backToast";
+    toast.style.cssText = `
+      position:fixed;bottom:75px;left:50%;transform:translateX(-50%);
+      background:rgba(30,30,30,0.9);color:#fff;
+      padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;
+      z-index:9999;font-family:var(--s);white-space:nowrap;
+      transition:opacity .3s;pointer-events:none;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = "한 번 더 누르면 앱을 나갑니다";
+  toast.style.opacity = "1";
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(()=>{
+    toast.style.opacity = "0";
+    _backPressTime = 0;
+  }, 2000);
+}
+
 function toggleMobMore() {
   const m = document.getElementById("mobMore");
   if(!m) return;
