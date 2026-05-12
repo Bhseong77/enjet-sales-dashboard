@@ -208,8 +208,11 @@
 */
 .sl-card{
   background:#fff;border:1px solid var(--border);
-  border-radius:10px;padding:12px;margin-bottom:8px;
+  border-radius:10px;padding:12px;margin-bottom:0;
+  overflow:hidden;box-sizing:border-box;width:100%;
 }
+/* 카드 래퍼 전체 너비 초과 방지 */
+.sl-swipe-wrap{position:relative;overflow:hidden;border-radius:10px;margin-bottom:8px;max-width:100%;box-sizing:border-box}
 .sl-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
 .sl-card-company{font-size:16px;font-weight:800;color:var(--t)}
 .sl-card-status{font-size:13px;padding:2px 8px;border-radius:12px;font-weight:700;white-space:nowrap}
@@ -222,7 +225,6 @@
 .sl-card-actions button{flex:1;padding:7px 4px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--t2);font-family:var(--s)}
 
 /* ━━ 스와이프 카드 (모바일) ━━ */
-.sl-swipe-wrap{position:relative;overflow:hidden;border-radius:10px;margin-bottom:8px}
 .sl-swipe-wrap .sl-card{
   margin-bottom:0;border-radius:10px;
   transition:transform .25s cubic-bezier(.25,.46,.45,.94);
@@ -685,7 +687,7 @@
               <th style="text-align:center;min-width:75px;font-size:14px">🧾 세금계산서</th>
               <th style="min-width:45px"></th>
             </tr></thead>
-            <tbody id="slBody">
+            <tbody id="slBody" style="display:block;width:100%;box-sizing:border-box">
               <tr><td colspan="14"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
             </tbody>
           </table></div>
@@ -710,7 +712,18 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
             <div>
               <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">프로젝트코드 <span style="font-weight:400;color:var(--t3)">(신규=차수 입력)</span></label>
-              <input class="si" type="text" id="sl-f-pjcode" placeholder="BM26003 또는 신규1차, 신규2차..." style="width:100%">
+              <!-- 선택 결과 표시 + 피커 버튼 -->
+              <div style="display:flex;gap:6px;align-items:center">
+                <div id="sl-f-pjcode-display"
+                  style="flex:1;padding:8px 11px;border:1.5px solid var(--border2);border-radius:7px;font-size:15px;font-family:var(--m);min-height:40px;color:var(--t3);background:var(--bg3);cursor:pointer"
+                  onclick="openPjCodePickerForModal()"
+                  title="클릭해서 검색/선택">
+                  미선택
+                </div>
+                <button type="button" onclick="openPjCodePickerForModal()"
+                  style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--p);background:var(--pd);color:var(--p);font-size:18px;cursor:pointer;flex-shrink:0" title="검색 또는 신규등록">🔍</button>
+              </div>
+              <input type="hidden" id="sl-f-pjcode" value="">
               <div style="font-size:11px;color:var(--t3);margin-top:3px">Teams 제목: [영업] 고객사-코드</div>
             </div>
             <div>
@@ -732,7 +745,18 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
             <div>
               <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">고객담당자</label>
-              <input class="si" type="text" id="sl-f-custmgr" placeholder="홍길동 부장" style="width:100%">
+              <!-- 선택 결과 표시 + 피커 버튼 -->
+              <div style="display:flex;gap:6px;align-items:center">
+                <div id="sl-f-custmgr-display"
+                  style="flex:1;padding:8px 11px;border:1.5px solid var(--border2);border-radius:7px;font-size:14px;font-family:var(--s);min-height:40px;color:var(--t3);background:var(--bg3);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+                  onclick="openCustMgrPickerForModal()"
+                  title="클릭해서 검색/선택">
+                  미선택
+                </div>
+                <button type="button" onclick="openCustMgrPickerForModal()"
+                  style="padding:8px 10px;border-radius:7px;border:1.5px solid var(--g);background:var(--gd);color:var(--g);font-size:18px;cursor:pointer;flex-shrink:0" title="담당자 검색">👤</button>
+              </div>
+              <input type="hidden" id="sl-f-custmgr" value="">
             </div>
             <div>
               <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">영업담당자</label>
@@ -866,25 +890,109 @@
           <div style="font-size:22px;font-weight:900;color:var(--t);margin-bottom:6px" id="slMinutesTitle">📝 회의록</div>
           <div style="font-size:14px;color:var(--t3);margin-bottom:20px" id="slMinutesSubtitle"></div>
 
-          <!-- 탭: 파일 목록 / AI 요약 -->
-          <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--border)">
+          <!-- 탭: 파일 목록 / AI 요약 / 직접 작성 / 파일 올리기 -->
+          <div style="display:flex;gap:2px;margin-bottom:20px;border-bottom:2px solid var(--border);flex-wrap:wrap">
             <button id="slMtgTab1" onclick="switchMtgTab(1)"
-              style="padding:8px 20px;border:none;border-bottom:3px solid var(--p);background:transparent;font-size:15px;font-weight:700;color:var(--p);cursor:pointer;font-family:var(--s);margin-bottom:-2px">
+              style="padding:8px 16px;border:none;border-bottom:3px solid var(--p);background:transparent;font-size:14px;font-weight:700;color:var(--p);cursor:pointer;font-family:var(--s);margin-bottom:-2px">
               📂 파일 목록
             </button>
             <button id="slMtgTab2" onclick="switchMtgTab(2)"
-              style="padding:8px 20px;border:none;border-bottom:3px solid transparent;background:transparent;font-size:15px;font-weight:700;color:var(--t3);cursor:pointer;font-family:var(--s);margin-bottom:-2px">
-              🤖 AI 회의록 생성
+              style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:transparent;font-size:14px;font-weight:700;color:var(--t3);cursor:pointer;font-family:var(--s);margin-bottom:-2px">
+              🤖 AI 생성
+            </button>
+            <button id="slMtgTab3" onclick="switchMtgTab(3)"
+              style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:transparent;font-size:14px;font-weight:700;color:var(--t3);cursor:pointer;font-family:var(--s);margin-bottom:-2px">
+              ✍️ 직접 작성
+            </button>
+            <button id="slMtgTab4" onclick="switchMtgTab(4)"
+              style="padding:8px 16px;border:none;border-bottom:3px solid transparent;background:transparent;font-size:14px;font-weight:700;color:var(--t3);cursor:pointer;font-family:var(--s);margin-bottom:-2px">
+              📎 파일 올리기
             </button>
           </div>
 
           <!-- 탭1: 파일 목록 -->
           <div id="slMtgPane1">
             <div id="slMinutesFileBody"><div class="sw"><div class="spr"></div></div></div>
-            <div style="margin-top:16px;text-align:right">
+            <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+              <button onclick="switchMtgTab(3)"
+                style="padding:9px 18px;border-radius:8px;border:1.5px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                ✍️ 직접 작성
+              </button>
+              <button onclick="switchMtgTab(4)"
+                style="padding:9px 18px;border-radius:8px;border:1.5px solid var(--a);background:var(--ad);color:var(--a);font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                📎 파일 올리기
+              </button>
               <button onclick="switchMtgTab(2)"
-                style="padding:10px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                style="padding:9px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
                 🤖 AI로 회의록 생성
+              </button>
+            </div>
+          </div>
+
+          <!-- 탭3: 직접 작성 → 파일 저장 -->
+          <div id="slMtgPane3" style="display:none">
+            <div style="margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div>
+                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">📅 일시</label>
+                <input class="si" type="date" id="slMtgDate3" style="width:100%;font-size:14px">
+              </div>
+              <div>
+                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">👥 참석자</label>
+                <input class="si" type="text" id="slMtgAttendees3" placeholder="예: 성백훈, 홍길동" style="width:100%;font-size:14px">
+              </div>
+              <div>
+                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">📍 장소</label>
+                <input class="si" type="text" id="slMtgLocation3" placeholder="예: 고객사 회의실" style="width:100%;font-size:14px">
+              </div>
+            </div>
+            <div style="margin-bottom:8px">
+              <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">📝 회의록 내용</label>
+              <textarea id="slMtgDirectContent" class="si"
+                placeholder="회의 내용을 자유롭게 입력하세요.&#10;&#10;[안건]&#10;1. ...&#10;&#10;[주요 내용]&#10;- ...&#10;&#10;[결정 사항]&#10;- ...&#10;&#10;[다음 액션]&#10;- ..."
+                style="width:100%;height:260px;resize:vertical;font-size:14px;line-height:1.7"></textarea>
+            </div>
+            <div style="margin-bottom:8px">
+              <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">💾 파일명</label>
+              <input class="si" type="text" id="slMtgFileName3" placeholder="예: 회의록_세종산업_20260512.txt"
+                style="width:100%;font-size:14px">
+            </div>
+            <div style="text-align:right;display:flex;gap:8px;justify-content:flex-end">
+              <button onclick="switchMtgTab(1)"
+                style="padding:9px 16px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+              <button onclick="saveMtgDirectAsFile()"
+                style="padding:9px 20px;border-radius:8px;border:none;background:var(--g);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 파일로 저장</button>
+            </div>
+          </div>
+
+          <!-- 탭4: 파일 그대로 올리기 (AI 변환 없음) -->
+          <div id="slMtgPane4" style="display:none">
+            <div style="margin-bottom:16px;padding:14px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)">
+              <div style="font-size:14px;font-weight:700;color:var(--t);margin-bottom:6px">📎 파일 그대로 업로드</div>
+              <div style="font-size:13px;color:var(--t3)">AI 변환 없이 파일을 SharePoint 회의록 폴더에 바로 저장합니다.</div>
+              <div style="font-size:12px;color:var(--t3);margin-top:4px">지원: PDF, Word, 이미지, 오디오, 동영상, 텍스트 등 모든 파일</div>
+            </div>
+            <!-- 드래그&드롭 영역 -->
+            <div id="slMtgRawDropZone"
+              style="border:2px dashed var(--a);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;background:#fff"
+              ondragover="event.preventDefault();this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
+              ondragleave="this.style.borderColor='var(--a)';this.style.background='#fff'"
+              ondrop="handleSLMtgRawDrop(event)"
+              onclick="document.getElementById('slMtgRawFileInput').click()">
+              <div style="font-size:42px;margin-bottom:10px">📎</div>
+              <div style="font-size:17px;font-weight:700;color:var(--t);margin-bottom:6px">파일을 드래그하거나 클릭해서 선택</div>
+              <div style="font-size:13px;color:var(--t3)">PDF, Word, 이미지, 오디오, 동영상, 텍스트 등 모든 파일</div>
+            </div>
+            <input type="file" id="slMtgRawFileInput" style="display:none" multiple
+              accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,audio/*,video/*,text/*,.pdf,.doc,.docx,.hwp,.txt,.jpg,.jpeg,.png,.mp3,.mp4,.m4a,.wav,.webm,.xlsx,.pptx"
+              onchange="handleSLMtgRawFiles(this.files)">
+            <!-- 선택된 파일 목록 -->
+            <div id="slMtgRawFileList" style="margin-bottom:16px"></div>
+            <div style="text-align:right;display:flex;gap:8px;justify-content:flex-end">
+              <button onclick="switchMtgTab(1)"
+                style="padding:9px 16px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+              <button onclick="uploadSLMtgRawFiles()" id="slMtgRawUploadBtn" disabled
+                style="padding:9px 20px;border-radius:8px;border:none;background:var(--a);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s);opacity:0.5">
+                📤 파일 올리기
               </button>
             </div>
           </div>
@@ -5505,6 +5613,7 @@ async function createPlannerFromMtg(actId, summaryText, mtgDate, company, pjcode
 
 async function openSLMinutesModal(actId) {
   _slMtgActId = actId;
+  window._slMinutesActId = actId; // 탭3/4 함수에서 사용
   const act = slData.find(x=>x.id===actId);
   if(!act) return;
 
@@ -5512,6 +5621,7 @@ async function openSLMinutesModal(actId) {
   document.getElementById("slMinutesTitle").textContent = "📝 회의록 - "+act.company;
   document.getElementById("slMinutesSubtitle").textContent = (act.pjcode||"신규")+" · "+act.status;
   modal.style.display = "flex";
+  switchMtgTab(1); // 항상 파일목록 탭으로 시작
 
   // OpenAI 키 복원
   const savedKey = localStorage.getItem("oai_key")||"";
@@ -5541,12 +5651,173 @@ async function openSLMinutesModal(actId) {
 
 // 탭 전환
 function switchMtgTab(n) {
-  document.getElementById("slMtgPane1").style.display = n===1?"block":"none";
-  document.getElementById("slMtgPane2").style.display = n===2?"block":"none";
-  document.getElementById("slMtgTab1").style.color = n===1?"var(--p)":"var(--t3)";
-  document.getElementById("slMtgTab2").style.color = n===2?"var(--p)":"var(--t3)";
-  document.getElementById("slMtgTab1").style.borderBottomColor = n===1?"var(--p)":"transparent";
-  document.getElementById("slMtgTab2").style.borderBottomColor = n===2?"var(--p)":"transparent";
+  [1,2,3,4].forEach(i=>{
+    const pane = document.getElementById("slMtgPane"+i);
+    const tab = document.getElementById("slMtgTab"+i);
+    if(pane) pane.style.display = n===i?"block":"none";
+    if(tab) {
+      tab.style.color = n===i?"var(--p)":"var(--t3)";
+      tab.style.borderBottomColor = n===i?"var(--p)":"transparent";
+    }
+  });
+  // 탭3: 날짜 기본값 + 파일명 기본값 자동 채우기
+  if(n===3) {
+    const d = document.getElementById("slMtgDate3");
+    if(d && !d.value) d.value = new Date().toISOString().split("T")[0];
+    const act = slData.find(x=>x.id===window._slMinutesActId);
+    const fn = document.getElementById("slMtgFileName3");
+    if(fn && !fn.value && act) {
+      const dateStr = new Date().toISOString().split("T")[0].replace(/-/g,"");
+      fn.value = `회의록_${act.company}_${dateStr}.txt`;
+    }
+  }
+}
+
+// ━━ 탭3: 직접 작성 → 파일로 저장 ━━
+async function saveMtgDirectAsFile() {
+  const content = document.getElementById("slMtgDirectContent")?.value?.trim();
+  if(!content) { alert("회의록 내용을 입력해주세요."); return; }
+
+  const actId = window._slMinutesActId;
+  const act = slData.find(x=>x.id===actId);
+  if(!act) return;
+
+  const date = document.getElementById("slMtgDate3")?.value || new Date().toISOString().split("T")[0];
+  const attendees = document.getElementById("slMtgAttendees3")?.value || "";
+  const location = document.getElementById("slMtgLocation3")?.value || "";
+  let fileName = document.getElementById("slMtgFileName3")?.value?.trim();
+  if(!fileName) fileName = `회의록_${act.company}_${date.replace(/-/g,"")}.txt`;
+  if(!fileName.includes(".")) fileName += ".txt";
+
+  // 파일 내용 구성
+  const header = [
+    `=== 회의록 ===`,
+    `고객사: ${act.company}${act.pjcode?" / "+act.pjcode:""}`,
+    `일시: ${date}`,
+    attendees ? `참석자: ${attendees}` : "",
+    location ? `장소: ${location}` : "",
+    `작성자: ${acct?.name||"성백훈"}`,
+    `작성일시: ${new Date().toLocaleString("ko-KR")}`,
+    `─────────────────────────────────`,
+    "",
+  ].filter(Boolean).join("\n");
+  const fullContent = header + content;
+
+  try {
+    await getIds();
+    const t = await getToken();
+    const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+    const pjFolder = act.pjcode||"신규";
+    const spPath = `${SL_SP_BASE}/${coFolder}/${pjFolder}/회의록`;
+    await ensureSPFolder(spPath);
+    const enc = spPath.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(
+      `https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(fileName)}:/content`,
+      { method:"PUT", headers:{"Content-Type":"text/plain;charset=utf-8","Authorization":"Bearer "+t},
+        body: new Blob([fullContent], {type:"text/plain;charset=utf-8"}) }
+    );
+    if(!r.ok) { const e=await r.json(); throw new Error(e.error?.message||r.status); }
+    const d = await r.json();
+    // 파일 목록에 추가
+    if(!act.files) act.files={};
+    if(!act.files.minutes) act.files.minutes=[];
+    act.files.minutes.push({name:fileName, url:d.webUrl, size:fullContent.length, uploadedAt:new Date().toISOString()});
+    // 이력 추가
+    if(!act.history) act.history=[];
+    act.history.unshift({date, action:`📝 회의록 직접 작성: ${fileName}`, type:"file"});
+    act.lastActivity = date;
+    await saveSLToSP();
+    renderSLAll();
+    // 성공 후 파일 목록으로
+    document.getElementById("slMtgDirectContent").value = "";
+    document.getElementById("slMtgFileName3").value = "";
+    await loadSLMinutesFiles(actId);
+    switchMtgTab(1);
+    alert(`✅ 회의록 저장 완료!\n파일명: ${fileName}`);
+  } catch(e) {
+    alert("저장 실패: "+e.message);
+  }
+}
+
+// ━━ 탭4: 파일 그대로 업로드 ━━
+let _slMtgRawFiles = [];
+
+function handleSLMtgRawDrop(event) {
+  event.preventDefault();
+  document.getElementById("slMtgRawDropZone").style.borderColor = "var(--a)";
+  document.getElementById("slMtgRawDropZone").style.background = "#fff";
+  handleSLMtgRawFiles(event.dataTransfer.files);
+}
+
+function handleSLMtgRawFiles(files) {
+  if(!files || files.length===0) return;
+  _slMtgRawFiles = Array.from(files);
+  const listEl = document.getElementById("slMtgRawFileList");
+  const btn = document.getElementById("slMtgRawUploadBtn");
+  listEl.innerHTML = `<div style="background:var(--bg3);border-radius:8px;padding:10px">
+    <div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:6px">${_slMtgRawFiles.length}개 파일 선택됨</div>
+    ${_slMtgRawFiles.map(f=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:20px">${getFileIcon(f.name)}</span>
+        <span style="font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+        <span style="font-size:12px;color:var(--t3)">${(f.size/1024).toFixed(0)}KB</span>
+      </div>`).join("")}
+  </div>`;
+  btn.disabled = false;
+  btn.style.opacity = "1";
+}
+
+function getFileIcon(name) {
+  const ext = name.split(".").pop().toLowerCase();
+  const icons = {pdf:"📄",doc:"📝",docx:"📝",hwp:"📝",txt:"📄",mp3:"🎵",mp4:"🎬",m4a:"🎵",wav:"🎵",webm:"🎬",jpg:"🖼️",jpeg:"🖼️",png:"🖼️",xlsx:"📊",pptx:"📊",zip:"📦"};
+  return icons[ext] || "📎";
+}
+
+async function uploadSLMtgRawFiles() {
+  if(!_slMtgRawFiles.length) return;
+  const actId = window._slMinutesActId;
+  const act = slData.find(x=>x.id===actId);
+  if(!act) return;
+  const btn = document.getElementById("slMtgRawUploadBtn");
+  btn.textContent = "⏳ 업로드 중...";
+  btn.disabled = true;
+  try {
+    await getIds();
+    const t = await getToken();
+    const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+    const pjFolder = act.pjcode||"신규";
+    const spPath = `${SL_SP_BASE}/${coFolder}/${pjFolder}/회의록`;
+    await ensureSPFolder(spPath);
+    if(!act.files) act.files={};
+    if(!act.files.minutes) act.files.minutes=[];
+    const today = new Date().toISOString().split("T")[0];
+    for(const file of _slMtgRawFiles) {
+      const enc = spPath.split("/").map(encodeURIComponent).join("/");
+      const r = await fetch(
+        `https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(file.name)}:/content`,
+        { method:"PUT", headers:{"Content-Type":file.type||"application/octet-stream","Authorization":"Bearer "+t}, body:file }
+      );
+      if(r.ok) {
+        const d = await r.json();
+        act.files.minutes.push({name:file.name, url:d.webUrl, size:file.size, uploadedAt:new Date().toISOString()});
+        if(!act.history) act.history=[];
+        act.history.unshift({date:today, action:`📎 회의록 파일 업로드: ${file.name}`, type:"file"});
+      }
+    }
+    act.lastActivity = today;
+    await saveSLToSP();
+    renderSLAll();
+    _slMtgRawFiles = [];
+    document.getElementById("slMtgRawFileList").innerHTML = "";
+    await loadSLMinutesFiles(actId);
+    switchMtgTab(1);
+    alert(`✅ ${act.files.minutes.length}개 파일 업로드 완료!`);
+  } catch(e) {
+    alert("업로드 실패: "+e.message);
+    btn.textContent = "📤 파일 올리기";
+    btn.disabled = false;
+    btn.style.opacity = "1";
+  }
 }
 
 // 회의록 파일 목록 로드
@@ -6529,23 +6800,23 @@ function renderSLCards(data, container, FILE_TYPES) {
             </div>
 
             <!-- 담당자 + 오른쪽 액션 버튼 -->
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px">
-              <div style="display:flex;gap:5px;flex-wrap:wrap;flex:1;min-width:0">
-                <span class="sl-card-tag" style="cursor:pointer" onclick="openCustMgrPicker('${r.id}','${r.company.replace(/'/g,"\\'")}')")>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:4px;overflow:hidden">
+              <div style="display:flex;gap:4px;flex-wrap:nowrap;flex:1;min-width:0;overflow:hidden">
+                <span class="sl-card-tag" style="cursor:pointer;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px" onclick="openCustMgrPicker('${r.id}','${r.company.replace(/'/g,"\\'")}')")>
                   👤 ${r.custMgr ? r.custMgr.split(" <")[0] : "담당자"}
                 </span>
-                ${r.salesMgr?`<span class="sl-card-tag">🏢 ${r.salesMgr}</span>`:""}
+                ${r.salesMgr?`<span class="sl-card-tag" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px">🏢 ${r.salesMgr}</span>`:""}
               </div>
-              <!-- 오른쪽: 진행상태 + 삭제 -->
-              <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+              <!-- 오른쪽: 진행상태 + 수정 + 삭제 -->
+              <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">
                 <select onchange="updateSLStatus('${r.id}',this.value)"
-                  style="padding:4px 6px;border-radius:7px;border:1.5px solid ${statusColor};background:${statusBg};font-size:12px;font-weight:700;color:${statusColor};font-family:var(--s);cursor:pointer;max-width:80px">
+                  style="padding:3px 2px;border-radius:6px;border:1.5px solid ${statusColor};background:${statusBg};font-size:11px;font-weight:700;color:${statusColor};font-family:var(--s);cursor:pointer;width:58px;max-width:58px">
                   ${ALL_STATUS.map(s=>`<option value="${s}" ${s===r.status?"selected":""}>${s}</option>`).join("")}
                 </select>
                 <button onclick="openSLModal(slData.find(x=>x.id==='${r.id}'))"
-                  style="padding:4px 8px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer">✏️</button>
+                  style="padding:3px 6px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:13px;cursor:pointer;line-height:1">✏️</button>
                 <button onclick="deleteSLActivity('${r.id}')"
-                  style="padding:4px 8px;border-radius:7px;border:1px solid var(--r);background:var(--rd);font-size:14px;cursor:pointer">🗑️</button>
+                  style="padding:3px 6px;border-radius:6px;border:1px solid var(--r);background:var(--rd);font-size:13px;cursor:pointer;line-height:1">🗑️</button>
               </div>
             </div>
 
@@ -7008,12 +7279,24 @@ function renderCustMgrSearchResults() {
   }
 }
 
+let _custMgrModalMode = false;
+let _pjCodeModalMode = false;
+
 function selectCustMgr(name, company, email) {
   const actId = _custMgrPickerCtx.actId;
   if(!actId) { closeCustMgrPicker(); return; }
+
+  // 신규 모달 전용 모드: 영업활동에 저장 안 하고 모달 필드에만 반영
+  if(_custMgrModalMode || actId === "_modal_temp") {
+    _custMgrModalMode = false;
+    const value = email ? `${name} <${email}>` : name;
+    slModalSetCustMgr(value, company);
+    closeCustMgrPicker();
+    return;
+  }
+
   const act = slData.find(x=>x.id===actId);
   if(!act) { closeCustMgrPicker(); return; }
-  // 이름 + 이메일 형식으로 저장 (이메일 있을 때만)
   const value = email ? `${name} <${email}>` : name;
   act.custMgr = value;
   act.updatedAt = new Date().toISOString();
@@ -7257,6 +7540,15 @@ function renderPjCodeSearchResults() {
 function selectPjCode(code, name) {
   const actId = _pjCodePickerCtx.actId;
   if(!actId) { closePjCodePicker(); return; }
+
+  // 신규 모달 전용 모드: 영업활동에 저장 안 하고 모달 필드에만 반영
+  if(_pjCodeModalMode || actId === "_modal_temp") {
+    _pjCodeModalMode = false;
+    slModalSetPjcode(code, name || code);
+    closePjCodePicker();
+    return;
+  }
+
   const act = slData.find(x=>x.id===actId);
   if(!act) { closePjCodePicker(); return; }
   const oldCode = act.pjcode || "";
@@ -7724,9 +8016,13 @@ function openSLModal(act) {
     slEditId=act.id;
     document.getElementById("slModalTitle").textContent="영업활동 수정";
     document.getElementById("sl-f-company").value=act.company||"";
+    // 프로젝트코드
     document.getElementById("sl-f-pjcode").value=act.pjcode||"";
+    slModalSetPjcode(act.pjcode||"", act.pjcode||"");
     document.getElementById("sl-f-status").value=act.status||"신규";
+    // 고객담당자
     document.getElementById("sl-f-custmgr").value=act.custMgr||"";
+    slModalSetCustMgr(act.custMgr||"", act.company||"");
     document.getElementById("sl-f-salesmgr").value=act.salesMgr||"";
     document.getElementById("sl-f-start").value=act.start||"";
     document.getElementById("sl-f-end").value=act.end||"";
@@ -7737,12 +8033,100 @@ function openSLModal(act) {
   } else {
     slEditId=null;
     document.getElementById("slModalTitle").textContent="영업활동 추가";
-    ["sl-f-company","sl-f-pjcode","sl-f-custmgr","sl-f-salesmgr","sl-f-note"].forEach(id=>{document.getElementById(id).value="";});
+    ["sl-f-company","sl-f-pjcode","sl-f-custmgr","sl-f-salesmgr","sl-f-note"].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value="";
+    });
+    slModalSetPjcode("", "");
+    slModalSetCustMgr("", "");
     const _att=document.getElementById("sl-f-attendees"); if(_att) _att.value="";
     document.getElementById("sl-f-status").value="신규";
     document.getElementById("sl-f-start").value=new Date().toISOString().split("T")[0];
     document.getElementById("sl-f-end").value="";
   }
+}
+
+// 모달 내 프로젝트코드 표시 업데이트
+function slModalSetPjcode(code, label) {
+  const hidden = document.getElementById("sl-f-pjcode");
+  const display = document.getElementById("sl-f-pjcode-display");
+  if(hidden) hidden.value = code||"";
+  if(display) {
+    if(code) {
+      display.textContent = code;
+      display.style.color = "var(--p)";
+      display.style.fontWeight = "700";
+      display.style.background = "var(--pd)";
+    } else {
+      display.textContent = "미선택";
+      display.style.color = "var(--t3)";
+      display.style.fontWeight = "400";
+      display.style.background = "var(--bg3)";
+    }
+  }
+}
+
+// 모달 내 고객담당자 표시 업데이트
+function slModalSetCustMgr(name, company) {
+  const hidden = document.getElementById("sl-f-custmgr");
+  const display = document.getElementById("sl-f-custmgr-display");
+  if(hidden) hidden.value = name||"";
+  if(display) {
+    if(name) {
+      display.textContent = name.split(" <")[0] + (company?" · "+company:"");
+      display.style.color = "var(--t)";
+      display.style.fontWeight = "600";
+      display.style.background = "var(--gd)";
+      // 고객사명도 자동 채우기
+      const companyInput = document.getElementById("sl-f-company");
+      if(companyInput && company && !companyInput.value) {
+        companyInput.value = company;
+      }
+    } else {
+      display.textContent = "미선택";
+      display.style.color = "var(--t3)";
+      display.style.fontWeight = "400";
+      display.style.background = "var(--bg3)";
+    }
+  }
+}
+
+// 신규 모달 전용 프로젝트코드 피커 열기
+function openPjCodePickerForModal() {
+  const company = document.getElementById("sl-f-company")?.value || "";
+  // 임시 actId (_modal_temp) 로 피커 열기
+  _pjCodePickerCtx = { actId: "_modal_temp", company };
+  const modal = document.getElementById("pjCodePickerModal");
+  if(!modal) return;
+  document.getElementById("pjCodePickerSubtitle").textContent = company || "고객사를 먼저 입력해주세요";
+  const cur = document.getElementById("sl-f-pjcode")?.value || "";
+  const curBox = document.getElementById("pjCodeCurrentBox");
+  const curVal = document.getElementById("pjCodeCurrentValue");
+  if(curBox) curBox.style.display = cur ? "flex" : "none";
+  if(curVal) curVal.textContent = cur || "-";
+  document.getElementById("pjCodeSearchInput").value = "";
+  document.getElementById("pjCodeSameCompanyOnly").checked = !!company;
+  renderPjCodeSearchResults();
+  modal.style.display = "flex";
+  // 선택 콜백을 모달 전용으로 오버라이드
+  _pjCodeModalMode = true;
+}
+
+// 신규 모달 전용 고객담당자 피커 열기
+function openCustMgrPickerForModal() {
+  const company = document.getElementById("sl-f-company")?.value || "";
+  // 임시 actId 로 피커 열기
+  _custMgrPickerCtx = { actId: "_modal_temp", company };
+  const modal = document.getElementById("custMgrPickerModal");
+  if(!modal) return;
+  document.getElementById("custMgrPickerSubtitle").textContent = company || "담당자를 검색하세요";
+  const cur = document.getElementById("sl-f-custmgr")?.value || "";
+  const curBox = document.getElementById("custMgrCurrentBox");
+  if(curBox) curBox.style.display = cur ? "flex" : "none";
+  document.getElementById("custMgrSearchInput").value = company;
+  renderCustMgrSearchResults();
+  modal.style.display = "flex";
+  // 선택 콜백을 모달 전용으로 오버라이드
+  _custMgrModalMode = true;
 }
 function closeSLModal(){document.getElementById("slModal").style.display="none";}
 
