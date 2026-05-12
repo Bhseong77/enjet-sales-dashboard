@@ -208,6 +208,32 @@
 .sl-card-actions{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
 .sl-card-actions button{flex:1;padding:7px 4px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--t2);font-family:var(--s)}
 
+/* ━━ 스와이프 카드 (모바일) ━━ */
+.sl-swipe-wrap{position:relative;overflow:hidden;border-radius:10px;margin-bottom:8px}
+.sl-swipe-wrap .sl-card{
+  margin-bottom:0;border-radius:10px;
+  transition:transform .25s cubic-bezier(.25,.46,.45,.94);
+  position:relative;z-index:1;will-change:transform;user-select:none;
+}
+.sl-swipe-wrap.swiped .sl-card{transform:translateX(-160px)}
+/* 오른쪽 액션 패널 */
+.sl-swipe-actions{
+  position:absolute;top:0;right:0;bottom:0;width:160px;
+  display:flex;z-index:0;border-radius:0 10px 10px 0;overflow:hidden;
+}
+.sl-swipe-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;font-size:11px;font-weight:800;cursor:pointer;border:none;
+  font-family:var(--s);transition:opacity .15s;position:relative;
+}
+.sl-swipe-btn:active{opacity:.75}
+.sl-swipe-btn .sw-icon{font-size:24px;line-height:1}
+.sl-swipe-btn.sw-status{background:#5b5fc7;color:#fff}
+.sl-swipe-btn.sw-status select{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
+.sl-swipe-btn.sw-del{background:#c93939;color:#fff}
+/* 모바일: 기존 하단 액션바 숨기고 스와이프로 대체 */
+@media(max-width:768px){.sl-card-actions{display:none}}
+
 /* 하단 탭 네비게이션 */
 .mob-nav{
   display:none;position:fixed;bottom:0;left:0;right:0;height:60px;
@@ -6121,6 +6147,97 @@ function filterSL() {
   $("slCnt",d.length+"건"+(d.length!==slData.length?" (필터됨)":""));
 }
 
+// ━━ 모바일 카드 스와이프 제스처 ━━
+// renderSLCards 호출 후 자동 바인딩
+function bindSwipeGestures() {
+  if(window.innerWidth > 768) return; // 모바일만
+  document.querySelectorAll(".sl-swipe-wrap").forEach(wrap=>{
+    const card = wrap.querySelector(".sl-card");
+    if(!card || wrap._swipeBound) return;
+    wrap._swipeBound = true;
+
+    let startX=0, startY=0, curX=0, dragging=false, locked=false;
+    const THRESHOLD = 50;   // 스와이프 인식 최소 거리
+    const MAX = 160;        // 최대 이동 거리
+
+    card.addEventListener("touchstart", e=>{
+      // 파일 버튼 가로 스크롤 중이면 제스처 무시
+      if(e.target.closest(".sl-card-files")) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      curX = wrap.classList.contains("swiped") ? -MAX : 0;
+      dragging = true;
+      locked = false;
+      card.style.transition = "none";
+    }, {passive:true});
+
+    card.addEventListener("touchmove", e=>{
+      if(!dragging) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      // 수직 스크롤 우선 (세로 이동이 더 크면 스와이프 안 함)
+      if(!locked && Math.abs(dy) > Math.abs(dx) + 5) {
+        dragging = false;
+        return;
+      }
+      locked = true;
+      e.preventDefault(); // 스와이프 중 스크롤 방지
+      const newX = Math.min(0, Math.max(-MAX, curX + dx));
+      card.style.transform = `translateX(${newX}px)`;
+    }, {passive:false});
+
+    card.addEventListener("touchend", e=>{
+      if(!dragging || !locked) { dragging=false; return; }
+      dragging = false;
+      card.style.transition = "";
+      const dx = e.changedTouches[0].clientX - startX;
+      const already = wrap.classList.contains("swiped");
+
+      if(!already && dx < -THRESHOLD) {
+        // 왼쪽으로 충분히 → 열기
+        wrap.classList.add("swiped");
+        // 다른 열린 카드 닫기
+        document.querySelectorAll(".sl-swipe-wrap.swiped").forEach(w=>{
+          if(w!==wrap) { w.classList.remove("swiped"); w.querySelector(".sl-card").style.transform=""; }
+        });
+        // 스와이프 힌트 숨기기
+        const hint = wrap.querySelector(".sl-swipe-hint");
+        if(hint) hint.style.display="none";
+      } else if(already && dx > THRESHOLD) {
+        // 오른쪽으로 충분히 → 닫기
+        wrap.classList.remove("swiped");
+        card.style.transform = "";
+      } else {
+        // 원위치
+        card.style.transform = already ? `translateX(-${MAX}px)` : "";
+      }
+    }, {passive:true});
+  });
+
+  // 카드 외부 탭 시 모두 닫기
+  if(!document._swipeOutsideBound) {
+    document._swipeOutsideBound = true;
+    document.addEventListener("touchstart", e=>{
+      if(!e.target.closest(".sl-swipe-wrap")) {
+        document.querySelectorAll(".sl-swipe-wrap.swiped").forEach(w=>{
+          w.classList.remove("swiped");
+          const c = w.querySelector(".sl-card");
+          if(c) c.style.transform="";
+        });
+      }
+    }, {passive:true});
+  }
+}
+
+function closeSwipe(id) {
+  const wrap = document.getElementById("swipe-"+id);
+  if(wrap) {
+    wrap.classList.remove("swiped");
+    const c = wrap.querySelector(".sl-card");
+    if(c) c.style.transform = "";
+  }
+}
+
 // ━━ 모바일 영업활동 카드 뷰 ━━
 function renderSLCards(data, container, FILE_TYPES) {
   if(!FILE_TYPES) FILE_TYPES = [
@@ -6206,50 +6323,85 @@ function renderSLCards(data, container, FILE_TYPES) {
 
     return `<tr style="display:block;padding:0;border:none;background:transparent">
       <td colspan="14" style="display:block;border:none;padding:0 0 8px 0">
-        <div class="sl-card">
-          <!-- 상단: 회사명 + 상태 -->
-          <div class="sl-card-top">
-            <div>
-              <div class="sl-card-company">${r.company}</div>
-              <div style="height:2px;background:var(--p);border-radius:1px;width:32px;margin-top:3px"></div>
+        <!-- 스와이프 래퍼 -->
+        <div class="sl-swipe-wrap" id="swipe-${r.id}">
+          <!-- 오른쪽 스와이프 액션 패널 -->
+          <div class="sl-swipe-actions">
+            <button class="sl-swipe-btn sw-status" title="진행상태 변경">
+              <span class="sw-icon">🔄</span>
+              <span>상태변경</span>
+              <!-- 투명 select로 드롭다운 -->
+              <select onchange="updateSLStatus('${r.id}',this.value);closeSwipe('${r.id}')" style="position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px">
+                ${ALL_STATUS.map(s=>`<option value="${s}" ${s===r.status?"selected":""}>${s}</option>`).join("")}
+              </select>
+            </button>
+            <button class="sl-swipe-btn sw-del" onclick="deleteSLActivity('${r.id}');closeSwipe('${r.id}')" title="삭제">
+              <span class="sw-icon">🗑️</span>
+              <span>삭제</span>
+            </button>
+          </div>
+
+          <!-- 메인 카드 -->
+          <div class="sl-card" id="card-${r.id}">
+            <!-- 상단: 회사명 + 상태 뱃지 -->
+            <div class="sl-card-top">
+              <div>
+                <div class="sl-card-company">${r.company}</div>
+                <div style="height:2px;background:var(--p);border-radius:1px;width:32px;margin-top:3px"></div>
+              </div>
+              <span style="padding:4px 10px;border-radius:12px;font-size:13px;font-weight:700;background:${statusBg};color:${statusColor}">
+                ${r.status||"신규"}
+              </span>
             </div>
-            <select onchange="updateSLStatus('${r.id}',this.value)"
-              style="padding:4px 8px;border-radius:6px;border:1.5px solid ${statusColor};background:${statusBg};font-size:13px;font-weight:700;color:${statusColor};font-family:var(--s);cursor:pointer">
-              ${ALL_STATUS.map(s=>`<option value="${s}" ${s===r.status?"selected":""}>${s}</option>`).join("")}
-            </select>
-          </div>
 
-          <!-- 메타: 차수, 코드, 날짜 -->
-          <div class="sl-card-meta">
-            ${seq>1?`<span class="sl-card-tag" style="background:var(--pud);color:var(--pu);font-weight:700">${seq}차</span>`:""}
-            ${pjBadge}
-            <span class="sl-card-tag" style="cursor:pointer;color:var(--p);text-decoration:underline"
-              onclick="showSLHistory('${r.id}')">
-              ${(r.lastActivity||r.start||"").substring(0,10)||"-"}
-              ${(r.history||[]).length>1?`(${countUniqueHistory(r)}건 이력)`:""}
-            </span>
-          </div>
+            <!-- 메타: 차수, 코드, 날짜 -->
+            <div class="sl-card-meta">
+              ${seq>1?`<span class="sl-card-tag" style="background:var(--pud);color:var(--pu);font-weight:700">${seq}차</span>`:""}
+              ${pjBadge}
+              <span class="sl-card-tag" style="cursor:pointer;color:var(--p);text-decoration:underline"
+                onclick="showSLHistory('${r.id}')">
+                ${(r.lastActivity||r.start||"").substring(0,10)||"-"}
+                ${countUniqueHistory(r)>1?`(${countUniqueHistory(r)}건)`:""}
+              </span>
+            </div>
 
-          <!-- 담당자 -->
-          <div class="sl-card-meta" style="margin-bottom:8px">
-            <span class="sl-card-tag" style="cursor:pointer" onclick="openCustMgrPicker('${r.id}','${r.company.replace(/'/g,"\\'")}')")>
-              👤 ${r.custMgr || "담당자 선택"}
-            </span>
-            ${r.salesMgr?`<span class="sl-card-tag">🏢 ${r.salesMgr}</span>`:""}
-          </div>
+            <!-- 담당자 -->
+            <div class="sl-card-meta" style="margin-bottom:8px">
+              <span class="sl-card-tag" style="cursor:pointer" onclick="openCustMgrPicker('${r.id}','${r.company.replace(/'/g,"\\'")}')")>
+                👤 ${r.custMgr ? r.custMgr.split(" <")[0] : "담당자 선택"}
+              </span>
+              ${r.salesMgr?`<span class="sl-card-tag">🏢 ${r.salesMgr}</span>`:""}
+            </div>
 
-          <!-- 파일 버튼들 -->
-          <div class="sl-card-files">${fileBtns}</div>
+            <!-- 파일 버튼들 -->
+            <div class="sl-card-files">${fileBtns}</div>
 
-          <!-- 하단 액션 -->
-          <div class="sl-card-actions">
-            <button onclick="openSLModal(slData.find(x=>x.id==='${r.id}'))">✏️ 수정</button>
-            <button onclick="deleteSLActivity('${r.id}')" style="color:var(--r);border-color:var(--r)">🗑️ 삭제</button>
+            <!-- 데스크톱용 하단 액션 (모바일에서는 CSS로 숨김) -->
+            <div class="sl-card-actions">
+              <button onclick="openSLModal(slData.find(x=>x.id==='${r.id}'))">✏️ 수정</button>
+              <button onclick="deleteSLActivity('${r.id}')" style="color:var(--r);border-color:var(--r)">🗑️ 삭제</button>
+            </div>
+
+            <!-- 모바일 스와이프 힌트 (처음 2번만 표시) -->
+            <div class="sl-swipe-hint" id="hint-${r.id}" style="display:none;text-align:right;font-size:11px;color:var(--t3);margin-top:4px;padding-top:4px">
+              ← 밀어서 상태변경·삭제
+            </div>
           </div>
         </div>
       </td>
     </tr>`;
   }).join("");
+
+  // 렌더 후 스와이프 이벤트 바인딩 (requestAnimationFrame으로 DOM 완성 후)
+  requestAnimationFrame(()=>{
+    bindSwipeGestures();
+    // 처음 사용자에게 힌트 표시 (세션에서 한 번만)
+    if(!sessionStorage.getItem("sl_swipe_hint_shown") && sorted.length > 0) {
+      const firstHint = document.getElementById("hint-"+sorted[0].id);
+      if(firstHint) firstHint.style.display = "block";
+      sessionStorage.setItem("sl_swipe_hint_shown", "1");
+    }
+  });
 }
 
 function renderSLTable(data) {
