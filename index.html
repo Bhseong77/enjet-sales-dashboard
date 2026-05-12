@@ -6730,13 +6730,36 @@ function renderSLCards(data, container, FILE_TYPES) {
     const seq = getSLSequence(r);
 
     // 파일 버튼들
+    const ACCEPT_MAP = {
+      minutes:  "audio/*,video/*,.mp3,.mp4,.m4a,.wav,.webm,.txt,.vtt,.srt,.docx,.doc",
+      proposal: "application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.ppt,.pptx,.doc,.docx,.hwp,.zip",
+      estimate: "application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*,.pdf,.xlsx,.xls,.hwp,.doc,.docx",
+      order:    "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx,.xlsx",
+      contract: "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx",
+      tax:      "application/pdf,image/*,.pdf,.jpg,.jpeg,.png",
+    };
     const fileBtns = FILE_TYPES.map(ft=>{
       const cnt = (r.files?.[ft.key]||[]).length;
+      // 회의록 전용 모달
       if(ft.key==="minutes") {
         return `<button onclick="openSLMinutesModal('${r.id}')" class="sl-card-btn"
           style="background:${cnt>0?"var(--gd)":"var(--pd)"};color:${cnt>0?"var(--g)":"var(--p)"};border-color:${cnt>0?"var(--g)":"var(--p)"}">
           ${ft.label} ${cnt>0?cnt+"개":"작성"}</button>`;
       }
+      // 견적서: 파일 있으면 목록, 없으면 ✏️작성 + ⬆업로드 버튼 둘 다
+      if(ft.key==="estimate") {
+        if(cnt>0) {
+          return `<div style="display:flex;gap:3px;flex-shrink:0">
+            <button onclick="openSLFileModal('${r.id}','estimate')" class="sl-card-btn" style="background:var(--gd);color:var(--g);border-color:var(--g)">${ft.label} ${cnt}개</button>
+            <button onclick="openQuoteModal('${r.id}')" class="sl-card-btn" style="color:var(--a);border-color:var(--a)">✏️</button>
+          </div>`;
+        }
+        return `<div style="display:flex;gap:3px;flex-shrink:0">
+          <button onclick="openQuoteModal('${r.id}')" class="sl-card-btn" style="background:var(--ad);color:var(--a);border-color:var(--a);font-weight:800">✏️ 작성</button>
+          <button onclick="uploadSLFile('${r.id}','estimate')" class="sl-card-btn" style="color:var(--t3);border-color:var(--border2)">⬆</button>
+        </div>`;
+      }
+      // 나머지 파일 타입
       return cnt>0
         ? `<button onclick="openSLFileModal('${r.id}','${ft.key}')" class="sl-card-btn" style="background:var(--gd);color:var(--g);border-color:var(--g)">${ft.label} ${cnt}개</button>`
         : `<button onclick="uploadSLFile('${r.id}','${ft.key}')" class="sl-card-btn" style="color:var(--t3);border-color:var(--border2)">${ft.label} ⬆</button>`;
@@ -8594,14 +8617,14 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
   input.type="file"; input.multiple=true;
   // 파일 유형별 accept 설정 (안드로이드 카메라 기본 방지)
   const ACCEPT_MAP = {
-    minutes:  "audio/*,video/*,application/pdf,.mp3,.mp4,.m4a,.wav,.webm,.txt,.vtt,.srt,.docx,.doc",
-    proposal: "application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.ppt,.pptx,.doc,.docx,.hwp,.zip",
-    estimate: "application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,image/*,.pdf,.xlsx,.xls,.hwp,.doc,.docx",
-    order:    "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx,.xlsx",
-    contract: "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx",
-    tax:      "application/pdf,image/*,.pdf,.jpg,.jpeg,.png",
+    minutes:  "audio/*,video/*,application/pdf,.mp3,.mp4,.m4a,.wav,.webm,.txt,.vtt,.srt,.docx,.doc,*/*",
+    proposal: "application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*,.pdf,.ppt,.pptx,.doc,.docx,.hwp,.zip,*/*",
+    estimate: "application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.xlsx,.xls,.hwp,.doc,.docx,*/*",
+    order:    "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx,.xlsx,*/*",
+    contract: "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx,*/*",
+    tax:      "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,*/*",
   };
-  input.accept = ACCEPT_MAP[fileType] || "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*,.pdf,.doc,.docx,.xls,.xlsx,.hwp,.txt,.zip";
+  input.accept = ACCEPT_MAP[fileType] || "*/*";
   input.onchange = async()=>{
     const files=Array.from(input.files);
     if(!files.length) return;
