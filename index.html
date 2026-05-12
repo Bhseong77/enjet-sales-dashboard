@@ -469,20 +469,21 @@
             <thead><tr>
               <th style="min-width:130px">고객사</th>
               <th style="min-width:110px">프로젝트코드</th>
+              <th style="min-width:60px;text-align:center">차수</th>
               <th style="min-width:100px">진행상태</th>
               <th style="min-width:90px">최근활동일</th>
-              <th style="min-width:100px">고객담당자</th>
-              <th style="min-width:100px">영업담당자</th>
+              <th style="min-width:75px">고객담당자</th>
+              <th style="min-width:75px">영업담당자</th>
               <th style="text-align:center;min-width:55px;font-size:14px">📝 회의록</th>
               <th style="text-align:center;min-width:55px;font-size:14px">📂 자료</th>
               <th style="text-align:center;min-width:55px;font-size:14px">📄 견적서</th>
               <th style="text-align:center;min-width:55px;font-size:14px">📦 발주서</th>
               <th style="text-align:center;min-width:55px;font-size:14px">📑 계약서</th>
-              <th style="text-align:center;min-width:55px;font-size:14px">🧾 세금</th>
+              <th style="text-align:center;min-width:75px;font-size:14px">🧾 세금계산서</th>
               <th style="min-width:45px"></th>
             </tr></thead>
             <tbody id="slBody">
-              <tr><td colspan="13"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
+              <tr><td colspan="14"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
             </tbody>
           </table></div>
           <div style="font-size:14px;color:var(--t3);margin-top:6px;text-align:right" id="slCnt"></div>
@@ -2310,7 +2311,7 @@ async function syncExhFromTeams() {
     ]);
 
     // 이벤트를 전시회 형식으로 변환
-    // 필터: [전시회] 제목 prefix OR 전시회 카테고리 → 전시회
+    // 필터: [전시회]/[마케팅] 제목 prefix OR 전시회/마케팅 카테고리 → 마케팅 활동
     //       [영업] prefix OR 영업활동 카테고리 → 제외
     const teamsEvts = (events.value||[]).filter(e=>{
       if(!e.subject) return false;
@@ -2318,8 +2319,9 @@ async function syncExhFromTeams() {
       const title = e.subject||"";
       // [영업] prefix 또는 영업활동 카테고리 → 제외
       if(title.startsWith("[영업]") || title.startsWith("[영업활동]") || cats.includes("영업활동")) return false;
-      // [전시회] prefix 또는 전시회 카테고리 → 포함
-      if(title.startsWith("[전시회]") || cats.some(c=>["국내전시회","해외전시회","전시회"].includes(c))) return true;
+      // [마케팅]/[전시회] prefix 또는 전시회/마케팅 카테고리 → 포함
+      if(title.startsWith("[마케팅]") || title.startsWith("[전시회]") ||
+         cats.some(c=>["국내전시회","해외전시회","전시회","마케팅"].includes(c))) return true;
       // exhibitions.json에 저장된 로컬 항목 → 포함
       if(e.source === "local") return true;
       // 둘 다 없으면 → 제외 (영업 기본값)
@@ -2348,7 +2350,7 @@ async function syncExhFromTeams() {
       const bodyText = (e.body?.content||"").replace(/<[^>]*>/g,"").trim();
       return {
         id: e.id,
-              name: (e.subject||"").replace(/^\[(전시회|영업|영업활동)\]\s*/,""),
+              name: (e.subject||"").replace(/^\[(마케팅|전시회|영업|영업활동)\]\s*/,""),
         start: startD,
         end: endD||startD,
         region: existing?.region||(isDOM?"국내":"해외"),
@@ -2622,8 +2624,12 @@ async function saveExhEvent() {
   const name = document.getElementById("exh-f-name").value.trim();
   if(!name){ alert("전시회명을 입력해주세요."); return; }
 
+  const isEdit = exhEditIdx>=0;
+  const prevEvt = isEdit ? exhSchedule[exhEditIdx] : null;
+  const now = new Date().toISOString();
+
   const evt = {
-    id: exhEditIdx>=0 ? exhSchedule[exhEditIdx].id : "local_"+Date.now(),
+    id: isEdit ? prevEvt.id : "local_"+Date.now(),
     name, source:"local",
     start:    document.getElementById("exh-f-start").value,
     end:      document.getElementById("exh-f-end").value,
@@ -2636,16 +2642,17 @@ async function saveExhEvent() {
     managerEmail: document.getElementById("exh-f-manager-email").value,
     status:   document.getElementById("exh-f-status").value,
     note:     document.getElementById("exh-f-note").value,
-    updatedAt: new Date().toISOString(),
-    lastActivity: document.getElementById("sl-f-start").value || new Date().toISOString().split("T")[0],
-    history: slEditId ? (slData.find(x=>x.id===slEditId)?.history||[]) : [],
+    createdAt: isEdit ? (prevEvt.createdAt||now) : now,
+    updatedAt: now,
+    lastActivity: document.getElementById("exh-f-start").value || new Date().toISOString().split("T")[0],
+    teamsEventId: isEdit ? (prevEvt.teamsEventId||null) : null,
+    history: isEdit ? (prevEvt.history||[]) : [],
   };
   // 히스토리에 생성/수정 기록
-  const histAction = slEditId ? "정보 수정" : "신규 생성";
-  const histDate = act.start || new Date().toISOString().split("T")[0];
-  if(!act.history) act.history = [];
-  if(!slEditId || act.history.length===0) {
-    act.history.unshift({ date: histDate, action: histAction, type: slEditId?"edit":"create" });
+  const histAction = isEdit ? "정보 수정" : "신규 생성";
+  const histDate = evt.start || new Date().toISOString().split("T")[0];
+  if(!isEdit || evt.history.length===0) {
+    evt.history.unshift({ date: histDate, action: histAction, type: isEdit?"edit":"create" });
   }
 
   closeExhModal();
@@ -2692,10 +2699,12 @@ async function saveExhEvent() {
   } catch(e) { console.warn("Teams 메시지 실패:", e.message); }
 
   alert("✅ 저장 완료!\n" + [
-    "📅 Teams 캘린더: " + (teamsEventId?"등록됨":"실패(권한확인)"),
+    "📅 그룹 캘린더: " + (teamsEventId?"등록됨":"실패(권한확인)"),
     evt.managerEmail ? "📧 이메일 초대: 발송됨" : "📧 이메일: 이메일 없음",
-    "💬 Teams 알림: 채널 포스팅됨",
+    "💬 채널 알림: 발송됨",
     "💾 SharePoint: 저장됨",
+    "",
+    "💡 Teams 채널의 [📅 그룹 일정] 탭에서 확인 가능합니다.",
   ].join("\n"));
 }
 
@@ -2719,18 +2728,20 @@ async function createTeamsCalEvent(evt) {
     return d.toISOString().split("T")[0];
   })();
   const body = {
-    subject: evt.name,
+    subject: evt.name.startsWith("[마케팅]")||evt.name.startsWith("[전시회]")
+              ? evt.name
+              : "[마케팅] "+evt.name,
     start: { date: evt.start },
     end:   { date: endDatePlusOne },
     isAllDay: true,
     location: { displayName: [evt.venue, evt.city, evt.country].filter(Boolean).join(", ") },
     body: {
       contentType: "HTML",
-      content: `<b>전시회: ${evt.name}</b><br>
-구분: ${evt.region} | 유형: ${evt.type}<br>
+      content: `<b>마케팅 활동: ${evt.name}</b><br>
+구분: ${evt.region||"-"} | 유형: ${evt.type||"-"}<br>
 장소: ${evt.venue||""} (${evt.city||""}, ${evt.country||""})<br>
 담당자: ${evt.manager||"-"}<br>
-상태: ${evt.status}<br>
+상태: ${evt.status||"-"}<br>
 비고: ${evt.note||""}<br><br>
 <i>ENJET 영업 대시보드에서 등록됨</i>`
     },
@@ -2814,34 +2825,89 @@ async function postTeamsChannelMsg(evt, action) {
   if(!gid) throw new Error("Teams 그룹 없음");
   const t = await getToken();
 
-  const STATUS_EMOJI = {준비중:"🔄",완료:"✅",취소:"❌"};
+  // 채널 ID 자동 탐색 (Teams 팀 없는 그룹이면 null 반환)
+  const chId = await ensureExhChannelId(gid);
+  if(!chId) {
+    console.log("ℹ️ Teams 팀이 없는 그룹 - 마케팅 채널 알림 스킵 (그룹 캘린더에는 등록됨)");
+    return;
+  }
+
+  const STATUS_EMOJI = {준비중:"🔄",완료:"✅",취소:"❌",진행중:"🚀"};
   const TYPE_ICON = {부스참가:"🏪",방문참관:"👀",온라인:"💻"};
   const dateRange = evt.end && evt.end!==evt.start ? evt.start+" ~ "+evt.end : evt.start;
+  const isNew = action === "신규등록";
+  const headerColor = isNew ? "#5b5fc7" : "#0078d4";
+  const headerBg = isNew ? "#e8f4fd" : "#deecf9";
+  const headerIcon = isNew ? "✅" : "✏️";
+  const headerLabel = isNew ? "마케팅 일정 추가됨" : "마케팅 일정 수정됨";
 
-  const msgBody = {
-    body: {
-      contentType: "html",
-      content: `
-<p><b>${action==="신규등록"?"📅 전시회 일정 등록":"✏️ 전시회 일정 수정"}</b></p>
-<table>
-  <tr><td><b>전시회명</b></td><td>${evt.name}</td></tr>
-  <tr><td><b>일정</b></td><td>${dateRange}</td></tr>
-  <tr><td><b>장소</b></td><td>${evt.venue||""} (${[evt.city,evt.country].filter(Boolean).join(", ")})</td></tr>
-  <tr><td><b>구분</b></td><td>${evt.region} ${TYPE_ICON[evt.type]||""} ${evt.type}</td></tr>
-  <tr><td><b>담당자</b></td><td>${evt.manager||"-"}</td></tr>
-  <tr><td><b>상태</b></td><td>${STATUS_EMOJI[evt.status]||""} ${evt.status}</td></tr>
-  ${evt.note ? `<tr><td><b>비고</b></td><td>${evt.note}</td></tr>` : ""}
+  // 영업과 동일한 간단한 알림 디자인 (그룹 캘린더 자동 등록 후)
+  const html = `<div style="font-family:'Segoe UI',sans-serif;font-size:14px;color:#242424;line-height:1.5">
+<div style="padding:12px 16px;background:${headerBg};border-left:4px solid ${headerColor};border-radius:4px">
+<div style="font-size:16px;font-weight:700;color:${headerColor};margin-bottom:6px">${headerIcon} ${headerLabel}</div>
+<div style="font-size:15px;font-weight:600;color:#242424;margin-bottom:8px">[마케팅] ${evt.name}</div>
+<table style="font-size:13px;color:#3b3b3b">
+<tr><td style="padding:2px 8px 2px 0;color:#605e5c">일정</td><td>${dateRange}</td></tr>
+<tr><td style="padding:2px 8px 2px 0;color:#605e5c">구분</td><td>${evt.region||"-"} · ${TYPE_ICON[evt.type]||""} ${evt.type||"-"}</td></tr>
+${evt.venue||evt.city||evt.country?'<tr><td style="padding:2px 8px 2px 0;color:#605e5c">장소</td><td>'+(evt.venue||"")+' '+([evt.city,evt.country].filter(Boolean).join(", "))+'</td></tr>':''}
+${evt.manager?'<tr><td style="padding:2px 8px 2px 0;color:#605e5c">담당자</td><td>'+evt.manager+'</td></tr>':''}
+<tr><td style="padding:2px 8px 2px 0;color:#605e5c">진행상태</td><td>${STATUS_EMOJI[evt.status]||""} ${evt.status||"-"}</td></tr>
+${evt.note?'<tr><td style="padding:2px 8px 2px 0;color:#605e5c;vertical-align:top">비고</td><td>'+evt.note+'</td></tr>':''}
 </table>
-<p><i>ENJET 영업 대시보드에서 ${action}됨</i></p>`
-    }
-  };
+<div style="margin-top:8px;font-size:12px;color:#605e5c;font-style:italic">📅 그룹 일정 탭에서 확인 가능 · ENJET 영업 대시보드</div>
+</div>
+</div>`;
 
   const r = await fetch(
-    "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(TEAMS_CHANNEL_ID)+"/messages",
-    { method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t}, body:JSON.stringify(msgBody) }
+    "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(chId)+"/messages",
+    { method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+      body:JSON.stringify({body:{contentType:"html", content: html}}) }
   );
   if(!r.ok) { const e=await r.json(); throw new Error(e.error?.message||r.status); }
-  console.log("✅ Teams 채널 메시지 포스팅 완료");
+  console.log("✅ 마케팅 채널 알림 발송");
+}
+
+// 마케팅용 채널 ID 자동 탐색 (Teams 팀 없는 그룹은 null 반환)
+async function ensureExhChannelId(gid) {
+  if(!gid) return null;
+  // 세션 캐시
+  const cached = sessionStorage.getItem("enjet_exh_channel_id");
+  const cachedGid = sessionStorage.getItem("enjet_exh_channel_gid");
+  if(cached && cachedGid === gid) return cached;
+  // Teams 팀 없음 캐시
+  const noTeamCache = sessionStorage.getItem("enjet_no_team_gid");
+  if(noTeamCache === gid) return null;
+
+  try {
+    const ch = await gGet("/teams/"+gid+"/channels");
+    const list = ch.value||[];
+    if(!list.length) {
+      sessionStorage.setItem("enjet_no_team_gid", gid);
+      return null;
+    }
+    // 1) 기존 TEAMS_CHANNEL_ID 우선
+    if(typeof TEAMS_CHANNEL_ID !== "undefined" && list.some(c=>c.id===TEAMS_CHANNEL_ID)) {
+      sessionStorage.setItem("enjet_exh_channel_id", TEAMS_CHANNEL_ID);
+      sessionStorage.setItem("enjet_exh_channel_gid", gid);
+      return TEAMS_CHANNEL_ID;
+    }
+    // 2) 마케팅/전시회 채널 찾기
+    const target = list.find(c=>c.displayName&&(c.displayName.includes("마케팅")||c.displayName.includes("전시회")||c.displayName.includes("Marketing")))
+                || list.find(c=>c.displayName==="일반"||c.displayName==="General"||c.membershipType==="standard");
+    if(target) {
+      sessionStorage.setItem("enjet_exh_channel_id", target.id);
+      sessionStorage.setItem("enjet_exh_channel_gid", gid);
+      console.log("✅ 마케팅 채널 자동 탐색:", target.displayName);
+      return target.id;
+    }
+  } catch(e) {
+    if(e.message?.includes("NotFound") || e.message?.includes("404")) {
+      sessionStorage.setItem("enjet_no_team_gid", gid);
+      return null;
+    }
+    console.warn("마케팅 채널 탐색 실패:", e.message);
+  }
+  return null;
 }
 
 // Teams 캘린더 이벤트 삭제
@@ -3115,13 +3181,47 @@ async function deleteExh(id) {
   exhSchedule = exhSchedule.filter(e=>e.id!==id);
   renderExhSched();
   await saveExhToSP();
-  // Teams 캘린더에서도 삭제
+  // Teams 그룹 캘린더에서도 삭제 + 채널 삭제 알림
   if(evt.teamsEventId) {
     try {
       await deleteTeamsCalEvent(evt.teamsEventId);
-      await postTeamsChannelMsg({...evt,status:"삭제"},"삭제");
-    } catch(e){ console.warn("Teams 삭제 실패:", e.message); }
+    } catch(e){ console.warn("Teams 그룹 캘린더 삭제 실패:", e.message); }
   }
+  try {
+    await postExhDeleteNotification(evt);
+  } catch(e){ console.warn("채널 삭제 알림 실패:", e.message); }
+}
+
+// ─── 마케팅 삭제 시 채널 간단 알림 (영업과 동일 패턴) ───
+async function postExhDeleteNotification(evt) {
+  const gid = await findTeamsGroup();
+  if(!gid) return;
+  const t = await getToken();
+  const chId = await ensureExhChannelId(gid);
+  if(!chId) {
+    console.log("ℹ️ Teams 팀이 없는 그룹 - 마케팅 삭제 알림 스킵");
+    return;
+  }
+  const dateRange = evt.end && evt.end!==evt.start ? evt.start+" ~ "+evt.end : (evt.start||"-");
+  const html = `<div style="font-family:'Segoe UI',sans-serif;font-size:14px;color:#242424;line-height:1.5">
+<div style="padding:12px 16px;background:#fde7e9;border-left:4px solid #c93939;border-radius:4px">
+<div style="font-size:16px;font-weight:700;color:#c93939;margin-bottom:6px">🗑️ 마케팅 일정 삭제됨</div>
+<div style="font-size:15px;font-weight:600;color:#242424;margin-bottom:8px">[마케팅] ${evt.name}</div>
+<table style="font-size:13px;color:#3b3b3b">
+<tr><td style="padding:2px 8px 2px 0;color:#605e5c">예정일정</td><td>${dateRange}</td></tr>
+${evt.manager?'<tr><td style="padding:2px 8px 2px 0;color:#605e5c">담당자</td><td>'+evt.manager+'</td></tr>':''}
+<tr><td style="padding:2px 8px 2px 0;color:#605e5c">삭제시각</td><td>${new Date().toLocaleString("ko-KR")}</td></tr>
+</table>
+<div style="margin-top:8px;font-size:12px;color:#605e5c;font-style:italic">📅 그룹 일정 탭에서도 자동 삭제됨 · ENJET 영업 대시보드</div>
+</div>
+</div>`;
+  const r = await fetch(
+    "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(chId)+"/messages",
+    { method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+      body:JSON.stringify({body:{contentType:"html", content: html}}) }
+  );
+  if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status); }
+  console.log("✅ 마케팅 삭제 알림 발송");
 }
 
 // 마케팅 탭 자동로드 → 통합 go 함수에서 처리
@@ -3376,20 +3476,26 @@ async function syncSLFromTeams() {
     }
 
     // Teams에서 삭제된 이벤트 → 목록에서도 제거 (teamsEventId 기반)
-    const teamsIds = new Set(slCalData.map(e=>e.id));
-    const beforeEvt = slData.length;
-    slData = slData.filter(act=>{
-      // teamsEventId 없는 것(수동 추가)은 유지
-      if(!act.teamsEventId) return true;
-      // Teams에 아직 있으면 유지
-      if(teamsIds.has(act.teamsEventId)) return true;
-      // Teams에서 삭제됨 → 목록에서도 제거
-      console.log("Teams 삭제 감지 → 목록 제거:", act.company, act.pjcode);
-      return false;
-    });
-    if(slData.length < beforeEvt) {
-      await saveSLToSP();
-      console.log("Teams 삭제 동기화:", (beforeEvt-slData.length)+"건 제거");
+    // ⚠️ 안전장치: slCalData가 비어있으면 절대 삭제하지 않음
+    //   (그룹 캐시가 옛 것이거나 Graph API 오류 시 모든 활동 삭제되는 사고 방지)
+    if(slCalData.length > 0) {
+      const teamsIds = new Set(slCalData.map(e=>e.id));
+      const beforeEvt = slData.length;
+      slData = slData.filter(act=>{
+        // teamsEventId 없는 것(수동 추가)은 유지
+        if(!act.teamsEventId) return true;
+        // Teams에 아직 있으면 유지
+        if(teamsIds.has(act.teamsEventId)) return true;
+        // Teams에서 삭제됨 → 목록에서도 제거
+        console.log("Teams 삭제 감지 → 목록 제거:", act.company, act.pjcode);
+        return false;
+      });
+      if(slData.length < beforeEvt) {
+        await saveSLToSP();
+        console.log("Teams 삭제 동기화:", (beforeEvt-slData.length)+"건 제거");
+      }
+    } else {
+      console.log("ℹ️ Teams 캘린더 결과 비어있음 - 삭제 동기화 스킵 (데이터 보호)");
     }
 
     // Teams 이벤트 → 영업활동 목록 자동 연동
@@ -4650,26 +4756,44 @@ function showSLHistory(id) {
   const pjLabel = act.pjcode || "신규";
   title.textContent = act.company+" · "+pjLabel+" 활동 이력";
 
-  // Teams 이벤트 - 같은 고객사+코드 매칭
+  // Teams 이벤트 - 엄격 매칭: 회사+코드 모두 일치해야 함 (다른 회사 같은 차수 섞임 방지)
   const calEvents = slCalData.filter(e=>{
-    const t = e.title||"";
-    if(act.pjcode && t.includes(act.pjcode)) return true;
-    if(act.company && t.includes(act.company.substring(0,3))) {
-      const otherPj = slData.filter(x=>x.id!==id&&x.company===act.company&&x.pjcode);
-      if(otherPj.some(x=>t.includes(x.pjcode))) return false;
-      return true;
+    const t = e.title || e.originalTitle || "";
+    // 1. teamsEventId 직접 매칭 (가장 정확)
+    if(act.teamsEventId && e.id === act.teamsEventId) return true;
+    // 2. 제목에 "고객사" + "코드" 둘 다 포함되어야 매칭
+    if(!act.company) return false;
+    if(!t.includes(act.company)) return false; // 회사명 정확히 포함되지 않으면 제외
+    // 3. pjcode가 있으면 코드까지 일치해야 함
+    if(act.pjcode) {
+      if(!t.includes(act.pjcode)) return false;
+    } else {
+      // pjcode 없는 활동에는 pjcode 있는 일정 매칭 X
+      // (다른 차수가 합쳐지는 것 방지)
+      const otherPjs = slData.filter(x=>x.id!==id && x.company===act.company && x.pjcode)
+                              .map(x=>x.pjcode);
+      if(otherPjs.some(pj=>t.includes(pj))) return false;
     }
-    return false;
+    return true;
   });
-  const teamsEvtsSorted = [...calEvents].sort((a,b)=>a.start.localeCompare(b.start));
+  const teamsEvtsSorted = [...calEvents].sort((a,b)=>(a.start||"").localeCompare(b.start||""));
   const teamsOrder = {};
   teamsEvtsSorted.forEach((e,i)=>{ teamsOrder[e.id]=(i+1)+"차"; });
 
   const history = act.history||[];
+  // 중복 제거 - history에 이미 있는 teamsId/title은 extra에 추가하지 않음
   const extra = calEvents
-    .filter(e=>!history.some(h=>h.action&&h.action.includes(e.title)))
-    .map(e=>({date:e.start, action:"📅 "+e.title, type:"teams", teamsId:e.id}));
-  const all = [...history,...extra].sort((a,b)=>b.date.localeCompare(a.date));
+    .filter(e=>{
+      // teamsId로 중복 체크
+      if(history.some(h=>h.teamsId===e.id)) return false;
+      // title로 중복 체크 (느슨)
+      if(history.some(h=>h.action && e.title && h.action.includes(e.title))) return false;
+      // originalTitle로도 체크
+      if(history.some(h=>h.action && e.originalTitle && h.action.includes(e.originalTitle))) return false;
+      return true;
+    })
+    .map(e=>({date:e.start, action:"📅 "+(e.title||e.originalTitle||""), type:"teams", teamsId:e.id}));
+  const all = [...history,...extra].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
 
   const TC={create:"var(--g)",edit:"var(--p)",status:"var(--a)",teams:"var(--pu)",default:"var(--t3)"};
   const TI={create:"🆕",edit:"✏️",status:"🔄",teams:"📅",default:"📌"};
@@ -4758,7 +4882,7 @@ function renderSLTable(data) {
   const body = document.getElementById("slBody");
   if(!body) return;
   if(!data.length){
-    body.innerHTML='<tr><td colspan="13"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
+    body.innerHTML='<tr><td colspan="14"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
     return;
   }
   // 최근활동일 기준 내림차순 정렬
@@ -4807,6 +4931,7 @@ function renderSLTable(data) {
         </div>
       </td>
       <td>${pjDisplay}</td>
+      <td style="text-align:center;font-size:15px;font-weight:700;color:var(--p)">${getSLSequence(r)}</td>
       <td>${statusSelect}</td>
       <td style="font-size:14px;color:var(--p);cursor:pointer;text-decoration:underline;text-underline-offset:2px"
           onclick="showSLHistory('${r.id}')"
@@ -4816,16 +4941,17 @@ function renderSLTable(data) {
       </td>
       <td>
         <input value="${(r.custMgr||"").replace(/"/g,"&quot;")}" placeholder="-"
-          onblur="updateSLField('${r.id}','custMgr',this.value)"
+          list="custMgrList_${r.id}"
+          onfocus="prepCustMgrSuggestions('${r.id}','${r.company.replace(/'/g,"\\'")}');this.style.borderColor='var(--p)';this.style.background='#fff'"
           onkeydown="if(event.key==='Enter')this.blur()"
-          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:15px;font-family:var(--s);background:transparent;cursor:text"
-          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
-          onblur="this.style.borderColor='transparent';this.style.background='transparent';updateSLField('${r.id}','custMgr',this.value)">
+          onblur="this.style.borderColor='transparent';this.style.background='transparent';updateSLField('${r.id}','custMgr',this.value)"
+          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:14px;font-family:var(--s);background:transparent;cursor:text">
+        <datalist id="custMgrList_${r.id}"></datalist>
       </td>
       <td>
         <input value="${(r.salesMgr||"").replace(/"/g,"&quot;")}" placeholder="-"
           onkeydown="if(event.key==='Enter')this.blur()"
-          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:15px;font-family:var(--s);background:transparent;cursor:text"
+          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:14px;font-family:var(--s);background:transparent;cursor:text"
           onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
           onblur="this.style.borderColor='transparent';this.style.background='transparent';updateSLField('${r.id}','salesMgr',this.value)">
       </td>
@@ -4836,6 +4962,50 @@ function renderSLTable(data) {
       </td>
     </tr>`;
   }).join("");
+}
+
+// ━━ 차수 계산: 같은 고객사 + 같은 pjcode 그룹 안에서 시간 순서대로 번호 매김 ━━
+function getSLSequence(act) {
+  if(!act || !act.company) return 1;
+  // 같은 고객사+같은 pjcode(또는 둘 다 없으면 회사명만)인 항목들
+  const sameGroup = slData.filter(x=>
+    x.company === act.company && (x.pjcode||"") === (act.pjcode||"")
+  );
+  if(sameGroup.length <= 1) return 1;
+  // 생성/시작 시간 순으로 정렬
+  const sorted = [...sameGroup].sort((a,b)=>{
+    const da = a.createdAt || a.start || a.updatedAt || "";
+    const db = b.createdAt || b.start || b.updatedAt || "";
+    return da.localeCompare(db);
+  });
+  const idx = sorted.findIndex(x=>x.id === act.id);
+  return idx >= 0 ? (idx+1) : 1;
+}
+
+// ━━ 고객담당자 자동완성: 고객사 관리 데이터(exhData)에서 같은 회사의 담당자 추출 ━━
+function prepCustMgrSuggestions(actId, company) {
+  const dl = document.getElementById("custMgrList_"+actId);
+  if(!dl) return;
+  // exhData (고객사 관리 컨택)에서 같은 고객사의 담당자 추출
+  const matches = (typeof exhData !== "undefined" && exhData) ?
+    exhData.filter(x=>x.company && x.name &&
+      (x.company === company || x.company.includes(company) || company.includes(x.company))
+    ) : [];
+  // 중복 제거
+  const seen = new Set();
+  const opts = [];
+  for(const m of matches) {
+    const key = m.name + "|" + (m.title||"");
+    if(seen.has(key)) continue;
+    seen.add(key);
+    const label = m.name + (m.title?" ("+m.title+")":"") + (m.email?" · "+m.email:"");
+    opts.push(`<option value="${m.name.replace(/"/g,"&quot;")}">${label}</option>`);
+  }
+  dl.innerHTML = opts.join("");
+  // 일치 없으면 안내
+  if(opts.length === 0) {
+    dl.innerHTML = '<option value="">(고객사 관리에 등록된 담당자 없음 - 직접 입력하세요)</option>';
+  }
 }
 
 // ─── 모달 ───
