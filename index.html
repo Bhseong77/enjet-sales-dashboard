@@ -153,14 +153,14 @@
       <div class="ni on" onclick="go('sales',this)">📊 매출 현황</div>
       <div class="ni" onclick="go('cashflow',this)">💰 현금흐름</div>
       <div class="ni" onclick="go('pipeline',this)">🔄 파이프라인 <span class="nb nbg" id="badge-pl">-</span></div>
-      <div class="ni" onclick="go('customer',this)">🏭 고객사 관리 <span class="nb nbg" id="badge-ct">-</span></div>
       <div class="sb-sec">영업활동</div>
-      <div class="ni" onclick="go('sales-log',this)">📋 영업활동 Log <span class="nb nbg" id="badge-sl">-</span></div>
-      <div class="ni" onclick="go('sales-meeting',this)">📝 미팅 로그 (영업) <span class="nb nbg" id="badge-sm">-</span></div>
+      <div class="ni" onclick="go('sales-log',this)">📋 영업활동 <span class="nb nbg" id="badge-sl">-</span></div>
+      <div class="ni" onclick="go('sales-meeting',this)">📝 미팅 로그 <span class="nb nbg" id="badge-sm">0</span></div>
+      <div class="ni" onclick="go('customer',this)">🏭 고객사 관리 <span class="nb nbg" id="badge-ct">-</span></div>
       <div class="sb-sec">마케팅</div>
       <div class="ni" onclick="go('marketing',this)">📣 마케팅 활동</div>
       <div class="ni" onclick="go('mkt-meeting',this)">📝 미팅 로그 (마케팅)</div>
-      <div class="ni" onclick="go('exhibition',this)">🎪 전시회 Contact <span class="nb nbg" id="badge-exh">-</span></div>
+      <div class="ni" onclick="go('exhibition',this)">🎪 전시회 고객연락처 <span class="nb nbg" id="badge-exh">-</span></div>
     </nav>
     <div class="sb-foot">
       <div style="font-size:14px;color:var(--t3);font-family:var(--m)" id="clock">--:--:--</div>
@@ -709,6 +709,22 @@
               </div>
             </div>
 
+            <!-- 회의 기본 정보 입력 -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+              <div>
+                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">📅 일시</label>
+                <input class="si" type="date" id="slMtgDate" style="width:100%;font-size:14px">
+              </div>
+              <div>
+                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">👥 참석자</label>
+                <input class="si" type="text" id="slMtgAttendees" placeholder="예: 성백훈, 홍길동 부장" style="width:100%;font-size:14px">
+              </div>
+              <div>
+                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">📍 장소</label>
+                <input class="si" type="text" id="slMtgLocation" placeholder="예: 고객사 회의실, Teams" style="width:100%;font-size:14px">
+              </div>
+            </div>
+
             <!-- 파일 업로드 존 -->
             <div id="slMtgDropZone"
               style="border:2px dashed var(--border2);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;background:var(--bg3)"
@@ -747,8 +763,16 @@
             <!-- 요약 결과 -->
             <div id="slMtgResult" style="display:none">
               <div style="font-size:16px;font-weight:800;color:var(--t);margin-bottom:10px">📋 AI 요약 결과</div>
-              <div id="slMtgResultContent"
-                style="padding:16px;background:var(--bg3);border-radius:10px;font-size:14px;line-height:1.7;white-space:pre-wrap;max-height:300px;overflow-y:auto"></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:13px;color:var(--t3)">✏️ 내용을 직접 수정한 후 저장하세요</span>
+                <button onclick="resetSLMtgResult()"
+                  style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:12px;cursor:pointer;font-family:var(--s)">
+                  🔄 원본 복원
+                </button>
+              </div>
+              <textarea id="slMtgResultContent"
+                style="width:100%;padding:14px;background:var(--bg3);border-radius:10px;font-size:14px;line-height:1.7;min-height:280px;max-height:420px;resize:vertical;border:1.5px solid var(--border2);font-family:var(--s);box-sizing:border-box"
+                placeholder="AI 요약 결과가 여기에 표시됩니다. 직접 수정 가능합니다."></textarea>
               <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end">
                 <button onclick="copySLMtgResult()"
                   style="padding:8px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">
@@ -958,101 +982,40 @@
     </div>
 
     <!-- 미팅 -->
-    <div class="page" id="tab-sales-meeting">
-      <!-- 업로드 영역 -->
-      <div class="card" id="uploadCard">
-        <div class="ch"><div class="ct"><div class="ci c2">📝</div>회의록 자동 요약</div><span style="font-size:14px;color:var(--t3)" id="mtg-status">AI 요약 준비</span></div>
-        <div class="cb" style="padding:14px">
-          <!-- 드래그앤드롭 영역 -->
-          <div id="dropZone" style="border:2px dashed var(--border2);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3);margin-bottom:12px"
-            ondragover="event.preventDefault();this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
-            ondragleave="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'"
-            ondrop="handleDrop(event)"
-            onclick="document.getElementById('fileInput').click()">
-            <div style="font-size:34px;margin-bottom:8px">🎙️</div>
-            <div style="font-size:17px;font-weight:700;color:var(--t);margin-bottom:4px">파일을 드래그하거나 클릭해서 업로드</div>
-            <div style="font-size:15px;color:var(--t3)">🎵 오디오: mp3, mp4, m4a, wav, webm (→ Whisper STT → Claude 요약)<br>📄 텍스트: txt, vtt, srt, docx (→ Claude 직접 요약)</div>
-          </div>
-          <input type="file" id="fileInput" accept=".mp3,.mp4,.m4a,.wav,.webm,.txt,.vtt,.srt" style="display:none" onchange="handleFile(this.files[0])">
-
-          <!-- OpenAI 키 입력 (오디오용) -->
-          <div id="apiKeyRow" style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
-            <span style="font-size:15px;color:var(--t2);white-space:nowrap;font-weight:600">🔑 OpenAI API Key</span>
-            <input type="password" id="oaiKey" placeholder="sk-... (오디오 파일 업로드 시 필요, 텍스트는 불필요)" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:7px;font-size:15px;font-family:var(--sans);background:var(--bg2)">
-            <button onclick="saveOaiKey()" style="padding:5px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--sans)">저장</button>
-          </div>
-
-          <!-- 회의 메타 입력 -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-            <input class="si" type="text" id="mtg-title" placeholder="회의명 (예: 삼성전자 기술미팅)">
-            <input class="si" type="text" id="mtg-co" placeholder="거래처 (예: 삼성전자㈜)">
-            <input class="si" type="date" id="mtg-date">
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <input class="si" type="text" id="mtg-att" placeholder="참석자 (예: 성백훈, 김과장)">
-            <select class="ss" id="mtg-type">
-              <option value="">회의 유형</option>
-              <option value="기술미팅">기술미팅</option>
-              <option value="영업미팅">영업미팅</option>
-              <option value="내부회의">내부회의</option>
-              <option value="계약협의">계약협의</option>
-              <option value="고객방문">고객방문</option>
-              <option value="전시회">전시회</option>
-            </select>
-          </div>
-
-          <!-- 진행상태 -->
-          <div id="progressBox" style="display:none;background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-              <div class="spr"></div>
-              <span id="progressTxt" style="font-size:16px;font-weight:600;color:var(--t)">처리 중...</span>
-            </div>
-            <div style="height:4px;background:var(--card2);border-radius:2px;overflow:hidden">
-              <div id="progressBar" style="height:100%;background:var(--p);border-radius:2px;transition:width .5s;width:0%"></div>
-            </div>
-          </div>
-
-          <!-- 요약 결과 -->
-          <div id="summaryBox" style="display:none">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <span style="font-size:16px;font-weight:800;color:var(--t)">📋 AI 요약 결과</span>
-              <div style="display:flex;gap:6px">
-                <button onclick="editSummary()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:15px;cursor:pointer;font-family:var(--sans)">✏️ 수정</button>
-                <button onclick="saveMeeting()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--sans)">💾 SharePoint 저장</button>
-              </div>
-            </div>
-            <div id="summaryView" style="background:var(--bg3);border-radius:10px;padding:14px;font-size:16px;line-height:1.7;color:var(--t);white-space:pre-wrap;max-height:360px;overflow-y:auto"></div>
-            <textarea id="summaryEdit" style="display:none;width:100%;height:300px;padding:12px;border:1px solid var(--border2);border-radius:10px;font-size:16px;line-height:1.7;font-family:var(--sans);resize:vertical"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- 미팅 로그 목록 -->
+      <div class="page" id="tab-sales-meeting">
       <div class="card">
         <div class="ch">
-          <div class="ct"><div class="ci c1">📚</div>미팅 로그 <span id="mtg-lbl" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:4px">SharePoint 연동</span></div>
-          <div style="display:flex;gap:6px;align-items:center">
-            <input class="si" type="text" placeholder="🔍 거래처/제목 검색..." id="mtgSrch" oninput="filterMtg()" style="width:200px;flex:none">
-            <button onclick="loadMeetings()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:15px;cursor:pointer;font-family:var(--sans)">새로고침</button>
+          <div class="ct"><div class="ci c2">📝</div>미팅 로그 (영업)</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="si" type="text" id="mtgLogSrch" placeholder="🔍 고객사/내용 검색..." oninput="filterMtgLog()" style="width:200px">
+            <select class="ss" id="mtgLogType" onchange="filterMtgLog()">
+              <option value="">전체</option>
+              <option value="영업미팅">영업미팅</option>
+              <option value="기술미팅">기술미팅</option>
+              <option value="전화상담">전화상담</option>
+            </select>
+            <span style="font-size:13px;color:var(--t3)" id="mtgLogUpd">-</span>
           </div>
         </div>
         <div class="cb" style="padding:10px 14px">
-          <div id="mtgList"><div class="sw"><div class="spr"></div></div></div>
-        </div>
-        <div class="cn">※ SharePoint 99.Dashboard(real-time)/meetings/ 폴더에 JSON으로 저장</div>
-      </div>
-
-      <!-- 미팅 상세 모달 -->
-      <div id="mtgModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-        <div style="background:#fff;border-radius:16px;padding:28px;width:700px;max-width:95vw;max-height:85vh;overflow-y:auto;position:relative">
-          <button onclick="closeMtgModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:22px;cursor:pointer;color:var(--t3)">✕</button>
-          <div id="mtgModalContent"></div>
+          <div style="overflow-x:auto"><table class="tbl" style="min-width:700px">
+            <thead><tr>
+              <th>일시</th><th>고객사</th><th>프로젝트</th>
+              <th>장소</th><th>참석자</th><th>회의록</th><th>유형</th>
+            </tr></thead>
+            <tbody id="mtgLogBody">
+              <tr><td colspan="7"><div class="empty"><div class="ei">📝</div>
+                <div class="et">미팅 로그 없음</div>
+                <div style="font-size:13px;color:var(--t3);margin-top:6px">영업활동 Log에서 회의록 생성 시 자동으로 여기에 기록됩니다</div>
+              </div></td></tr>
+            </tbody>
+          </table></div>
+          <div style="font-size:13px;color:var(--t3);margin-top:8px;text-align:right" id="mtgLogCnt"></div>
         </div>
       </div>
     </div>
 
 
-    <!-- 마케팅 미팅 로그 -->
     <div class="page" id="tab-mkt-meeting">
       <div class="card">
         <div class="ch"><div class="ct"><div class="ci c2">📝</div>미팅 로그 (마케팅)</div><span style="font-size:14px;color:var(--t3)" id="mkt-mtg-upd">-</span></div>
@@ -1397,7 +1360,8 @@ async function loadProject() {
         });
       } catch(_){}
     }
-    updPlKPI(); renderPL(PD.filter(r=>["확정","작성"].includes(r.진행구분)));
+    updPlKPI();
+    try { renderPL(PD.filter(r=>r&&["확정","작성"].includes(r.진행구분))); } catch(pe){ console.warn("파이프라인 렌더 실패:", pe.message); }
     const tp=[...new Set(PD.map(r=>r.유형).filter(Boolean))].sort();
     const mg=[...new Set(PD.map(r=>r.책임자).filter(Boolean))].sort();
     const ts=document.getElementById("plTp"); const ms=document.getElementById("plMg");
@@ -1437,11 +1401,15 @@ function renderPL(data) {
   const SC={확정:"up",작성:"warn",완료:"info",중단:"dn"};
   const tb=document.getElementById("plTb");
   if(!data.length){tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div></td></tr>`;return;}
-  tb.innerHTML=data.slice(0,300).map(r=>{
-    const amt=r.원화금액>0?(r.원화금액/1e8).toFixed(3)+"억":"-";
+  tb.innerHTML=data.slice(0,300).filter(r=>r&&r.프로젝트번호).map(r=>{
+    const amt=(r.원화금액||0)>0?((r.원화금액||0)/1e8).toFixed(3)+"억":"-";
     const dt=r.계약일&&r.계약일!=""?String(r.계약일).substring(0,10):"-";
-    const nm=r.프로젝트명.replace(/\(.*?\)/g,"").trim().substring(0,28);
-    return `<tr><td><span class="tm" style="font-size:14px">${r.프로젝트번호}</span></td><td><span class="tn" style="font-size:15px" title="${r.프로젝트명}">${nm}</span></td><td style="max-width:110px;overflow:hidden;text-overflow:ellipsis">${r.거래처.substring(0,14)}</td><td style="font-size:14px;color:var(--t3)">${r.유형}</td><td class="r"><span class="tm b">${amt}</span></td><td><span class="badge ${SC[r.진행구분]||"gray"}">${r.진행구분}</span></td><td style="font-size:14px;color:var(--t3)">${dt}</td><td style="font-size:14px">${r.책임자}</td><td style="font-size:14px;color:var(--t3)">${r.PM}</td></tr>`;
+    const nm=(r.프로젝트명||"").replace(/\(.*?\)/g,"").trim().substring(0,28);
+    const 거래처 = r.거래처||"";
+    const 유형 = r.유형||"";
+    const 책임자 = r.책임자||"";
+    const PM = r.PM||"";
+    return `<tr><td><span class="tm" style="font-size:14px">${r.프로젝트번호}</span></td><td><span class="tn" style="font-size:15px" title="${r.프로젝트명}">${nm}</span></td><td style="max-width:110px;overflow:hidden;text-overflow:ellipsis">${거래처.substring(0,14)}</td><td style="font-size:14px;color:var(--t3)">${유형}</td><td class="r"><span class="tm b">${amt}</span></td><td><span class="badge ${SC[r.진행구분]||"gray"}">${r.진행구분}</span></td><td style="font-size:14px;color:var(--t3)">${dt}</td><td style="font-size:14px">${r.책임자}</td><td style="font-size:14px;color:var(--t3)">${r.PM}</td></tr>`;
   }).join("");
   $("pl-cnt2",data.length+"건 (최대 300)");
 }
@@ -3125,6 +3093,32 @@ async function loadSLFromSP() {
 }
 
 // ─── Teams 캘린더 동기화 ───
+
+// Teams 일정 편집기 딥링크 열기
+function openTeamsEvent(teamsEventId) {
+  if(!teamsEventId) {
+    openTeamsChannelCalendar();
+    return;
+  }
+  // Outlook 웹 캘린더에서 편집 (Teams 캘린더와 동기화됨)
+  // 이벤트 ID를 base64 인코딩해서 Outlook 링크 생성
+  try {
+    // Teams/Outlook 공유 캘린더 이벤트 편집
+    const encoded = btoa(unescape(encodeURIComponent(teamsEventId)));
+    const link = "https://outlook.office.com/calendar/item/"+encodeURIComponent(teamsEventId);
+    window.open(link, "_blank");
+  } catch(e) {
+    // 폴백: Teams 웹 캘린더로 이동
+    window.open("https://teams.microsoft.com/_?tenantId=58b310e1-9278-47ab-8e49-792728818c9e#/calendarv2", "_blank");
+  }
+}
+
+// Teams 채널 일정 탭 딥링크
+function openTeamsChannelCalendar() {
+  const channelLink = "https://teams.microsoft.com/l/channel/19%3A15cae7e9dec84ce1ae4909e6f7c25634%40thread.tacv2/tab%3A%3Ad6fa8984-35e5-4468-9ed4-df4b7dee6da6?context=%7B%22channelId%22%3A%2219%3A15cae7e9dec84ce1ae4909e6f7c25634%40thread.tacv2%22%7D&tenantId=58b310e1-9278-47ab-8e49-792728818c9e";
+  window.open(channelLink, "_blank");
+}
+
 async function syncSLFromTeams() {
   const badge = document.getElementById("slSyncBadge");
   if(badge){badge.textContent="동기화 중...";badge.style.background="var(--yd)";badge.style.color="var(--y)";}
@@ -3188,7 +3182,24 @@ async function syncSLFromTeams() {
     const beforeSync = slData.length;
     slData = slData.filter(item => isSLEvent(item));
     if(slData.length < beforeSync) {
-      console.log(`동기화 중 전시회 항목 ${beforeSync-slData.length}개 제거`);
+      console.log("동기화 중 전시회 항목 "+(beforeSync-slData.length)+"개 제거");
+    }
+
+    // Teams에서 삭제된 이벤트 → 목록에서도 제거 (teamsEventId 기반)
+    const teamsIds = new Set(slCalData.map(e=>e.id));
+    const beforeEvt = slData.length;
+    slData = slData.filter(act=>{
+      // teamsEventId 없는 것(수동 추가)은 유지
+      if(!act.teamsEventId) return true;
+      // Teams에 아직 있으면 유지
+      if(teamsIds.has(act.teamsEventId)) return true;
+      // Teams에서 삭제됨 → 목록에서도 제거
+      console.log("Teams 삭제 감지 → 목록 제거:", act.company, act.pjcode);
+      return false;
+    });
+    if(slData.length < beforeEvt) {
+      await saveSLToSP();
+      console.log("Teams 삭제 동기화:", (beforeEvt-slData.length)+"건 제거");
     }
 
     // Teams 이벤트 → 영업활동 목록 자동 연동
@@ -3244,7 +3255,7 @@ function renderSLWeek() {
       const isToday=ds===now.toISOString().split("T")[0];
       return `<div style="border:1px solid var(--border);border-radius:8px;padding:8px;min-height:80px;${isToday?"background:var(--pd);border-color:var(--p)":""}">
         <div style="font-size:14px;font-weight:700;color:${isToday?"var(--p)":"var(--t3)"};margin-bottom:4px">${KOR_DAY[d.getDay()]} ${d.getDate()}</div>
-        ${dayEvts.map(e=>`<div style="font-size:14px;padding:2px 5px;border-radius:4px;background:var(--pd);color:var(--p);margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="${e.title}">${e.title}</div>`).join("")}
+        ${dayEvts.map(e=>`<div onclick="openTeamsEvent('${e.id}')" style="font-size:14px;padding:3px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer" title="${e.title} → 클릭: Teams 편집">${e.title}</div>`).join("")}
       </div>`;
     }).join("")}
   </div>`;
@@ -3271,7 +3282,7 @@ function renderSLMonth() {
       const isToday=ds===todayStr;
       return `<div style="border:1px solid var(--border);border-radius:6px;padding:4px;min-height:70px;${isToday?"background:var(--pd);border-color:var(--p)":""}">
         <div style="font-size:14px;font-weight:700;color:${isToday?"var(--p)":"var(--t2)"};margin-bottom:2px">${d}</div>
-        ${dayEvts.slice(0,2).map(e=>`<div style="font-size:14px;padding:1px 4px;border-radius:3px;background:var(--pd);color:var(--p);margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${e.title}</div>`).join("")}
+        ${dayEvts.slice(0,2).map(e=>`<div onclick="openTeamsEvent('${e.id}')" style="font-size:14px;padding:2px 5px;border-radius:4px;background:var(--pd);color:var(--p);margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer" title="클릭: Teams 편집">${e.title}</div>`).join("")}
         ${dayEvts.length>2?`<div style="font-size:14px;color:var(--t3)">+${dayEvts.length-2}건</div>`:""}
       </div>`;
     }).join("")}
@@ -3282,7 +3293,7 @@ function renderSLList() {
   const el = document.getElementById("slCalendar");
   if(!slCalData.length){el.innerHTML='<div class="empty"><div class="et">일정 없음</div></div>';return;}
   el.innerHTML=`<table class="tbl"><thead><tr><th>일정명</th><th>시작일</th><th>종료일</th><th>담당자</th><th>장소</th></tr></thead>
-    <tbody>${slCalData.map(e=>`<tr><td><span class="tn" style="font-size:15px">${e.title}</span></td><td style="font-size:14px;color:var(--t3)">${e.start}</td><td style="font-size:14px;color:var(--t3)">${e.end||e.start}</td><td style="font-size:15px">${e.organizer}</td><td style="font-size:14px;color:var(--t2)">${e.location}</td></tr>`).join("")}
+    <tbody>${slCalData.map(e=>`<tr onclick="openTeamsEvent('${e.id}')" style="cursor:pointer" title="클릭: Teams 편집"><td><span class="tn" style="font-size:15px;color:var(--p)">${e.title} ↗</span></td><td style="font-size:14px;color:var(--t3)">${e.start}</td><td style="font-size:14px;color:var(--t3)">${e.end||e.start}</td><td style="font-size:15px">${e.organizer}</td><td style="font-size:14px;color:var(--t2)">${e.location}</td></tr>`).join("")}
     </tbody></table>`;
 }
 
@@ -3604,13 +3615,17 @@ async function openAISummarize(transcript, meta) {
 
 // ─── 공통 프롬프트 ───
 function buildMtgPrompt(transcript, meta) {
+  const date = document.getElementById("slMtgDate")?.value || meta.date || new Date().toISOString().split("T")[0];
+  const attendees = document.getElementById("slMtgAttendees")?.value || meta.attendees || "";
+  const location = document.getElementById("slMtgLocation")?.value || "";
   return `다음은 "${meta.company||""}" 관련 영업 회의/미팅 내용입니다.
 아래 형식으로 한국어 회의록을 작성해주세요:
 
 # 회의록
-- 일시: ${meta.date||new Date().toISOString().split("T")[0]}
+- 일시: ${date}
+- 장소: ${location||"-"}
 - 회사/거래처: ${meta.company||""}
-- 참석자: ${meta.attendees||""}
+- 참석자: ${attendees||"-"}
 
 ## 주요 안건
 (회의에서 다룬 주요 내용 요약)
@@ -3690,6 +3705,10 @@ async function openSLMinutesModal(actId) {
   document.getElementById("slMtgResult").style.display = "none";
   document.getElementById("slMtgProgress").style.display = "none";
   document.getElementById("slMtgDirectInput").value = "";
+  // 기본값 설정
+  document.getElementById("slMtgDate").value = new Date().toISOString().split("T")[0];
+  document.getElementById("slMtgAttendees").value = act?.custMgr||"";
+  document.getElementById("slMtgLocation").value = "";
 
   switchMtgTab(1);
   await loadSLMinutesFiles(actId);
@@ -3767,6 +3786,11 @@ function handleSLMtgDrop(e) {
 
 async function handleSLMtgFile(file) {
   if(!file) return;
+  // 오디오 파일이면 나중에 SP 저장용으로 보관
+  const AUDIO_EXTS = ["mp3","mp4","m4a","wav","webm"];
+  const ext0 = file.name.split(".").pop().toLowerCase();
+  if(AUDIO_EXTS.includes(ext0)) _slMtgAudioFile = file;
+  else _slMtgAudioFile = null;
   const key = document.getElementById("slMtgOpenAIKey")?.value.trim() || localStorage.getItem("oai_key")||"";
   const AUDIO = ["mp3","mp4","m4a","wav","webm"];
   const ext = file.name.split(".").pop().toLowerCase();
@@ -3844,27 +3868,39 @@ function slMtgHideProgress() {
   if(p) p.style.display = "none";
 }
 
+let _slMtgOriginalResult = ""; // 원본 보관
 function showSLMtgResult(text) {
   slMtgHideProgress();
+  _slMtgOriginalResult = text;
   const el = document.getElementById("slMtgResult");
   const content = document.getElementById("slMtgResultContent");
   if(el) el.style.display = "block";
-  if(content) content.textContent = text;
+  if(content) content.value = text;
+  // 결과로 스크롤
+  setTimeout(()=>el?.scrollIntoView({behavior:"smooth", block:"start"}), 100);
+}
+function resetSLMtgResult() {
+  const content = document.getElementById("slMtgResultContent");
+  if(content) content.value = _slMtgOriginalResult;
 }
 
 function copySLMtgResult() {
-  const txt = document.getElementById("slMtgResultContent")?.textContent||"";
+  const txt = document.getElementById("slMtgResultContent")?.value||"";
   navigator.clipboard.writeText(txt).then(()=>alert("📋 복사됐어요!"));
 }
+
+let _slMtgAudioFile = null; // 업로드된 오디오 파일 보관
 
 async function saveSLMtgResult() {
   const act = slData.find(x=>x.id===_slMtgActId);
   if(!act) return;
-  const txt = document.getElementById("slMtgResultContent")?.textContent||"";
+  const txt = document.getElementById("slMtgResultContent")?.value||"";
   if(!txt) return;
 
-  const today = new Date().toISOString().split("T")[0];
-  const fileName = today+"_"+act.company+"_회의록.txt";
+  const today = document.getElementById("slMtgDate")?.value || new Date().toISOString().split("T")[0];
+  const location = document.getElementById("slMtgLocation")?.value||"";
+  const baseName = today+"_"+act.company.replace(/[\/:*?"<>|]/g,"")+(location?"_"+location.replace(/[\/:*?"<>|]/g,""):"");
+  const fileName = baseName+"_회의록.txt";
   const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
   const pjFolder = act.pjcode || "신규";
   const spPath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/회의록";
@@ -3888,6 +3924,43 @@ async function saveSLMtgResult() {
     act.updatedAt = new Date().toISOString();
     await saveSLToSP();
     renderSLAll();
+
+    // 오디오 파일도 같은 위치에 저장 (파일명 동일하게)
+    if(_slMtgAudioFile) {
+      try {
+        const audioExt = _slMtgAudioFile.name.split(".").pop();
+        const audioName = baseName+"."+audioExt;
+        const t2 = await getToken();
+        const enc2 = spPath.split("/").map(encodeURIComponent).join("/");
+        await fetch(
+          "https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc2+"/"+encodeURIComponent(audioName)+":/content",
+          {method:"PUT", headers:{"Authorization":"Bearer "+t2, "Content-Type":_slMtgAudioFile.type||"audio/mpeg"}, body:_slMtgAudioFile}
+        );
+        console.log("✅ 오디오 저장:", audioName);
+      } catch(ae){ console.warn("오디오 저장 실패:", ae.message); }
+      _slMtgAudioFile = null;
+    }
+
+    // 미팅 로그 탭에 자동 추가
+    const mtgEntry = {
+      id: "mtg_"+Date.now(),
+      type: "영업미팅",
+      company: act.company,
+      pjcode: act.pjcode||"",
+      date: today,
+      location: location,
+      attendees: document.getElementById("slMtgAttendees")?.value||"",
+      summary: txt,
+      fileName: fileName,
+      spPath: spPath+"/"+fileName,
+      actId: _slMtgActId,
+      createdAt: new Date().toISOString()
+    };
+    // 미팅 로그 저장
+    if(!window._mtgLogs) window._mtgLogs = [];
+    window._mtgLogs.unshift(mtgEntry);
+    saveMtgLogsToSP();
+    renderMtgLogTable();
 
     alert("✅ 회의록 저장 완료!\n"+spPath+"/"+fileName);
     switchMtgTab(1);
@@ -4072,40 +4145,55 @@ async function requestPJCode(id) {
 
 // ─── Teams 이벤트 → 영업활동 매칭 ───
 function syncSLActivityFromEvent(evt, save) {
-  const title = evt.title||"";
-  // 전시회 이벤트는 영업활동으로 변환 안 함
+  const title = evt.originalTitle || evt.title || "";
+
+  // 전시회 이벤트 제외
   const EXH_CATS = ["국내전시회","해외전시회","전시회"];
-  const title0 = evt.title||"";
   if((evt.categories||[]).some(c=>EXH_CATS.includes(c))) return "skipped";
-  if(title0.startsWith("[전시회]")) return "skipped";
-  const pjMatch = title.match(/([A-Z]{2,3}\d{4,6}[-\w]*)/);
-  const pjCode = pjMatch ? pjMatch[1] : "";
-  let company = title
-    .replace(/^\[[^\]]*\]\s*/, "")
-    .replace(/\s*\([^)]*\)/g, "")
-    .replace(/[A-Z]{2,3}\d{4,6}[-\w]*/g, "")
-    .replace(/\s*(미팅|회의|방문|상담|견적|발주|납품|검수|영업|컨택|전화|화상)\s*$/g, "")
-    .trim();
-  let existing = null;
-  if(pjCode) existing = slData.find(x=>x.pjcode===pjCode);
-  if(!existing && company.length>1) existing = slData.find(x=>x.company&&(x.company.includes(company)||company.includes(x.company)));
-  const now = new Date().toISOString();
+  if(title.startsWith("[전시회]")) return "skipped";
+
+  // ── 제목 파싱: "[영업] 고객사-프로젝트코드" ──
+  const cleaned = title.replace(/^\[[^\]]*\]\s*/, "").trim();
+  let company = "", pjcode = "";
+  const dashIdx = cleaned.indexOf("-");
+  if(dashIdx > 0) {
+    company = cleaned.substring(0, dashIdx).trim();
+    pjcode  = cleaned.substring(dashIdx+1).trim();
+  } else {
+    company = cleaned.replace(/\s*(미팅|회의|방문|상담|영업|컨택)\s*$/, "").trim();
+  }
+  if(!company || company.length < 1) return "skipped";
+
+  const now   = new Date().toISOString();
   const today = (evt.start||"").substring(0,10);
+
+  // ── 매칭: 프로젝트코드 우선, 없으면 고객사명 ──
+  let existing = null;
+  if(pjcode) {
+    existing = slData.find(x=>x.company===company && x.pjcode===pjcode);
+    if(!existing) existing = slData.find(x=>x.pjcode===pjcode && pjcode.length>3);
+  }
+  if(!existing) {
+    existing = slData.find(x=>x.company===company && (!x.pjcode||x.pjcode===pjcode));
+    if(!existing) existing = slData.find(x=>x.company&&(x.company.includes(company)||company.includes(x.company)));
+  }
+
   if(existing) {
     if(today > (existing.lastActivity||"")) existing.lastActivity = today;
     existing.updatedAt = now;
-    if(pjCode && !existing.pjcode) existing.pjcode = pjCode;
-    if(!existing.history) existing.history=[];
-    const alreadyLogged = existing.history.some(h=>h.date===today && h.action.includes(evt.title));
-    if(!alreadyLogged) existing.history.unshift({date:today, action:"📅 "+evt.title, type:"teams"});
+    if(pjcode && !existing.pjcode) existing.pjcode = pjcode;
+    if(evt.id && !existing.teamsEventId) existing.teamsEventId = evt.id;
+    if(!existing.history) existing.history = [];
+    const alreadyLogged = existing.history.some(h=>h.date===today&&h.action.includes(evt.title||""));
+    if(!alreadyLogged) existing.history.unshift({date:today, action:"📅 "+(evt.title||title), type:"teams"});
     if(save) saveSLToSP().then(()=>renderSLAll());
     return "updated";
-  } else if(company.length>1) {
+  } else {
     const newAct = {
-      id:"sl_teams_"+evt.id, company, pjcode:pjCode||"", status:"신규",
+      id:"sl_teams_"+evt.id, company, pjcode:pjcode||"", status:"신규",
       custMgr:"", salesMgr:evt.organizer||"",
       start:today, end:evt.end||today, lastActivity:today,
-      note:"[Teams 자동생성] "+evt.originalTitle, files:{},
+      note:"[Teams 자동생성] "+title, files:{},
       teamsEventId:evt.id, createdAt:now, updatedAt:now,
       history:[{date:today, action:"🆕 Teams 자동생성: "+title, type:"create"}]
     };
@@ -4113,8 +4201,8 @@ function syncSLActivityFromEvent(evt, save) {
     if(save) saveSLToSP().then(()=>renderSLAll());
     return "created";
   }
-  return "skipped";
 }
+
 
 // ─── 최근 영업활동 카드 ───
 function renderRecentSLCard() {
@@ -4431,22 +4519,60 @@ async function createSLTeamsEvent(act) {
   const t = await getToken();
   const startDate = act.start || new Date().toISOString().split("T")[0];
   const endDate   = act.end || startDate;
-  const endPlus   = (()=>{const d=new Date(endDate+"T00:00:00Z");d.setDate(d.getDate()+1);return d.toISOString().split("T")[0];})();
+  const eventTitle = "[영업] "+act.company+(act.pjcode?"-"+act.pjcode:"");
+
   const body = {
-    subject: "[영업] "+act.company+(act.pjcode?" ("+act.pjcode+")":""),
+    subject: eventTitle,
     start:{ dateTime: startDate+"T09:00:00", timeZone:"Asia/Seoul" },
     end:{   dateTime: endDate+"T18:00:00",   timeZone:"Asia/Seoul" },
     isAllDay: false,
-    body:{contentType:"HTML",content:`<b>${act.company}</b><br>진행상태: ${act.status}<br>프로젝트: ${act.pjcode||"신규(미발급)"}<br>고객담당: ${act.custMgr||"-"}<br>영업담당: ${act.salesMgr||"-"}<br>비고: ${act.note||""}`},
+    body:{contentType:"HTML", content:
+      "<b>"+act.company+"</b><br>"+
+      "진행상태: "+act.status+"<br>"+
+      "프로젝트: "+(act.pjcode||"신규(미발급)")+"<br>"+
+      "고객담당: "+(act.custMgr||"-")+"<br>"+
+      "영업담당: "+(act.salesMgr||"-")+"<br>"+
+      "비고: "+(act.note||"")+"<br><br>"+
+      "<i>ENJET 영업 대시보드에서 등록됨</i>"
+    },
     categories:["영업활동"],
+    // 채널 연결 (그룹 캘린더가 채널 탭에 표시되도록)
+    allowNewTimeProposals: false,
   };
+
+  // 1. 그룹 캘린더에 이벤트 생성/수정
   const url = act.teamsEventId
     ? "https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+act.teamsEventId
     : "https://graph.microsoft.com/v1.0/groups/"+gid+"/events";
-  const r = await fetch(url,{method:act.teamsEventId?"PATCH":"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:JSON.stringify(body)});
-  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
-  const data=await r.json();
-  return data.id;
+  const r = await fetch(url, {
+    method: act.teamsEventId ? "PATCH" : "POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+    body: JSON.stringify(body)
+  });
+  if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status); }
+  const data = await r.json();
+  const eventId = data.id;
+
+  // 2. Teams 채널에 알림 메시지 전송 (채널 탭에서 확인 가능)
+  try {
+    const msgBody = {body:{contentType:"html", content:
+      "<p>📅 <b>영업 일정 등록됨</b></p>"+
+      "<table>"+
+      "<tr><td><b>일정</b></td><td>"+eventTitle+"</td></tr>"+
+      "<tr><td><b>기간</b></td><td>"+startDate+(endDate!==startDate?" ~ "+endDate:"")+"</td></tr>"+
+      "<tr><td><b>고객사</b></td><td>"+act.company+"</td></tr>"+
+      "<tr><td><b>상태</b></td><td>"+act.status+"</td></tr>"+
+      "</table>"+
+      "<i>Teams 캘린더에서 확인하세요</i>"
+    }};
+    await fetch(
+      "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+SL_TEAMS_CHANNEL_ID+"/messages",
+      {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+       body:JSON.stringify(msgBody)}
+    );
+  } catch(e) { console.warn("채널 알림 전송 실패:", e.message); }
+
+  return eventId;
 }
 
 // ─── Teams 채널 메시지 ───
@@ -4575,18 +4701,108 @@ async function openSLFileModal(actId, fileType) {
 }
 
 // 삭제
-function deleteSLActivity(id) {
-  const act=slData.find(x=>x.id===id);
-  if(!act||!confirm(`"${act.company}" 활동을 삭제할까요?\n(SP 폴더는 유지됩니다)`)) return;
-  slData=slData.filter(x=>x.id!==id);
+async function deleteSLActivity(id) {
+  const act = slData.find(x=>x.id===id);
+  if(!act) return;
+
+  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+  const pjFolder = act.pjcode || "신규";
+  const spFolderPath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder;
+
+  const msg = [
+    `"${act.company}" (${pjFolder}) 영업활동을 삭제할까요?`,
+    "",
+    "함께 삭제되는 항목:",
+    act.teamsEventId ? "  📅 Teams 캘린더 이벤트" : "  📅 Teams 이벤트 없음",
+    `  📁 SP 폴더: ${spFolderPath}`,
+    "     (회의록, 견적서, 발주서, 계약서, 세금계산서, 자료 포함)",
+    "",
+    "⚠️ 이 작업은 되돌릴 수 없습니다."
+  ].join("\n");
+
+  if(!confirm(msg)) return;
+
+  // 진행 상태 표시
+  $("slUpd","삭제 중...");
+
+  // 1. SP JSON에서 제거
+  slData = slData.filter(x=>x.id!==id);
   renderSLAll();
-  saveSLToSP();
+  await saveSLToSP();
+
+  // 2. Teams 캘린더 이벤트 삭제
+  if(act.teamsEventId) {
+    try {
+      if(!teamsGroupId) await findTeamsGroup();
+      const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
+      if(gid) {
+        const t = await getToken();
+        await fetch(
+          "https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+act.teamsEventId,
+          {method:"DELETE", headers:{"Authorization":"Bearer "+t}}
+        );
+        console.log("✅ Teams 이벤트 삭제:", act.teamsEventId);
+      }
+    } catch(e) { console.warn("Teams 이벤트 삭제 실패:", e.message); }
+  }
+
+  // 3. SP 프로젝트 폴더 삭제 (재귀)
+  try {
+    await getIds();
+    const t = await getToken();
+    const enc = spFolderPath.split("/").map(encodeURIComponent).join("/");
+    // 폴더 ID 조회 후 삭제
+    const folderInfo = await gGet("/drives/"+spDrive+"/root:/"+enc);
+    if(folderInfo.id) {
+      const r = await fetch(
+        "https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+folderInfo.id,
+        {method:"DELETE", headers:{"Authorization":"Bearer "+t}}
+      );
+      if(r.ok || r.status===204 || r.status===404) {
+        console.log("✅ SP 폴더 삭제:", spFolderPath);
+      }
+    }
+  } catch(e) {
+    if(!e.message.includes("itemNotFound") && !e.message.includes("404")) {
+      console.warn("SP 폴더 삭제 실패:", e.message);
+    }
+  }
+
+  // 4. 고객사 폴더가 비었으면 고객사 폴더도 삭제
+  try {
+    await getIds();
+    const t = await getToken();
+    const coPath = SL_SP_BASE+"/"+coFolder;
+    const enc2 = coPath.split("/").map(encodeURIComponent).join("/");
+    const children = await gGet("/drives/"+spDrive+"/root:/"+enc2+":/children");
+    const remaining = (children.value||[]).filter(f=>f.folder||f.file);
+    if(remaining.length === 0) {
+      // 폴더가 비었으면 고객사 폴더도 삭제
+      const coInfo = await gGet("/drives/"+spDrive+"/root:/"+enc2);
+      if(coInfo.id) {
+        await fetch(
+          "https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+coInfo.id,
+          {method:"DELETE", headers:{"Authorization":"Bearer "+t}}
+        );
+        console.log("✅ 고객사 폴더도 삭제 (비어있음):", coPath);
+      }
+    } else {
+      console.log("고객사 폴더 유지 (다른 항목 있음):", remaining.length+"개");
+    }
+  } catch(e) { /* 고객사 폴더 삭제는 선택적 */ }
+
+  $("slUpd","삭제 완료: "+new Date().toLocaleTimeString("ko-KR"));
+  alert("✅ 삭제 완료!\n"+[
+    "📋 영업활동 목록에서 제거",
+    act.teamsEventId ? "📅 Teams 캘린더 이벤트 삭제" : "📅 Teams 이벤트 없음",
+    "📁 SP 폴더 삭제: "+pjFolder,
+  ].join("\n"));
 }
 
 // 영업활동 탭 자동로드 → 통합 go 함수에서 처리
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 관리","sales-log":"📋 영업활동 Log","sales-meeting":"📝 미팅 로그 (영업)",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)",exhibition:"🎪 전시회 Contact"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 관리","sales-log":"📋 영업활동","sales-meeting":"📝 미팅 로그",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)",exhibition:"🎪 전시회 고객연락처"};
 
 // ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
 function go(id, el) {
@@ -4600,7 +4816,10 @@ function go(id, el) {
   if(!acct) return; // 로그인 전에는 자동로드 안함
 
   // 미팅 탭
-  if(id==="sales-meeting"||id==="mkt-meeting") {
+  if(id==="sales-meeting") {
+    loadMtgLogsFromSP();
+  }
+  if(id==="mkt-meeting") {
     loadMeetings(id);
   }
   // 마케팅 탭 (전시회 일정)
