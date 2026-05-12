@@ -618,6 +618,112 @@
         </div>
       </div>
 
+
+      <!-- 영업활동 회의록 모달 -->
+      <div id="slMinutesModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div style="background:#fff;border-radius:18px;padding:32px;width:860px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative">
+          <button onclick="document.getElementById('slMinutesModal').style.display='none'"
+            style="position:absolute;top:16px;right:20px;border:none;background:transparent;font-size:26px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:22px;font-weight:900;color:var(--t);margin-bottom:6px" id="slMinutesTitle">📝 회의록</div>
+          <div style="font-size:14px;color:var(--t3);margin-bottom:20px" id="slMinutesSubtitle"></div>
+
+          <!-- 탭: 파일 목록 / AI 요약 -->
+          <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--border)">
+            <button id="slMtgTab1" onclick="switchMtgTab(1)"
+              style="padding:8px 20px;border:none;border-bottom:3px solid var(--p);background:transparent;font-size:15px;font-weight:700;color:var(--p);cursor:pointer;font-family:var(--s);margin-bottom:-2px">
+              📂 파일 목록
+            </button>
+            <button id="slMtgTab2" onclick="switchMtgTab(2)"
+              style="padding:8px 20px;border:none;border-bottom:3px solid transparent;background:transparent;font-size:15px;font-weight:700;color:var(--t3);cursor:pointer;font-family:var(--s);margin-bottom:-2px">
+              🤖 AI 회의록 생성
+            </button>
+          </div>
+
+          <!-- 탭1: 파일 목록 -->
+          <div id="slMtgPane1">
+            <div id="slMinutesFileBody"><div class="sw"><div class="spr"></div></div></div>
+            <div style="margin-top:16px;text-align:right">
+              <button onclick="switchMtgTab(2)"
+                style="padding:10px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                🤖 AI로 회의록 생성
+              </button>
+            </div>
+          </div>
+
+          <!-- 탭2: AI 회의록 생성 -->
+          <div id="slMtgPane2" style="display:none">
+            <!-- AI 요약 안내 -->
+            <div style="margin-bottom:14px;padding:14px;background:var(--pd);border-radius:10px;border:1.5px solid var(--p)">
+              <div style="font-size:15px;font-weight:700;color:var(--p);margin-bottom:6px">🤖 OpenAI GPT-4o-mini로 회의록 자동 요약</div>
+              <div style="font-size:13px;color:var(--t2);line-height:1.6">
+                텍스트/오디오 → GPT-4o-mini가 한국어 회의록 자동 생성<br>
+                <span style="color:var(--g)">💰 비용: 회의록 1건 ≈ 0.8원 (gpt-4o-mini 기준)</span>
+              </div>
+              <!-- OpenAI 키 (오디오 STT용) -->
+              <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+                <span style="font-size:13px;color:var(--t2);white-space:nowrap">🔑 OpenAI API Key</span>
+                <span style="font-size:12px;color:var(--t3)">(텍스트 요약 + 오디오 STT 모두 필요)</span>
+                <input class="si" type="password" id="slMtgOpenAIKey" placeholder="sk-..."
+                  style="flex:1;font-size:13px" value="">
+                <button onclick="localStorage.setItem('oai_key',document.getElementById('slMtgOpenAIKey').value);alert('저장됨')"
+                  style="padding:6px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-family:var(--s)">저장</button>
+              </div>
+            </div>
+
+            <!-- 파일 업로드 존 -->
+            <div id="slMtgDropZone"
+              style="border:2px dashed var(--border2);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;background:var(--bg3)"
+              ondragover="event.preventDefault();this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
+              ondragleave="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'"
+              ondrop="handleSLMtgDrop(event)"
+              onclick="document.getElementById('slMtgFileInput').click()">
+              <div style="font-size:36px;margin-bottom:10px">🎙️</div>
+              <div style="font-size:17px;font-weight:700;color:var(--t);margin-bottom:6px">파일을 드래그하거나 클릭해서 업로드</div>
+              <div style="font-size:13px;color:var(--t3)">🎵 오디오: mp3, mp4, m4a, wav, webm → Whisper STT → Claude 요약</div>
+              <div style="font-size:13px;color:var(--t3)">📄 텍스트: txt, vtt, srt, docx → Claude 직접 요약</div>
+            </div>
+            <input type="file" id="slMtgFileInput" style="display:none"
+              accept=".mp3,.mp4,.m4a,.wav,.webm,.txt,.vtt,.srt,.docx"
+              onchange="handleSLMtgFile(this.files[0])">
+
+            <!-- 직접 입력 -->
+            <div style="margin-bottom:16px">
+              <div style="font-size:15px;font-weight:700;color:var(--t2);margin-bottom:8px">✍️ 또는 내용 직접 입력</div>
+              <textarea id="slMtgDirectInput" class="si" placeholder="회의 내용, 메모, 녹취록 등을 직접 붙여넣기 하세요..."
+                style="width:100%;height:120px;resize:vertical;font-size:14px"></textarea>
+              <button onclick="processSLMtgDirect()"
+                style="margin-top:8px;padding:8px 20px;border-radius:8px;border:none;background:var(--a);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                🤖 직접 입력 요약
+              </button>
+            </div>
+
+            <!-- 진행 상태 -->
+            <div id="slMtgProgress" style="display:none;margin-bottom:16px">
+              <div style="font-size:14px;color:var(--t2);margin-bottom:6px" id="slMtgProgressTxt">처리 중...</div>
+              <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+                <div id="slMtgProgressBar" style="height:100%;width:0%;background:var(--p);border-radius:3px;transition:width .4s"></div>
+              </div>
+            </div>
+
+            <!-- 요약 결과 -->
+            <div id="slMtgResult" style="display:none">
+              <div style="font-size:16px;font-weight:800;color:var(--t);margin-bottom:10px">📋 AI 요약 결과</div>
+              <div id="slMtgResultContent"
+                style="padding:16px;background:var(--bg3);border-radius:10px;font-size:14px;line-height:1.7;white-space:pre-wrap;max-height:300px;overflow-y:auto"></div>
+              <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end">
+                <button onclick="copySLMtgResult()"
+                  style="padding:8px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">
+                  📋 복사
+                </button>
+                <button onclick="saveSLMtgResult()"
+                  style="padding:8px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                  💾 SP에 저장
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <!-- 활동 이력 모달 -->
       <div id="slHistoryModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:24px;width:500px;max-width:95vw;max-height:75vh;overflow-y:auto;position:relative">
@@ -989,7 +1095,7 @@ const SP_FOLDER = "📦영업/99.Dashboard(real-time)";
 const PX_SALES   = "[매출자료]";
 const PX_CONTACT = "[연락처]";
 const PX_PROJECT = "[프로젝트List]";
-const SCOPES = ["User.Read","Files.Read.All","Sites.Read.All","Calendars.ReadWrite","Group.ReadWrite.All","ChannelMessage.Send","Mail.Send","Team.ReadBasic.All","Channel.ReadBasic.All"];
+const SCOPES = ["User.Read","Files.Read.All","Sites.Read.All","Calendars.ReadWrite","Group.ReadWrite.All","ChannelMessage.Send","Mail.Send","Team.ReadBasic.All","Channel.ReadBasic.All","Chat.ReadWrite"];
 let msal_, acct, spSite, spDrive;
 const N = x => { try { const v=parseFloat(x); return isNaN(v)?0:v; } catch{return 0;} };
 const $ = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
@@ -1503,7 +1609,7 @@ async function handleFile(file) {
     }
 
     showProgress(60, "🤖 Claude AI가 요약 중...");
-    const summary = await claudeSummarize(transcript, {
+    const summary = await autoSummarize(transcript, {
       title: document.getElementById("mtg-title").value,
       company: document.getElementById("mtg-co").value,
       date: document.getElementById("mtg-date").value,
@@ -3263,6 +3369,502 @@ async function uploadSLFileToSubfolder(actId, subfolderName) {
 
 
 // ─── SP 파일 삭제/이름변경 (영업활동) ───
+
+async function openSLProposalFiles(actId) {
+  const act = slData.find(x=>x.id===actId);
+  if(!act) return;
+  const modal = document.getElementById("slFileModal");
+  const title = document.getElementById("slFileModalTitle");
+  const body  = document.getElementById("slFileModalBody");
+  title.textContent = act.company + " - 📂 자료";
+  modal.dataset.actId = actId;
+  modal.dataset.fileType = "proposal";
+  modal.style.display = "flex";
+  body.innerHTML = '<div class="sw"><div class="spr"></div></div>';
+
+  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+  const pjFolder = act.pjcode || "신규";
+  const basePath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/자료";
+
+  try {
+    await getIds();
+    const DEFAULT_SUBS = ["제안서","교육","샘플test보고서"];
+    let allSubs = [...DEFAULT_SUBS];
+    try {
+      const enc = basePath.split("/").map(encodeURIComponent).join("/");
+      const fd = await gGet("/drives/"+spDrive+"/root:/"+enc+":/children");
+      (fd.value||[]).filter(f=>f.folder).map(f=>f.name).forEach(n=>{ if(!allSubs.includes(n)) allSubs.push(n); });
+    } catch(e) {}
+
+    body.innerHTML = "";
+    for(const sub of allSubs) {
+      const subPath = basePath+"/"+sub;
+      let files = [];
+      try {
+        const enc = subPath.split("/").map(encodeURIComponent).join("/");
+        const fd2 = await gGet("/drives/"+spDrive+"/root:/"+enc+":/children?$orderby=lastModifiedDateTime desc");
+        files = (fd2.value||[]).filter(f=>!f.folder);
+      } catch(e) {}
+
+      const section = document.createElement("div");
+      section.style.cssText = "margin-bottom:20px";
+      const hdr = document.createElement("div");
+      hdr.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--border2)";
+      hdr.innerHTML = `<div style="font-size:16px;font-weight:800;color:var(--t)">📁 ${sub}</div>`;
+      const upBtn = document.createElement("button");
+      upBtn.textContent = "⬆ 업로드";
+      upBtn.style.cssText = "padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)";
+      upBtn.addEventListener("click", ()=>uploadSLFileToSubfolder(actId, sub));
+      hdr.appendChild(upBtn);
+      section.appendChild(hdr);
+
+      if(files.length === 0) {
+        const empty = document.createElement("div");
+        empty.style.cssText = "padding:12px;background:var(--bg3);border-radius:8px;font-size:14px;color:var(--t3);text-align:center";
+        empty.textContent = "파일 없음";
+        section.appendChild(empty);
+      } else {
+        const tbl = document.createElement("table");
+        tbl.className = "tbl";
+        tbl.innerHTML = "<thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th>열기</th><th>이름변경</th><th>삭제</th></tr></thead>";
+        const tb = document.createElement("tbody");
+        files.forEach(f=>{
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>📄 ${f.name}</td><td style="color:var(--t3)">${Math.round(f.size/1024)}KB</td><td style="color:var(--t3)">${(f.lastModifiedDateTime||"").substring(0,10)}</td><td><a href="${f.webUrl}" target="_blank" style="color:var(--p)">열기→</a></td><td></td><td></td>`;
+          const renBtn = document.createElement("button");
+          renBtn.textContent = "✏️ 이름변경";
+          renBtn.style.cssText = "padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;cursor:pointer;font-size:14px;font-family:var(--s)";
+          renBtn.addEventListener("click", ()=>_renameProposalFile(f.id, f.name, actId));
+          tr.cells[4].appendChild(renBtn);
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "🗑️ 삭제";
+          delBtn.style.cssText = "padding:5px 10px;border-radius:6px;border:1px solid var(--rd);background:var(--rd);color:var(--r);cursor:pointer;font-size:14px;font-family:var(--s)";
+          delBtn.addEventListener("click", ()=>_deleteProposalFile(f.id, f.name, actId));
+          tr.cells[5].appendChild(delBtn);
+          tb.appendChild(tr);
+        });
+        tbl.appendChild(tb);
+        section.appendChild(tbl);
+      }
+      body.appendChild(section);
+    }
+    // 새 폴더 생성
+    const addDiv = document.createElement("div");
+    addDiv.style.cssText = "margin-top:16px;padding-top:14px;border-top:1px solid var(--border)";
+    addDiv.innerHTML = `<div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:8px">+ 새 폴더 만들기</div>
+      <div style="display:flex;gap:8px">
+        <input class="si" type="text" id="slNewSubInModal" placeholder="폴더명 입력..." style="flex:1"
+          onkeydown="if(event.key==='Enter')_createProposalSubfolder('${actId}')">
+        <button onclick="_createProposalSubfolder('${actId}')"
+          style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">생성</button>
+      </div>`;
+    body.appendChild(addDiv);
+  } catch(e) {
+    body.innerHTML = `<div class="empty"><div class="ei">⚠️</div><div class="et">로드 실패: ${e.message}</div></div>`;
+  }
+}
+
+async function _deleteProposalFile(fileId, fileName, actId) {
+  if(!confirm('"'+fileName+'" 파일을 삭제할까요?')) return;
+  try {
+    await getIds();
+    const t = await getToken();
+    await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
+      {method:"DELETE", headers:{"Authorization":"Bearer "+t}});
+    await openSLProposalFiles(actId);
+  } catch(e) { alert("삭제 실패: "+e.message); }
+}
+
+async function _renameProposalFile(fileId, oldName, actId) {
+  const dotIdx = oldName.lastIndexOf(".");
+  const ext = dotIdx>=0 ? oldName.substring(dotIdx) : "";
+  const base = dotIdx>=0 ? oldName.substring(0,dotIdx) : oldName;
+  const newBase = prompt("새 파일명 (확장자 제외):", base);
+  if(!newBase || newBase.trim()===base) return;
+  try {
+    await getIds();
+    const t = await getToken();
+    await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
+      {method:"PATCH", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+       body:JSON.stringify({name:newBase.trim()+ext})});
+    await openSLProposalFiles(actId);
+  } catch(e) { alert("이름 변경 실패: "+e.message); }
+}
+
+async function _createProposalSubfolder(actId) {
+  const name = document.getElementById("slNewSubInModal")?.value.trim();
+  if(!name) { alert("폴더명을 입력해주세요."); return; }
+  const act = slData.find(x=>x.id===actId);
+  if(!act) return;
+  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+  const pjFolder = act.pjcode || "신규";
+  try {
+    await ensureSPFolder(SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/자료/"+name);
+    await openSLProposalFiles(actId);
+  } catch(e) { alert("폴더 생성 실패: "+e.message); }
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 영업활동 회의록 AI 요약 시스템
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let _slMtgActId = null;
+
+// 회의록 모달 열기
+
+// ─── AI 요약 (OpenAI API) ───
+async function autoSummarize(transcript, meta) {
+  return await openAISummarize(transcript, meta);
+}
+
+async function openAISummarize(transcript, meta) {
+  const apiKey = document.getElementById("slMtgOpenAIKey")?.value.trim()
+    || localStorage.getItem("oai_key") || "";
+  if(!apiKey) throw new Error("OpenAI API Key를 입력해주세요.");
+
+  const prompt = `다음은 "${meta.company||""}" 관련 영업 회의/미팅 내용입니다.
+아래 형식으로 한국어 회의록을 작성해주세요:
+
+# 회의록
+- 일시: ${meta.date||new Date().toISOString().split("T")[0]}
+- 회사/거래처: ${meta.company||""}
+- 참석자: ${meta.attendees||""}
+
+## 주요 안건
+(회의에서 다룬 주요 내용을 요약)
+
+## 논의 내용
+(세부 논의 사항)
+
+## 결정 사항
+(합의된 내용)
+
+## 액션 아이템
+- [ ] (담당자: 기한)
+
+## 다음 일정
+(다음 미팅 일정 또는 후속 계획)
+
+---
+[회의/미팅 내용]
+${transcript.substring(0, 12000)}`;
+
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer "+apiKey
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "당신은 ENJET 영업팀의 전문 회의록 작성 AI입니다. 회의 내용을 체계적이고 명확한 한국어 회의록으로 작성해주세요." },
+        { role: "user", content: prompt }
+      ],
+      max_tokens: 2000,
+      temperature: 0.3
+    })
+  });
+
+  if(!r.ok) {
+    const e = await r.json();
+    throw new Error("OpenAI 오류: "+(e.error?.message||r.status));
+  }
+  const data = await r.json();
+  return data.choices?.[0]?.message?.content || "요약 실패";
+}
+
+// ─── Teams 회의 AI 인사이트 가져오기 (Meeting Insights API - GA) ───
+async function fetchTeamsMeetingInsights(callId) {
+  const t = await getToken();
+  const r = await fetch(
+    "https://graph.microsoft.com/v1.0/communications/calls/"+callId+"/aiInsights",
+    { headers: { "Authorization": "Bearer "+t } }
+  );
+  if(!r.ok) { const e=await r.json(); throw new Error(e.error?.message||r.status); }
+  const data = await r.json();
+  const insights = data.value||[];
+  let result = "# Teams 회의 AI 요약\n\n";
+  insights.forEach(ins=>{
+    if(ins.actionItems?.length) {
+      result += "## 액션 아이템\n";
+      ins.actionItems.forEach(a=>{ result+="- "+a.text+"\n"; });
+      result += "\n";
+    }
+    if(ins.meetingNotes?.length) {
+      result += "## 회의 메모\n";
+      ins.meetingNotes.forEach(n=>{ result+="- "+n.text+"\n"; });
+      result += "\n";
+    }
+    if(ins.mentions?.length) {
+      result += "## 언급 사항\n";
+      ins.mentions.forEach(m=>{ result+="- "+m.text+"\n"; });
+    }
+  });
+  return result;
+}
+
+
+async function openSLMinutesModal(actId) {
+  _slMtgActId = actId;
+  const act = slData.find(x=>x.id===actId);
+  if(!act) return;
+
+  const modal = document.getElementById("slMinutesModal");
+  document.getElementById("slMinutesTitle").textContent = "📝 회의록 - "+act.company;
+  document.getElementById("slMinutesSubtitle").textContent = (act.pjcode||"신규")+" · "+act.status;
+  modal.style.display = "flex";
+
+  // OpenAI 키 복원
+  const savedKey = localStorage.getItem("oai_key")||"";
+  const keyEl = document.getElementById("slMtgOpenAIKey");
+  if(keyEl) keyEl.value = savedKey;
+
+  // 키 없으면 안내
+  if(!savedKey) {
+    setTimeout(()=>{
+      const el = document.getElementById("slMtgOpenAIKey");
+      if(el) el.style.borderColor = "var(--a)";
+    }, 300);
+  }
+
+  // 초기화
+  document.getElementById("slMtgResult").style.display = "none";
+  document.getElementById("slMtgProgress").style.display = "none";
+  document.getElementById("slMtgDirectInput").value = "";
+
+  switchMtgTab(1);
+  await loadSLMinutesFiles(actId);
+}
+
+// 탭 전환
+function switchMtgTab(n) {
+  document.getElementById("slMtgPane1").style.display = n===1?"block":"none";
+  document.getElementById("slMtgPane2").style.display = n===2?"block":"none";
+  document.getElementById("slMtgTab1").style.color = n===1?"var(--p)":"var(--t3)";
+  document.getElementById("slMtgTab2").style.color = n===2?"var(--p)":"var(--t3)";
+  document.getElementById("slMtgTab1").style.borderBottomColor = n===1?"var(--p)":"transparent";
+  document.getElementById("slMtgTab2").style.borderBottomColor = n===2?"var(--p)":"transparent";
+}
+
+// 회의록 파일 목록 로드
+async function loadSLMinutesFiles(actId) {
+  const act = slData.find(x=>x.id===actId);
+  if(!act) return;
+  const body = document.getElementById("slMinutesFileBody");
+  body.innerHTML = '<div class="sw"><div class="spr"></div></div>';
+
+  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+  const pjFolder = act.pjcode || "신규";
+  const spPath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/회의록";
+
+  try {
+    await getIds();
+    const enc = spPath.split("/").map(encodeURIComponent).join("/");
+    const fd = await gGet("/drives/"+spDrive+"/root:/"+enc+":/children?$orderby=lastModifiedDateTime desc");
+    const files = (fd.value||[]).filter(f=>!f.folder);
+
+    if(!files.length) {
+      body.innerHTML = '<div class="empty" style="padding:24px"><div class="ei">📝</div><div class="et">회의록 없음</div><div style="font-size:14px;color:var(--t3);margin-top:6px">AI로 회의록을 생성하거나 파일을 업로드하세요</div></div>';
+      return;
+    }
+
+    const spWebUrl = "https://enjetco.sharepoint.com/sites/06.BackOffice/_layouts/15/onedrive.aspx?id="+
+      encodeURIComponent("/sites/06.BackOffice/Shared Documents/"+spPath);
+
+    body.innerHTML = `<div style="margin-bottom:12px;text-align:right">
+      <a href="${spWebUrl}" target="_blank" style="padding:7px 14px;border-radius:8px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:14px;text-decoration:none;font-weight:700">🔗 SP에서 열기</a>
+      </div><table class="tbl"><thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th>열기</th><th>이름변경</th><th>삭제</th></tr></thead><tbody id="slMtgFileBody"></tbody></table>`;
+
+    const tbody = document.getElementById("slMtgFileBody");
+    files.forEach(f=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>📄 ${f.name}</td><td style="color:var(--t3)">${Math.round(f.size/1024)}KB</td><td style="color:var(--t3)">${(f.lastModifiedDateTime||"").substring(0,10)}</td><td><a href="${f.webUrl}" target="_blank" style="color:var(--p)">열기→</a></td><td></td><td></td>`;
+      const renBtn = document.createElement("button");
+      renBtn.textContent = "✏️ 이름변경";
+      renBtn.style.cssText = "padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;cursor:pointer;font-size:14px;font-family:var(--s)";
+      renBtn.addEventListener("click", ()=>_renameMtgFile(f.id, f.name, actId));
+      tr.cells[4].appendChild(renBtn);
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "🗑️ 삭제";
+      delBtn.style.cssText = "padding:5px 10px;border-radius:6px;border:1px solid var(--rd);background:var(--rd);color:var(--r);cursor:pointer;font-size:14px;font-family:var(--s)";
+      delBtn.addEventListener("click", ()=>_deleteMtgFile(f.id, f.name, actId));
+      tr.cells[5].appendChild(delBtn);
+      tbody.appendChild(tr);
+    });
+  } catch(e) {
+    body.innerHTML = '<div class="empty" style="padding:20px"><div class="et">회의록 폴더 없음 - AI로 첫 회의록 생성 시 자동 생성됩니다</div></div>';
+  }
+}
+
+// 파일 드롭/선택
+function handleSLMtgDrop(e) {
+  e.preventDefault();
+  const zone = document.getElementById("slMtgDropZone");
+  zone.style.borderColor = "var(--border2)";
+  zone.style.background = "var(--bg3)";
+  const file = e.dataTransfer.files[0];
+  if(file) handleSLMtgFile(file);
+}
+
+async function handleSLMtgFile(file) {
+  if(!file) return;
+  const key = document.getElementById("slMtgOpenAIKey")?.value.trim() || localStorage.getItem("oai_key")||"";
+  const AUDIO = ["mp3","mp4","m4a","wav","webm"];
+  const ext = file.name.split(".").pop().toLowerCase();
+  const isAudio = AUDIO.includes(ext);
+
+  if(isAudio && !key) {
+    alert("오디오 파일 변환에는 OpenAI API Key가 필요해요.\n위 입력창에 sk-...를 입력해주세요.");
+    return;
+  }
+
+  slMtgShowProgress(10, "📂 파일 읽는 중...");
+
+  try {
+    let transcript = "";
+    if(isAudio) {
+      slMtgShowProgress(20, "🎙️ Whisper STT 변환 중... (파일 크기에 따라 1~3분 소요)");
+      transcript = await whisperSTT(file, key);
+    } else {
+      slMtgShowProgress(30, "📄 텍스트 읽는 중...");
+      transcript = await readTextFile(file);
+    }
+
+    slMtgShowProgress(60, "🤖 Claude AI가 회의록 요약 중...");
+    const act = slData.find(x=>x.id===_slMtgActId)||{};
+    const summary = await autoSummarize(transcript, {
+      title: act.company+" 회의",
+      company: act.company||"",
+      attendees: act.custMgr||"",
+      date: new Date().toISOString().split("T")[0],
+      type: "영업미팅"
+    });
+
+    slMtgShowProgress(100, "✅ 완료!");
+    showSLMtgResult(summary);
+  } catch(e) {
+    slMtgHideProgress();
+    alert("오류: "+e.message);
+  }
+}
+
+async function processSLMtgDirect() {
+  const txt = document.getElementById("slMtgDirectInput")?.value.trim();
+  if(!txt) { alert("내용을 입력해주세요."); return; }
+
+  slMtgShowProgress(30, "🤖 Claude AI가 요약 중...");
+  try {
+    const act = slData.find(x=>x.id===_slMtgActId)||{};
+    const summary = await autoSummarize(txt, {
+      title: act.company+" 회의",
+      company: act.company||"",
+      attendees: act.custMgr||"",
+      date: new Date().toISOString().split("T")[0],
+      type: "영업미팅"
+    });
+    slMtgShowProgress(100, "✅ 완료!");
+    showSLMtgResult(summary);
+  } catch(e) {
+    slMtgHideProgress();
+    alert("오류: "+e.message);
+  }
+}
+
+function slMtgShowProgress(pct, txt) {
+  const p = document.getElementById("slMtgProgress");
+  const bar = document.getElementById("slMtgProgressBar");
+  const label = document.getElementById("slMtgProgressTxt");
+  if(p) p.style.display = "block";
+  if(bar) bar.style.width = pct+"%";
+  if(label) label.textContent = txt;
+  document.getElementById("slMtgResult").style.display = "none";
+}
+
+function slMtgHideProgress() {
+  const p = document.getElementById("slMtgProgress");
+  if(p) p.style.display = "none";
+}
+
+function showSLMtgResult(text) {
+  slMtgHideProgress();
+  const el = document.getElementById("slMtgResult");
+  const content = document.getElementById("slMtgResultContent");
+  if(el) el.style.display = "block";
+  if(content) content.textContent = text;
+}
+
+function copySLMtgResult() {
+  const txt = document.getElementById("slMtgResultContent")?.textContent||"";
+  navigator.clipboard.writeText(txt).then(()=>alert("📋 복사됐어요!"));
+}
+
+async function saveSLMtgResult() {
+  const act = slData.find(x=>x.id===_slMtgActId);
+  if(!act) return;
+  const txt = document.getElementById("slMtgResultContent")?.textContent||"";
+  if(!txt) return;
+
+  const today = new Date().toISOString().split("T")[0];
+  const fileName = today+"_"+act.company+"_회의록.txt";
+  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+  const pjFolder = act.pjcode || "신규";
+  const spPath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/회의록";
+
+  try {
+    await ensureSPFolder(spPath);
+    await getIds();
+    const t = await getToken();
+    const enc = spPath.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(
+      "https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+"/"+encodeURIComponent(fileName)+":/content",
+      {method:"PUT", headers:{"Authorization":"Bearer "+t,"Content-Type":"text/plain;charset=utf-8"},
+       body: new Blob([txt], {type:"text/plain;charset=utf-8"})}
+    );
+    if(!r.ok) throw new Error(r.status);
+
+    // 히스토리 기록
+    if(!act.history) act.history=[];
+    act.history.unshift({date:today, action:"🤖 AI 회의록 생성: "+fileName, type:"file"});
+    act.lastActivity = today;
+    act.updatedAt = new Date().toISOString();
+    await saveSLToSP();
+    renderSLAll();
+
+    alert("✅ 회의록 저장 완료!\n"+spPath+"/"+fileName);
+    switchMtgTab(1);
+    await loadSLMinutesFiles(_slMtgActId);
+  } catch(e) { alert("저장 실패: "+e.message); }
+}
+
+// 회의록 파일 삭제/이름변경
+async function _deleteMtgFile(fileId, fileName, actId) {
+  if(!confirm('"'+fileName+'" 파일을 삭제할까요?')) return;
+  try {
+    await getIds();
+    const t = await getToken();
+    await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
+      {method:"DELETE", headers:{"Authorization":"Bearer "+t}});
+    await loadSLMinutesFiles(actId);
+  } catch(e) { alert("삭제 실패: "+e.message); }
+}
+
+async function _renameMtgFile(fileId, oldName, actId) {
+  const dotIdx = oldName.lastIndexOf(".");
+  const ext = dotIdx>=0 ? oldName.substring(dotIdx) : "";
+  const base = dotIdx>=0 ? oldName.substring(0,dotIdx) : oldName;
+  const newBase = prompt("새 파일명 (확장자 제외):", base);
+  if(!newBase || newBase.trim()===base) return;
+  try {
+    await getIds();
+    const t = await getToken();
+    await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
+      {method:"PATCH", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+       body:JSON.stringify({name:newBase.trim()+ext})});
+    await loadSLMinutesFiles(actId);
+  } catch(e) { alert("이름 변경 실패: "+e.message); }
+}
+
 async function _deleteSLFile(fileId, fileName, actId, fileType) {
   if(!confirm('"'+fileName+'" 파일을 삭제할까요?\nSharePoint에서도 삭제됩니다.')) return;
   try {
@@ -3583,13 +4185,22 @@ function renderSLTable(data) {
     </select>`;
     const fileCols=FILE_TYPES.map(ft=>{
       const cnt=(r.files?.[ft.key]||[]).length;
+      // 회의록은 별도 AI 요약 모달
+      if(ft.key==="minutes") {
+        return `<td style="text-align:center">
+          <button onclick="openSLMinutesModal('${r.id}')"
+            style="padding:4px 10px;border-radius:6px;border:1px solid ${cnt>0?"var(--g)":"var(--p)"};background:${cnt>0?"var(--gd)":"var(--pd)"};color:${cnt>0?"var(--g)":"var(--p)"};font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
+            ${cnt>0?"📝 "+cnt+"개":"📝 작성"}
+          </button>
+        </td>`;
+      }
       return `<td style="text-align:center">
         ${cnt>0
-          ?`<button onclick="openSLFileModal('${r.id}','${ft.key}')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">${ft.label} ${cnt}개</button>`
-          :`<button onclick="uploadSLFile('${r.id}','${ft.key}')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer;white-space:nowrap">⬆</button>`
+          ?`<button onclick="openSLFileModal('${r.id}','${ft.key}')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">${ft.label} ${cnt}개</button>`
+          :`<button onclick="uploadSLFile('${r.id}','${ft.key}')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer;white-space:nowrap">⬆</button>`
         }
       </td>`;
-    }).join("");
+    }).join("");;
     return `<tr>
       <td>
         <div style="font-size:15px;font-weight:700;color:var(--t)">${r.company}</div>
@@ -3841,8 +4452,8 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
 }
 
 async function openSLFileModal(actId, fileType) {
-  // 자료(proposal)는 서브폴더 선택 팝업으로
-  if(fileType==="proposal") { openSLSubfolderModal(actId); return; }
+  // 자료(proposal)는 하위 폴더별 파일 목록 표시
+  if(fileType==="proposal") { await openSLProposalFiles(actId); return; }
   const act=slData.find(x=>x.id===actId);
   if(!act) return;
   const FOLDER_MAP={minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
