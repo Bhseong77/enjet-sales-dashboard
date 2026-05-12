@@ -2105,14 +2105,20 @@ async function syncExhFromTeams() {
     ]);
 
     // 이벤트를 전시회 형식으로 변환
-    // 카테고리 필터: 전시회 카테고리만, 없으면 전체
-    const SL_CATS = ["영업활동"];
+    // 필터: [전시회] 제목 prefix OR 전시회 카테고리 → 전시회
+    //       [영업] prefix OR 영업활동 카테고리 → 제외
     const teamsEvts = (events.value||[]).filter(e=>{
       if(!e.subject) return false;
       const cats = e.categories||[];
-      // 영업활동 카테고리면 제외
-      if(cats.some(c=>SL_CATS.includes(c))) return false;
-      return true;
+      const title = e.subject||"";
+      // [영업] prefix 또는 영업활동 카테고리 → 제외
+      if(title.startsWith("[영업]") || title.startsWith("[영업활동]") || cats.includes("영업활동")) return false;
+      // [전시회] prefix 또는 전시회 카테고리 → 포함
+      if(title.startsWith("[전시회]") || cats.some(c=>["국내전시회","해외전시회","전시회"].includes(c))) return true;
+      // exhibitions.json에 저장된 로컬 항목 → 포함
+      if(e.source === "local") return true;
+      // 둘 다 없으면 → 제외 (영업 기본값)
+      return false;
     }).map(e=>{
       const loc = e.location?.displayName||"";
       // 날짜 처리: allDay면 date, 아니면 dateTime에서 날짜만 추출
@@ -2137,7 +2143,7 @@ async function syncExhFromTeams() {
       const bodyText = (e.body?.content||"").replace(/<[^>]*>/g,"").trim();
       return {
         id: e.id,
-        name: e.subject,
+              name: (e.subject||"").replace(/^\[(전시회|영업|영업활동)\]\s*/,""),
         start: startD,
         end: endD||startD,
         region: existing?.region||(isDOM?"국내":"해외"),
@@ -2938,20 +2944,22 @@ async function syncSLFromTeams() {
     $("sl-period",from+" ~ "+to);
 
     const events = await gGet("/groups/"+gid+"/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100&$orderby=start/dateTime");
-    // 카테고리 필터: "영업활동" 또는 카테고리 없는 것 (전시회 제외)
-    const EXH_CATS = ["국내전시회","해외전시회","전시회"];
+    // 필터: [영업] prefix OR 영업활동 카테고리 → 영업활동
+    //       [전시회] prefix OR 전시회 카테고리 → 제외
     slCalData = (events.value||[]).filter(e=>{
       if(!e.subject) return false;
       const cats = e.categories||[];
-      // 전시회 카테고리면 제외
-      if(cats.some(c=>EXH_CATS.includes(c))) return false;
-      // 영업활동 카테고리 있으면 포함
-      if(cats.includes("영업활동")) return true;
-      // 카테고리 없는 것도 포함 (기존 등록분)
-      return true;
+      const title = e.subject||"";
+      // [전시회] prefix 또는 전시회 카테고리 → 제외
+      if(title.startsWith("[전시회]") || cats.some(c=>["국내전시회","해외전시회","전시회"].includes(c))) return false;
+      // [영업] prefix 또는 영업활동 카테고리 → 포함
+      if(title.startsWith("[영업]") || title.startsWith("[영업활동]") || cats.includes("영업활동")) return true;
+      // 아무 prefix도 카테고리도 없으면 → 영업활동 기본 포함
+      if(!cats.length && !title.startsWith("[")) return true;
+      return false;
     }).map(e=>({
       id: e.id,
-      title: e.subject,
+            title: (e.subject||"").replace(/^\[(영업|영업활동|전시회)\]\s*/,""),
       start: (e.start?.dateTime||e.start?.date||"").split("T")[0],
       end:   (e.end?.dateTime||e.end?.date||"").split("T")[0],
       organizer: e.organizer?.emailAddress?.name||"",
@@ -3265,9 +3273,11 @@ async function requestPJCode(id) {
 // ─── Teams 이벤트 → 영업활동 매칭 ───
 function syncSLActivityFromEvent(evt, save) {
   const title = evt.title||"";
-  // 전시회 카테고리 이벤트는 영업활동으로 변환 안 함
+  // 전시회 이벤트는 영업활동으로 변환 안 함
   const EXH_CATS = ["국내전시회","해외전시회","전시회"];
+  const title0 = evt.title||"";
   if((evt.categories||[]).some(c=>EXH_CATS.includes(c))) return "skipped";
+  if(title0.startsWith("[전시회]")) return "skipped";
   const pjMatch = title.match(/([A-Z]{2,3}\d{4,6}[-\w]*)/);
   const pjCode = pjMatch ? pjMatch[1] : "";
   let company = title
