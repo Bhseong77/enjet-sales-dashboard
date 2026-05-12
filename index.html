@@ -295,8 +295,38 @@
   /* FAB은 JS에서 탭에 따라 flex/none 제어 - CSS에서 강제 display:flex 제거 */
   #btnRefreshMob{display:flex !important;padding:6px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);font-size:18px;cursor:pointer}
 }
-/* ━━ 모달 z-index 계층 ━━
-   기본 모달(9999) → 견적서(10001) → 피커(10200) 순으로 항상 위에 표시 */
+/* ━━ 참석자 태그 입력 ━━ */
+.mtg-tag-box{
+  display:flex;flex-wrap:wrap;gap:5px;
+  min-height:34px;padding:5px 8px;
+  border:1.5px solid var(--border2);border-radius:7px;
+  background:#fff;cursor:text;
+}
+.mtg-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;border-radius:20px;
+  font-size:13px;font-weight:600;font-family:var(--s);
+  line-height:1.4;white-space:nowrap;
+}
+.mtg-tag .mtg-tag-x{
+  cursor:pointer;font-size:15px;line-height:1;
+  opacity:.6;transition:opacity .15s;
+}
+.mtg-tag .mtg-tag-x:hover{opacity:1}
+.mtg-suggest{
+  position:relative;z-index:10;
+  background:#fff;border:1px solid var(--border2);
+  border-radius:7px;margin-top:3px;
+  max-height:140px;overflow-y:auto;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+  display:none;
+}
+.mtg-suggest-item{
+  padding:7px 12px;cursor:pointer;font-size:13px;
+  border-bottom:1px solid var(--border);transition:background .1s;
+}
+.mtg-suggest-item:last-child{border-bottom:none}
+/* ━━ 모달 z-index 계층 ━━ */
 #custMgrPickerModal { z-index: 10200 !important; }
 #pjCodePickerModal  { z-index: 10200 !important; }
 #newContactModal    { z-index: 10200 !important; }
@@ -325,8 +355,9 @@
       <div class="ni" onclick="go('pipeline',this)">🔄 파이프라인 <span class="nb nbg" id="badge-pl">-</span></div>
       <div class="sb-sec">영업활동</div>
       <div class="ni" onclick="go('sales-log',this)">📋 영업활동 <span class="nb nbg" id="badge-sl">-</span></div>
-      <div class="ni" onclick="go('sales-meeting',this)">📝 미팅 로그 <span class="nb nbg" id="badge-sm">0</span></div>
-      <div class="ni" onclick="go('customer',this)">🏭 고객사 관리 <span class="nb nbg" id="badge-ct">-</span></div>
+      <div class="ni" onclick="go('quote-db',this)">📄 견적서 DB <span class="nb nbg" id="badge-qdb">0</span></div>
+      <div class="ni" onclick="go('sales-meeting',this)">📝 회의록 DB <span class="nb nbg" id="badge-sm">0</span></div>
+      <div class="ni" onclick="go('customer',this)">🏭 고객사 DB <span class="nb nbg" id="badge-ct">-</span></div>
       <div class="sb-sec">마케팅</div>
       <div class="ni" onclick="go('marketing',this)">📣 마케팅 활동</div>
       <div class="ni" onclick="go('mkt-meeting',this)">📝 미팅 로그 (마케팅)</div>
@@ -545,23 +576,28 @@
         <div class="kpi c3"><div class="kl">국내</div><div class="kv"><span id="ct-dom">-</span><span style="font-size:15px;color:var(--t2)">명</span></div><div class="ks"></div></div>
         <div class="kpi c4"><div class="kl">해외</div><div class="kv"><span id="ct-int">-</span><span style="font-size:15px;color:var(--t2)">명</span></div><div class="ks"></div></div>
       </div>
+
+      <!-- 액션 바 -->
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <button onclick="syncFromSharedOutlookContacts()" id="btnSyncShared"
+          style="padding:5px 12px;border-radius:7px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
+          🔗 팀원 Outlook 읽기
+        </button>
+        <button onclick="syncContactsToOutlook()" id="btnSyncOutlook"
+          style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
+          📤 Outlook 내보내기
+        </button>
+        <button onclick="openNewContactModal()"
+          style="padding:5px 14px;border-radius:7px;border:none;background:var(--g);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
+          + 신규 담당자
+        </button>
+      </div>
+
       <div class="g2">
         <div class="card" style="margin-bottom:0">
           <div class="ch">
             <div class="ct"><div class="ci c1">🏢</div>고객사 목록</div>
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-              <span style="font-size:14px;color:var(--t3)" id="ct-upd">-</span>
-              <button onclick="syncFromSharedOutlookContacts()" id="btnSyncShared"
-                style="padding:4px 9px;border-radius:7px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)"
-                title="팀원이 공유한 Outlook ENJET 고객사 폴더를 읽어서 통합합니다">
-                🔗 팀원 Outlook 읽기
-              </button>
-              <button onclick="syncContactsToOutlook()" id="btnSyncOutlook"
-                style="padding:4px 9px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)"
-                title="전체 연락처를 내 Outlook에 동기화">
-                📤 Outlook 내보내기
-              </button>
-            </div>
+            <span style="font-size:14px;color:var(--t3)" id="ct-upd">-</span>
           </div>
           <div class="cb" style="padding:8px 12px">
             <div style="display:flex;gap:6px;margin-bottom:8px">
@@ -576,7 +612,7 @@
             <div class="ct"><div class="ci c2">👥</div>담당자 <span id="selCoNm" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:3px">회사를 선택하세요</span></div>
             <div style="display:flex;align-items:center;gap:5px">
               <span style="font-size:14px;color:var(--t3)" id="ctCnt"></span>
-              <button onclick="openNewContactModal()" 
+              <button onclick="openNewContactModal(selCo)"
                 style="padding:3px 10px;border-radius:7px;border:none;background:var(--g);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규</button>
             </div>
           </div>
@@ -1247,12 +1283,12 @@
 
       <!-- 프로젝트코드 검색 + 신규등록 모달 -->
       <!-- 고객사 탭 신규 담당자 직접 등록 모달 (옵션 A) -->
-      <div id="newContactModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div id="newContactModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10200;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div class="modal-inner" style="background:#fff;border-radius:16px;padding:24px;width:580px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
           <button onclick="closeNewContactModal()"
             style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
           <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:6px">👤 신규 담당자 등록</div>
-          <div style="font-size:13px;color:var(--t3);margin-bottom:16px">고객사 관리 탭 + Outlook 연락처 + 팀원 공유에 자동 반영됩니다</div>
+          <div style="font-size:13px;color:var(--t3);margin-bottom:16px">고객사 DB + Outlook 연락처 + 팀원 공유에 자동 반영됩니다</div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div>
@@ -1322,6 +1358,162 @@
               style="padding:8px 16px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
             <button onclick="saveNewContact()"
               style="padding:8px 20px;border-radius:8px;border:none;background:var(--g);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 회의록 DB 독립 작성 모달 -->
+      <div id="mtgDBModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10001;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div class="modal-inner" style="background:#fff;border-radius:14px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative">
+          <button onclick="closeMtgDBModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin:16px 20px 4px">📝 회의록 작성</div>
+          <!-- 미연결 알림 바 -->
+          <div id="mtg-db-mode-bar" style="margin:0 16px 12px;padding:8px 12px;background:#fef9c3;border-radius:8px;border:1px solid #fde047;display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div style="font-size:13px;color:#854d0e">⚠️ <b>독립 작성 모드</b> — 영업활동 미연결. 저장 후 연결 가능합니다.</div>
+            <button onclick="showMtgActLinkModal()" style="padding:3px 10px;border-radius:6px;border:1.5px solid #854d0e;background:transparent;color:#854d0e;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s);white-space:nowrap">🔗 연결</button>
+          </div>
+          <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">고객사 <span style="color:var(--t3);font-weight:400">(미확정 가능)</span></label>
+                <input class="si" type="text" id="mtgdb-company" placeholder="예: 셀러메드 (선택사항)" style="width:100%">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">프로젝트코드 <span style="color:var(--t3);font-weight:400">(선택)</span></label>
+                <input class="si" type="text" id="mtgdb-pjcode" placeholder="예: BM26003 또는 신규1차" style="width:100%">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">회의 일시 *</label>
+                <input class="si" type="date" id="mtgdb-date" style="width:100%">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">유형</label>
+                <select class="ss" id="mtgdb-type" style="width:100%">
+                  <option value="영업미팅">영업미팅</option>
+                  <option value="기술미팅">기술미팅</option>
+                  <option value="전화상담">전화상담</option>
+                  <option value="화상회의">화상회의</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">장소</label>
+                <input class="si" type="text" id="mtgdb-place" placeholder="예: 고객사 회의실, 화상" style="width:100%">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">✍️ 작성자</label>
+                <input class="si" type="text" id="mtgdb-author" placeholder="회의록 작성자" style="width:100%">
+              </div>
+            </div>
+
+            <!-- 참석자 섹션 - 태그 방식 -->
+            <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:13px;font-weight:800;color:var(--t2)">👥 참석자</div>
+
+              <!-- 작성자 -->
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">✍️ 작성자 <span style="font-weight:400;color:var(--t3)">(회의록 작성한 사람)</span></label>
+                <div class="mtg-tag-box" id="mtg-author-tags" style="border-color:var(--border2)"></div>
+                <div style="display:flex;gap:6px;margin-top:5px">
+                  <input class="si" type="text" id="mtg-author-input" placeholder="이름 입력 후 Enter"
+                    style="flex:1;font-size:14px;padding:6px 9px"
+                    onkeydown="addMtgTag('author',event)" oninput="showMtgSuggest('author',this)">
+                  <button onclick="addMtgTagBtn('author')" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:#fff;font-size:14px;cursor:pointer">+</button>
+                </div>
+                <div class="mtg-suggest" id="mtg-author-suggest"></div>
+              </div>
+
+              <!-- 영업담당자 -->
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:5px">🏢 영업담당자 <span style="font-weight:400;color:var(--t3)">(ENJET 내부)</span></label>
+                <div class="mtg-tag-box" id="mtg-sales-tags" style="border-color:var(--p)"></div>
+                <div style="display:flex;gap:6px;margin-top:5px">
+                  <input class="si" type="text" id="mtg-sales-input" placeholder="이름 입력 후 Enter"
+                    style="flex:1;font-size:14px;padding:6px 9px"
+                    onkeydown="addMtgTag('sales',event)" oninput="showMtgSuggest('sales',this)">
+                  <button onclick="addMtgTagBtn('sales')" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:#fff;font-size:14px;cursor:pointer">+</button>
+                </div>
+                <div class="mtg-suggest" id="mtg-sales-suggest"></div>
+              </div>
+
+              <!-- 고객사 참석자 -->
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:5px">🏭 고객사 참석자</label>
+                <div class="mtg-tag-box" id="mtg-attendees-tags" style="border-color:var(--g)"></div>
+                <div style="display:flex;gap:6px;margin-top:5px">
+                  <input class="si" type="text" id="mtg-attendees-input" placeholder="이름 입력 후 Enter (예: 홍길동 부장)"
+                    style="flex:1;font-size:14px;padding:6px 9px"
+                    onkeydown="addMtgTag('attendees',event)" oninput="showMtgSuggest('attendees',this)">
+                  <button onclick="addMtgTagBtn('attendees')" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:#fff;font-size:14px;cursor:pointer">+</button>
+                </div>
+                <div class="mtg-suggest" id="mtg-attendees-suggest"></div>
+              </div>
+            </div>
+
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 회의 내용 *</label>
+              <textarea class="si" id="mtgdb-content" rows="8"
+                placeholder="회의 내용을 입력하세요.&#10;&#10;[안건]&#10;1. ...&#10;&#10;[주요 내용]&#10;- ...&#10;&#10;[결정 사항]&#10;- ...&#10;&#10;[다음 액션]&#10;- ..."
+                style="width:100%;resize:vertical;line-height:1.7;font-size:14px"></textarea>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📎 파일 첨부 <span style="color:var(--t3);font-weight:400">(클로바노트 내보내기 등)</span></label>
+              <input type="file" id="mtgdb-file" multiple
+                accept="application/pdf,audio/*,video/*,.pdf,.doc,.docx,.txt,.mp3,.mp4,.m4a,*/*"
+                style="flex:1;font-size:13px;padding:5px;width:100%">
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid var(--border)">
+              <button onclick="closeMtgDBModal()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+              <button onclick="saveMtgDBEntry()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 회의록 영업활동 연결 모달 -->
+      <div id="mtgActLinkModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10200;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div class="modal-inner" style="background:#fff;border-radius:14px;width:600px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
+          <button onclick="closeMtgActLinkModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin:16px 20px 4px">🔗 영업활동 연결</div>
+          <div style="font-size:13px;color:var(--t3);margin:0 20px 12px">이 회의록을 연결할 영업활동을 선택하세요</div>
+          <div style="padding:0 16px 12px;border-bottom:1px solid var(--border)">
+            <input class="si" type="text" id="mtgActLinkSrch" placeholder="🔍 고객사 / 프로젝트코드..." oninput="renderMtgActLinkList(this.value)" style="width:100%;font-size:16px">
+          </div>
+          <div id="mtgActLinkBody" style="max-height:55vh;overflow-y:auto"></div>
+          <div style="padding:10px 16px;border-top:1px solid var(--border);text-align:right">
+            <button onclick="closeMtgActLinkModal()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:13px;cursor:pointer;font-family:var(--s)">나중에 연결</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 영업활동 연결 모달 (견적서 DB → 영업활동) -->
+      <div id="actLinkModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10200;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div class="modal-inner" style="background:#fff;border-radius:14px;width:600px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
+          <button onclick="closeActLinkModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin:16px 20px 4px">🔗 영업활동 연결</div>
+          <div style="font-size:13px;color:var(--t3);margin:0 20px 12px">연결할 영업활동을 선택하세요. 나중에 변경 가능합니다.</div>
+          <div style="padding:0 16px 12px;border-bottom:1px solid var(--border)">
+            <input class="si" type="text" id="actLinkSrch" placeholder="🔍 고객사 / 프로젝트코드 검색..." oninput="renderActLinkList(this.value)" style="width:100%;font-size:16px">
+          </div>
+          <div id="actLinkBody" style="max-height:55vh;overflow-y:auto"></div>
+          <div style="padding:10px 16px;border-top:1px solid var(--border);text-align:right">
+            <button onclick="closeActLinkModal()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:13px;cursor:pointer;font-family:var(--s)">나중에 연결</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 견적서 DB 피커 모달 (영업활동에서 견적서 연결) -->
+      <div id="qdbPickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10200;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div class="modal-inner" style="background:#fff;border-radius:14px;width:680px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
+          <button onclick="closeQDBPicker()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin:16px 20px 6px">📄 견적서 DB에서 연결</div>
+          <div style="font-size:13px;color:var(--t3);margin:0 20px 12px">작성된 견적서를 영업활동에 연결합니다</div>
+          <div style="padding:0 16px 12px;border-bottom:1px solid var(--border)">
+            <input class="si" type="text" id="qdbPickerSrch" placeholder="🔍 견적NO / 고객사 / 품목명..." oninput="renderQDBPickerList(this.value)" style="width:100%;font-size:16px">
+          </div>
+          <div id="qdbPickerBody" style="max-height:60vh;overflow-y:auto"></div>
+          <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <button onclick="openQuoteModal(document.getElementById('qdbPickerModal')._actId);closeQDBPicker()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 새 견적서 작성</button>
+            <button onclick="closeQDBPicker()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:13px;cursor:pointer;font-family:var(--s)">취소</button>
           </div>
         </div>
       </div>
@@ -1413,10 +1605,20 @@
             <div style="font-size:15px;font-weight:800">📄 견적서 작성 — ENJET-QUO-02</div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
               <button onclick="uploadQuoteFile()" style="padding:5px 12px;border-radius:7px;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">📎 파일 올리기</button>
+              <button onclick="generateQuoteExcel()" style="padding:5px 12px;border-radius:7px;border:none;background:#00875a;color:#fff;font-size:13px;cursor:pointer;font-weight:800;font-family:var(--s)" title="실제 엑셀 양식으로 저장">📊 엑셀 저장</button>
               <button onclick="printQuote()" style="padding:5px 12px;border-radius:7px;border:none;background:#fff;color:var(--p);font-size:13px;cursor:pointer;font-weight:800;font-family:var(--s)">🖨️ PDF 저장</button>
-              <button onclick="saveQuoteToDashboard()" style="padding:5px 12px;border-radius:7px;border:none;background:#00875a;color:#fff;font-size:13px;cursor:pointer;font-weight:800;font-family:var(--s)">💾 저장</button>
-              <button onclick="closeQuoteModal()" style="padding:5px 10px;border-radius:7px;border:none;background:rgba(255,255,255,0.2);color:#fff;font-size:20px;cursor:pointer;line-height:1">✕</button>
+              <button onclick="saveQuoteToDashboard()" style="padding:5px 12px;border-radius:7px;border:none;background:rgba(255,255,255,0.2);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 임시저장</button>
+              <button onclick="closeQuoteModal()" style="padding:5px 10px;border-radius:7px;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:20px;cursor:pointer;line-height:1">✕</button>
             </div>
+          </div>
+
+          <!-- DB 모드 알림 바 (영업활동 미연결 시) -->
+          <div id="q-db-mode-bar" style="display:none;align-items:center;justify-content:space-between;padding:8px 16px;background:#fef9c3;border-bottom:1px solid #fde047;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#854d0e">
+              <span>⚠️</span>
+              <span><b>견적서 DB 독립 모드</b> — 영업활동에 연결되지 않음. 저장 후 DB 탭에서 영업활동과 연결할 수 있습니다.</span>
+            </div>
+            <button onclick="linkQuoteToActivity()" style="padding:4px 12px;border-radius:6px;border:1.5px solid #854d0e;background:transparent;color:#854d0e;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s);white-space:nowrap">🔗 영업활동 연결</button>
           </div>
           <!-- 2단: 입력 폼 + 미리보기 -->
           <div style="display:grid;grid-template-columns:320px 1fr;min-height:600px">
@@ -1676,38 +1878,119 @@
     </div>
 
     <!-- 미팅 -->
-      <div class="page" id="tab-sales-meeting">
-      <div class="card">
-        <div class="ch">
-          <div class="ct"><div class="ci c2">📝</div>미팅 로그 (영업)</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input class="si" type="text" id="mtgLogSrch" placeholder="🔍 고객사/내용 검색..." oninput="filterMtgLog()" style="width:200px">
-            <select class="ss" id="mtgLogType" onchange="filterMtgLog()">
-              <option value="">전체</option>
-              <option value="영업미팅">영업미팅</option>
-              <option value="기술미팅">기술미팅</option>
-              <option value="전화상담">전화상담</option>
-            </select>
-            <span style="font-size:13px;color:var(--t3)" id="mtgLogUpd">-</span>
+      <!-- 견적서 DB 탭 -->
+      <div class="page" id="tab-quote-db">
+        <!-- KPI -->
+        <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px" id="qdb-kpi">
+          <div class="kpi"><div class="kl">📄 총 견적 건수</div><div class="kv" id="qdb-tot">0</div><div class="ks">건</div></div>
+          <div class="kpi"><div class="kl">💰 총 견적 금액</div><div class="kv" id="qdb-amt">0</div><div class="ks">억원</div></div>
+          <div class="kpi"><div class="kl">✅ 수주 전환</div><div class="kv" id="qdb-won">0</div><div class="ks">건</div></div>
+          <div class="kpi"><div class="kl">📊 평균 견적 금액</div><div class="kv" id="qdb-avg">0</div><div class="ks">억원</div></div>
+        </div>
+
+        <div class="card">
+          <div class="ch">
+            <div class="ct"><div class="ci c1">📄</div>견적서 목록</div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:14px;color:var(--t3)" id="qdb-upd">-</span>
+              <button onclick="openQuoteModal(null)" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button>
+            </div>
+          </div>
+          <div class="cb" style="padding:8px 12px">
+            <!-- 검색/필터 -->
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+              <input class="si" type="text" id="qdbSrch" placeholder="🔍 견적NO / 고객사 / 품목명..." oninput="filterQDB()" style="flex:1;min-width:200px">
+              <select class="ss" id="qdbStatusFilter" onchange="filterQDB()" style="min-width:120px">
+                <option value="">전체 상태</option>
+                <option value="견적중">견적중</option>
+                <option value="수주">✅ 수주</option>
+                <option value="실패">❌ 실패</option>
+                <option value="보류">⏸ 보류</option>
+              </select>
+              <select class="ss" id="qdbCoFilter" onchange="filterQDB()" style="min-width:120px">
+                <option value="">전체 고객사</option>
+              </select>
+            </div>
+            <!-- 견적서 목록 테이블 -->
+            <div style="overflow-x:auto">
+              <table class="tbl" style="min-width:900px">
+                <thead><tr>
+                  <th style="min-width:160px">견적 NO / 문서번호</th>
+                  <th style="min-width:110px">고객사</th>
+                  <th style="min-width:200px">품목명</th>
+                  <th style="min-width:100px;text-align:right">견적 금액</th>
+                  <th style="min-width:90px">견적 일자</th>
+                  <th style="min-width:90px">담당자</th>
+                  <th style="min-width:80px">상태</th>
+                  <th style="min-width:100px;text-align:center">파일</th>
+                  <th style="min-width:50px"></th>
+                </tr></thead>
+                <tbody id="qdbBody">
+                  <tr><td colspan="9"><div class="empty"><div class="ei">📄</div><div class="et">견적서 없음</div></div></td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-        <div class="cb" style="padding:10px 14px">
-          <div style="overflow-x:auto"><table class="tbl" style="min-width:700px">
-            <thead><tr>
-              <th>일시</th><th>고객사</th><th>프로젝트</th>
-              <th>장소</th><th>참석자</th><th>회의록</th><th>유형</th>
-            </tr></thead>
-            <tbody id="mtgLogBody">
-              <tr><td colspan="7"><div class="empty"><div class="ei">📝</div>
-                <div class="et">미팅 로그 없음</div>
-                <div style="font-size:13px;color:var(--t3);margin-top:6px">영업활동 Log에서 회의록 생성 시 자동으로 여기에 기록됩니다</div>
-              </div></td></tr>
-            </tbody>
-          </table></div>
-          <div style="font-size:13px;color:var(--t3);margin-top:8px;text-align:right" id="mtgLogCnt"></div>
+      </div>
+
+      <!-- 회의록 DB 탭 -->
+      <div class="page" id="tab-sales-meeting">
+
+        <!-- KPI -->
+        <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
+          <div class="kpi"><div class="kl">📝 총 회의록</div><div class="kv" id="mtg-tot">0</div><div class="ks">건</div></div>
+          <div class="kpi"><div class="kl">⚠️ 미연결</div><div class="kv" id="mtg-unlinked" style="color:var(--r)">0</div><div class="ks">건</div></div>
+          <div class="kpi"><div class="kl">🔗 연결됨</div><div class="kv" id="mtg-linked" style="color:var(--g)">0</div><div class="ks">건</div></div>
+          <div class="kpi"><div class="kl">📅 이번 달</div><div class="kv" id="mtg-month">0</div><div class="ks">건</div></div>
+        </div>
+
+        <div class="card">
+          <div class="ch">
+            <div class="ct"><div class="ci c2">📝</div>회의록 DB</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input class="si" type="text" id="mtgLogSrch" placeholder="🔍 고객사/내용/담당자..." oninput="filterMtgLog()" style="width:180px">
+              <select class="ss" id="mtgLogType" onchange="filterMtgLog()">
+                <option value="">전체 유형</option>
+                <option value="영업미팅">영업미팅</option>
+                <option value="기술미팅">기술미팅</option>
+                <option value="전화상담">전화상담</option>
+                <option value="화상회의">화상회의</option>
+              </select>
+              <select class="ss" id="mtgLinkFilter" onchange="filterMtgLog()" style="min-width:100px">
+                <option value="">전체</option>
+                <option value="unlinked">⚠️ 미연결만</option>
+                <option value="linked">🔗 연결됨만</option>
+              </select>
+              <span style="font-size:13px;color:var(--t3)" id="mtgLogUpd">-</span>
+              <button onclick="openMtgDBModal()" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button>
+            </div>
+          </div>
+          <div class="cb" style="padding:10px 14px">
+            <div style="overflow-x:auto"><table class="tbl" style="min-width:800px">
+              <thead><tr>
+                <th style="min-width:90px">일시</th>
+                <th style="min-width:110px">고객사</th>
+                <th style="min-width:100px">프로젝트</th>
+                <th style="min-width:80px">장소</th>
+                <th style="min-width:90px">영업담당자</th>
+                <th style="min-width:100px">고객사 참석자</th>
+                <th style="min-width:60px">유형</th>
+                <th style="min-width:80px">연결상태</th>
+                <th style="min-width:80px;text-align:center">파일/내용</th>
+                <th style="min-width:60px"></th>
+              </tr></thead>
+              <tbody id="mtgLogBody">
+                <tr><td colspan="9"><div class="empty"><div class="ei">📝</div>
+                  <div class="et">회의록 없음</div>
+                  <div style="font-size:13px;color:var(--t3);margin-top:6px">영업활동에서 회의록 업로드 시 자동 기록 · 또는 [+ 신규 작성]으로 독립 작성</div>
+                </div></td></tr>
+              </tbody>
+            </table></div>
+            <div style="font-size:13px;color:var(--t3);margin-top:8px;text-align:right" id="mtgLogCnt"></div>
+          </div>
         </div>
       </div>
-    </div>
 
 
     <div class="page" id="tab-mkt-meeting">
@@ -1809,7 +2092,8 @@
 
 <!-- 모바일 더보기 패널 -->
 <div class="mob-nav-more" id="mobMore">
-  <div class="mob-more-item" onclick="go('sales-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>미팅 로그</div>
+  <div class="mob-more-item" onclick="go('quote-db',this);closeMobMore()"><span class="mob-icon">📄</span>견적서 DB</div>
+  <div class="mob-more-item" onclick="go('sales-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>회의록 DB</div>
   <div class="mob-more-item" onclick="go('marketing',this);closeMobMore()"><span class="mob-icon">📣</span>마케팅</div>
   <div class="mob-more-item" onclick="go('cashflow',this);closeMobMore()"><span class="mob-icon">💰</span>현금흐름</div>
   <div class="mob-more-item" onclick="go('mkt-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>마케팅미팅</div>
@@ -2376,7 +2660,7 @@ function openNewContactModal(prefillCompany) {
   document.getElementById("nc-phone").value = "";
   document.getElementById("nc-note").value = "";
   document.getElementById("nc-region").value = "국내";
-  modal.style.display = "flex";
+  modal.style.display = "flex";  // flex 명시
   setTimeout(()=>document.getElementById("nc-company").focus(), 100);
 }
 function closeNewContactModal() {
@@ -6983,12 +7267,13 @@ function renderSLTable(data) {
             :`<button onclick="uploadSLFileToSubfolder('${r.id}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:13px;cursor:pointer">⬆</button>`}
         </td>`;
       }
-      // 견적서: 작성(모달) + 업로드
+      // 견적서: 작성(모달) + DB연결 + 업로드
       if(ft.key==="estimate") {
         return `<td style="text-align:center;white-space:nowrap">
           ${cnt>0
             ?`<button onclick="openSLFileModal('${r.id}','estimate')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:13px;cursor:pointer;font-weight:700">📄 ${cnt}개</button>`
             :`<button onclick="uploadSLFile('${r.id}','estimate')" style="padding:4px 7px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:13px;cursor:pointer">⬆</button>`}
+          <button onclick="openQDBPicker('${r.id}')" style="padding:4px 7px;border-radius:6px;border:1px solid var(--pu);background:var(--pud);color:var(--pu);font-size:12px;cursor:pointer;font-weight:700;margin-left:2px" title="견적서 DB에서 연결">🔗</button>
           <button onclick="openQuoteModal('${r.id}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--a);background:var(--ad);color:var(--a);font-size:13px;cursor:pointer;font-weight:700;margin-left:2px">✏️</button>
         </td>`;
       }
@@ -7801,6 +8086,329 @@ async function savePjCodeManual() {
 let _quoteActId = null;
 let _quoteItems = []; // [{name, unitPrice, qty, unit, note, isDiscount}]
 
+// ━━ 엑셀 견적서 생성 (ENJET-QUO-02 실제 양식) ━━
+async function generateQuoteExcel() {
+  const get = id => document.getElementById(id)?.value || "";
+  const recipient = get("q-recipient");
+  const subject   = get("q-subject");
+  const dateVal   = get("q-date");
+  const manager   = get("q-manager");
+  const contact   = get("q-contact");
+  const quoteNo   = get("q-quoteNo");
+  const delivery  = get("q-delivery");
+  const leadtime  = get("q-leadtime");
+  const validity  = get("q-validity");
+  const payment   = get("q-payment");
+  const spec      = get("q-spec");
+  const note      = get("q-note");
+
+  if(!recipient) { alert("수신처를 입력해주세요."); return; }
+
+  // ── SEQ / REV 자동 계산 ──
+  const act = slData.find(x=>x.id===_quoteActId);
+  // 같은 고객사+프로젝트의 견적서 횟수 = SEQ (01, 02, 03...)
+  const quoteHistory = (act?.history||[]).filter(h=>
+    h.action && (h.action.includes("견적서 엑셀") || h.action.includes("견적서 작성"))
+  );
+  const seq = String(quoteHistory.length + 1).padStart(2, "0");
+  // REV: 같은 SEQ에서 수정 횟수 (일단 00으로 시작, 나중에 수동 조정)
+  const rev = "00";
+  // 문서번호: ENJET-QUO-{SEQ} REV({REV})
+  const docNo = `ENJET-QUO-${seq} REV(${rev})`;
+
+  // 날짜 변환
+  let dateStr = "";
+  if(dateVal) {
+    const d = new Date(dateVal);
+    dateStr = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+  }
+
+  // ── 템플릿 로드 (SharePoint에서) ──
+  // Teams에서 직접 수정 가능한 위치: 📦영업/99.Dashboard(real-time)/enjet_quote_template_1.xlsx
+  let templateBytes;
+  try {
+    await getIds();
+    const t = await getToken();
+    const spFilePath = "📦영업/99.Dashboard(real-time)/enjet_quote_template_1.xlsx";
+    const enc = spFilePath.split("/").map(encodeURIComponent).join("/");
+    const fileInfo = await gGet(`/drives/${spDrive}/root:/${enc}`);
+    const dlUrl = fileInfo["@microsoft.graph.downloadUrl"];
+    if(!dlUrl) throw new Error("다운로드 URL 없음");
+    const r = await fetch(dlUrl);
+    if(!r.ok) throw new Error(`다운로드 실패: ${r.status}`);
+    templateBytes = await r.arrayBuffer();
+    console.log("✅ 템플릿 로드:", spFilePath);
+  } catch(e) {
+    alert(`❌ 견적서 템플릿 로드 실패\n\n오류: ${e.message}\n\nSharePoint에 파일이 있는지 확인해주세요:\n📦영업/99.Dashboard(real-time)/enjet_quote_template_1.xlsx\n\n임시로 PDF 저장을 이용해주세요.`);
+    return;
+  }
+
+  // SheetJS 로드
+  if(typeof XLSX === "undefined") {
+    await new Promise((res,rej)=>{
+      const s = document.createElement("script");
+      s.src = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const wb = XLSX.read(templateBytes, {type:"array", cellStyles:true, cellDates:true});
+  const ws = wb.Sheets["견적서(갑지)"];
+
+  // ── 셀 채우기 헬퍼 ──
+  const setCell = (addr, val, numFmt) => {
+    if(!ws[addr]) ws[addr] = {t: typeof val==="number"?"n":"s"};
+    ws[addr].v = val;
+    ws[addr].t = typeof val==="number" ? "n" : "s";
+    if(numFmt) ws[addr].z = numFmt;
+    delete ws[addr].f; // 수식 제거하고 값으로
+  };
+
+  setCell("C2", recipient);
+  setCell("C3", subject);
+  setCell("C4", dateStr);
+  setCell("C5", manager);
+  setCell("C6", contact);
+  setCell("C8", quoteNo || `Quo)${recipient.substring(0,3)}_Q1_${(dateVal||"").replace(/-/g,"").substring(2)}`);
+  setCell("I8", delivery);
+  setCell("C9", leadtime);
+  setCell("I9", validity);
+  setCell("C10", payment);
+
+  // 품목
+  const normalItems = _quoteItems.filter(x=>!x.isDiscount);
+  const discItems   = _quoteItems.filter(x=>x.isDiscount);
+  if(normalItems.length > 0) {
+    const it = normalItems[0];
+    setCell("C14", it.name||"");
+    setCell("E14", it.unitPrice||0);
+    setCell("H14", it.qty||1);
+    setCell("I14", it.unit||"Set");
+    // J14는 수식 유지 (=H14*E14)
+  }
+  if(discItems.length > 0) {
+    setCell("C16", discItems[0].name||"Special Discount");
+    setCell("E16", discItems[0].unitPrice||0);
+  } else {
+    setCell("C16", "");
+    setCell("E16", 0);
+  }
+
+  // 공통사양
+  const specLines = spec.split("\n").filter(Boolean);
+  setCell("C19", "공통사양");
+  ["C20","C21","C22","C23","C24","C25","C26","C27","C28"].forEach((addr,i)=>{
+    setCell(addr, specLines[i]||"");
+  });
+
+  // 특이사항
+  if(note) setCell("C55", note);
+
+  // 문서번호 (자동 SEQ/REV)
+  setCell("A57", docNo);
+
+  // 파일명
+  const fileName = `견적서_${recipient}_${quoteNo||"Q1"}_${docNo.replace(/[\s\/\\:*?"<>|]/g,"_")}.xlsx`;
+
+  // ── 다운로드 ──
+  XLSX.writeFile(wb, fileName);
+  console.log("✅ 견적서 엑셀:", fileName, "/ 문서번호:", docNo);
+
+  // ── SharePoint 업로드 ──
+  if(act) {
+    try {
+      const wbOut = XLSX.write(wb, {bookType:"xlsx", type:"array"});
+      const blob = new Blob([wbOut], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+      await getIds();
+      const t = await getToken();
+      const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+      const pjFolder = act.pjcode||"신규";
+      const spPath = `${SL_SP_BASE}/${coFolder}/${pjFolder}/견적서`;
+      await ensureSPFolder(spPath);
+      const enc = spPath.split("/").map(encodeURIComponent).join("/");
+      const r = await fetch(
+        `https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(fileName)}:/content`,
+        {method:"PUT", headers:{"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","Authorization":"Bearer "+t}, body:blob}
+      );
+      if(r.ok) {
+        const d = await r.json();
+        if(!act.files) act.files={};
+        if(!act.files.estimate) act.files.estimate=[];
+        act.files.estimate.push({name:fileName, url:d.webUrl, size:blob.size, uploadedAt:new Date().toISOString(), docNo});
+        if(!act.history) act.history=[];
+        act.history.unshift({
+          date: dateVal||new Date().toISOString().split("T")[0],
+          action: `📊 견적서 생성: ${docNo} (${fileName})`,
+          type: "file"
+        });
+        // ── 견적서 DB에 자동 저장 ──
+        const totalAmt = _quoteItems.reduce((s,it)=>
+          it.isDiscount ? s+(it.unitPrice||0) : s+(it.unitPrice||0)*(it.qty||1), 0);
+        await addToQuoteDB({
+          docNo, quoteNo,
+          company: recipient,
+          subject: get("q-subject"),
+          items: _quoteItems.filter(x=>!x.isDiscount).map(x=>x.name).filter(Boolean).join(", "),
+          amount: totalAmt,
+          date: dateVal||new Date().toISOString().split("T")[0],
+          manager,
+          fileName,
+          fileUrl: d.webUrl,
+          actId: _quoteActId,
+        });
+        await saveSLToSP();
+        renderSLAll();
+        renderQuoteFileList();
+      }
+    } catch(e) {
+      console.warn("SP 업로드 실패:", e.message);
+    }
+  }
+  alert(`✅ 견적서 엑셀 저장!\n\n📋 문서번호: ${docNo}\n📁 파일명: ${fileName}\n\n다음 견적서 작성 시 자동으로 ${String(parseInt(seq)+1).padStart(2,"0")}번이 부여됩니다.`);
+}
+  const get = id => document.getElementById(id)?.value || "";
+  const recipient = get("q-recipient");
+  const subject   = get("q-subject");
+  const dateVal   = get("q-date");
+  const manager   = get("q-manager");
+  const contact   = get("q-contact");
+  const quoteNo   = get("q-quoteNo");
+  const delivery  = get("q-delivery");
+  const leadtime  = get("q-leadtime");
+  const validity  = get("q-validity");
+  const payment   = get("q-payment");
+  const spec      = get("q-spec");
+  const note      = get("q-note");
+
+  if(!recipient) { alert("수신처를 입력해주세요."); return; }
+
+  // 날짜 변환
+  let dateStr = "";
+  if(dateVal) {
+    const d = new Date(dateVal);
+    dateStr = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+  }
+
+  // 템플릿 파일 다운로드 (GitHub Pages에서)
+  const templateUrl = "https://bhseong77.github.io/enjet-sales-dashboard/enjet_quote_template.xlsx";
+  let templateBytes;
+  try {
+    const r = await fetch(templateUrl);
+    if(!r.ok) throw new Error("템플릿 없음");
+    templateBytes = await r.arrayBuffer();
+  } catch(e) {
+    alert("❌ 템플릿 파일 로드 실패\n\nenjet_quote_template.xlsx 파일을 GitHub에 업로드해주세요.\n\n임시로 PDF 저장을 이용해주세요.");
+    return;
+  }
+
+  // SheetJS로 파일 파싱
+  if(typeof XLSX === "undefined") {
+    await new Promise((res,rej)=>{
+      const s = document.createElement("script");
+      s.src = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const wb = XLSX.read(templateBytes, {type:"array", cellStyles:true, cellDates:true});
+  const ws = wb.Sheets["견적서(갑지)"];
+
+  // ── 입력값 채우기 ──
+  const setCell = (addr, val) => {
+    if(!ws[addr]) ws[addr] = {};
+    ws[addr].v = val;
+    ws[addr].t = typeof val === "number" ? "n" : "s";
+    if(ws[addr].z) delete ws[addr].z;
+  };
+
+  setCell("C2", recipient);
+  setCell("C3", subject);
+  setCell("C4", dateStr);
+  setCell("C5", manager);
+  setCell("C6", contact);
+  setCell("C8", quoteNo);
+  setCell("I8", delivery);
+  setCell("C9", leadtime);
+  setCell("I9", validity);
+  setCell("C10", payment);
+
+  // 품목 (첫 번째 행 = 행14, 이후 추가)
+  const normalItems = _quoteItems.filter(x=>!x.isDiscount);
+  const discItems   = _quoteItems.filter(x=>x.isDiscount);
+
+  // 첫 품목 (행14 고정)
+  if(normalItems.length > 0) {
+    const it = normalItems[0];
+    setCell("C14", it.name||"");
+    setCell("E14", it.unitPrice||0);
+    setCell("H14", it.qty||1);
+    setCell("I14", it.unit||"Set");
+  }
+
+  // 할인 (행16 고정)
+  if(discItems.length > 0) {
+    const dc = discItems[0];
+    setCell("C16", dc.name||"Special Discount");
+    setCell("E16", dc.unitPrice||0);
+  } else {
+    setCell("C16", "");
+    setCell("E16", 0);
+  }
+
+  // 공통사양 (행19~)
+  const specLines = spec.split("\n").filter(Boolean);
+  ["C19","C20","C21","C22","C23","C24","C25","C26","C27","C28"].forEach((addr,i)=>{
+    if(i===0) setCell(addr, "공통사양");
+    else setCell(addr, specLines[i-1]||"");
+  });
+
+  // 특이사항
+  setCell("C55", note||"");
+
+  // 파일명
+  const fileName = `견적서_${recipient}_${(quoteNo||"quote").replace(/[\/\\:*?"<>|]/g,"_")}.xlsx`;
+
+  // 다운로드
+  XLSX.writeFile(wb, fileName);
+  console.log("✅ 견적서 엑셀 저장:", fileName);
+
+  // SharePoint에도 업로드 (선택)
+  const act = slData.find(x=>x.id===_quoteActId);
+  if(act) {
+    try {
+      const wbOut = XLSX.write(wb, {bookType:"xlsx", type:"array"});
+      const blob = new Blob([wbOut], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+      await getIds();
+      const t = await getToken();
+      const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+      const pjFolder = act.pjcode||"신규";
+      const spPath = `${SL_SP_BASE}/${coFolder}/${pjFolder}/견적서`;
+      await ensureSPFolder(spPath);
+      const enc = spPath.split("/").map(encodeURIComponent).join("/");
+      const r = await fetch(
+        `https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(fileName)}:/content`,
+        {method:"PUT", headers:{"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","Authorization":"Bearer "+t}, body:blob}
+      );
+      if(r.ok) {
+        const d = await r.json();
+        if(!act.files) act.files={};
+        if(!act.files.estimate) act.files.estimate=[];
+        act.files.estimate.push({name:fileName, url:d.webUrl, size:blob.size, uploadedAt:new Date().toISOString()});
+        if(!act.history) act.history=[];
+        act.history.unshift({date:dateVal||new Date().toISOString().split("T")[0], action:`📊 견적서 엑셀 생성: ${fileName}`, type:"file"});
+        await saveSLToSP();
+        renderSLAll();
+        renderQuoteFileList();
+      }
+    } catch(e) {
+      console.warn("SP 업로드 실패:", e.message);
+    }
+  }
+  alert(`✅ 견적서 엑셀 저장 완료!\n파일명: ${fileName}\n\nSharePoint 견적서 폴더에도 자동 저장됐습니다.`);
+}
+
 // ━━ 견적서 모달 전용 담당자 피커 ━━
 function openCustMgrPickerForQuote() {
   const company = document.getElementById("q-recipient")?.value || "";
@@ -7856,21 +8464,23 @@ async function uploadQuoteFile() {
 }
 
 function openQuoteModal(actId) {
-  _quoteActId = actId;
+  _quoteActId = actId;  // null이면 DB 독립 모드
   const modal = document.getElementById("quoteModal");
   if(!modal) return;
 
-  const act = slData.find(x=>x.id===actId);
+  const act = actId ? slData.find(x=>x.id===actId) : null;
+  const isDBMode = !actId; // DB 탭에서 바로 작성하는 경우
 
   // 기본값 채우기
   const today = new Date();
-  const kor = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
   document.getElementById("q-recipient").value = act?.company || "";
   document.getElementById("q-manager").value = act?.custMgr?.split(" <")[0] || "";
   document.getElementById("q-contact").value = "";
-  document.getElementById("q-subject").value = act?.pjcode||act?.company ? (act.company+(act.pjcode?" "+act.pjcode:"")) : "";
+  document.getElementById("q-subject").value = act ? (act.company+(act.pjcode?" "+act.pjcode:"")) : "";
   document.getElementById("q-date").value = today.toISOString().split("T")[0];
-  document.getElementById("q-quoteNo").value = `Quo)${(act?.company||"").substring(0,3).toUpperCase()}_Q1_${today.toISOString().split("T")[0].replace(/-/g,"").substring(2)}`;
+  document.getElementById("q-quoteNo").value = act
+    ? `Quo)${act.company.substring(0,3).toUpperCase()}_Q1_${today.toISOString().split("T")[0].replace(/-/g,"").substring(2)}`
+    : "";
   document.getElementById("q-delivery").value = "고객사 지정 장소";
   document.getElementById("q-leadtime").value = "발주 문서 접수 후 1 영업일";
   document.getElementById("q-validity").value = "제출일로부터 30일";
@@ -7878,10 +8488,14 @@ function openQuoteModal(actId) {
   document.getElementById("q-spec").value = "";
   document.getElementById("q-note").value = "";
 
-  // 품목 초기화 (빈 1개)
+  // DB 모드 표시 (영업활동 미연결)
+  const dbModeBar = document.getElementById("q-db-mode-bar");
+  if(dbModeBar) dbModeBar.style.display = isDBMode ? "flex" : "none";
+
+  // 품목 초기화
   _quoteItems = [{name:"",unitPrice:0,qty:1,unit:"Set",note:"",isDiscount:false}];
   renderQuoteItemsForm();
-  renderQuoteFileList(); // 기존 파일 목록 표시
+  renderQuoteFileList();
   updateQuotePreview();
   modal.style.display = "flex";
 }
@@ -8045,10 +8659,16 @@ function updateQuotePreview() {
   const specText = get("q-spec").split("\n").filter(Boolean).map(l=>`<div>${l}</div>`).join("");
   const noteText = get("q-note");
 
-  area.innerHTML = `
+    // 문서번호 자동 계산 (SEQ = 이 고객사+프로젝트의 몇 번째 견적서)
+    const _act = slData.find(x=>x.id===_quoteActId);
+    const _qHist = (_act?.history||[]).filter(h=>h.action&&(h.action.includes("견적서 엑셀")||h.action.includes("견적서 작성")));
+    const _seq = String(_qHist.length + 1).padStart(2,"0");
+    const _docNo = `ENJET-QUO-${_seq} REV(00)`;
+
+    area.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div style="font-size:28px;font-weight:900;letter-spacing:8px">견 적 서</div>
-      <div style="background:#1a6fd4;color:#fff;font-weight:900;font-size:16px;padding:4px 12px;border-radius:3px;letter-spacing:1px">ENJET</div>
+      <img src="data:image/png;base64,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" style="height:40px;object-fit:contain" alt="ENJET">
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
@@ -8067,7 +8687,10 @@ function updateQuotePreview() {
         </tr>
         <tr>
           <td style="border:1px solid #aaa;padding:2px 4px;background:#f5f5f5;font-weight:700;text-align:center">상호명</td><td style="border:1px solid #aaa;padding:2px 5px">엔젯㈜</td>
-          <td style="border:1px solid #aaa;padding:2px 4px;background:#f5f5f5;font-weight:700;text-align:center">대표자</td><td style="border:1px solid #aaa;padding:2px 5px">변도영</td>
+          <td style="border:1px solid #aaa;padding:2px 4px;background:#f5f5f5;font-weight:700;text-align:center">대표자</td>
+          <td style="border:1px solid #aaa;padding:2px 5px;position:relative">변도영
+            <img src="data:image/png;base64,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" style="position:absolute;right:-8px;top:-10px;height:52px;width:52px;object-fit:contain;opacity:0.85" alt="인감">
+          </td>
         </tr>
         <tr>
           <td style="border:1px solid #aaa;padding:2px 4px;background:#f5f5f5;font-weight:700;text-align:center">주 소</td>
@@ -8146,7 +8769,7 @@ function updateQuotePreview() {
     </div>`:""}
 
     <div style="position:absolute;bottom:6mm;left:0;right:0;padding:0 14mm;display:flex;justify-content:space-between;font-size:9px;color:#777;border-top:1px solid #ddd;padding-top:3px">
-      <span>ENJET-QUO-02 REV(00)</span><span>엔젯㈜</span>
+      <span>${_docNo}</span><span>엔젯㈜</span>
     </div>
   `;
 }
@@ -9015,9 +9638,771 @@ async function deleteSLActivity(id) {
 // 영업활동 탭 자동로드 → 통합 go 함수에서 처리
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 관리","sales-log":"📋 영업활동","sales-meeting":"📝 미팅 로그",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)",exhibition:"🎪 전시회 고객연락처"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB","sales-log":"📋 영업활동","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)",exhibition:"🎪 전시회 고객연락처"};
 
 // ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📄 견적서 DB 시스템
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const QDB_SP_FILE = "📦영업/99.Dashboard(real-time)/quote-db.json";
+let quoteDB = []; // 견적서 DB 배열
+
+// SP에서 로드
+async function loadQuoteDB() {
+  try {
+    await getIds();
+    const enc = QDB_SP_FILE.split("/").map(encodeURIComponent).join("/");
+    const fd = await gGet(`/drives/${spDrive}/root:/${enc}`);
+    const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
+    quoteDB = await res.json();
+    console.log("✅ 견적서 DB 로드:", quoteDB.length+"건");
+  } catch(e) {
+    quoteDB = [];
+    console.log("ℹ️ 견적서 DB 없음 (첫 사용)");
+  }
+  renderQDB();
+}
+
+// SP에 저장
+async function saveQuoteDB() {
+  try {
+    await getIds();
+    const t = await getToken();
+    const enc = QDB_SP_FILE.split("/").map(encodeURIComponent).join("/");
+    await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`,{
+      method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+      body: JSON.stringify(quoteDB, null, 2)
+    });
+    console.log("✅ 견적서 DB 저장:", quoteDB.length+"건");
+    return true;
+  } catch(e) {
+    console.warn("견적서 DB 저장 실패:", e.message);
+    return false;
+  }
+}
+
+// 견적서 DB에 항목 추가 (generateQuoteExcel에서 호출)
+async function addToQuoteDB(entry) {
+  // 중복 체크 (docNo 기준)
+  const exists = quoteDB.findIndex(q => q.docNo === entry.docNo);
+  if(exists >= 0) {
+    quoteDB[exists] = {...quoteDB[exists], ...entry, updatedAt: new Date().toISOString()};
+  } else {
+    quoteDB.unshift({
+      id: "qdb_" + Date.now(),
+      ...entry,
+      status: "견적중",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+  await saveQuoteDB();
+  $("badge-qdb", quoteDB.length);
+  if(document.getElementById("tab-quote-db")?.classList.contains("on")) renderQDB();
+}
+
+// 견적서 DB KPI + 목록 렌더
+function renderQDB(data) {
+  const list = data || quoteDB;
+  // KPI
+  $("qdb-tot", list.length);
+  const totalAmt = list.reduce((s,q)=>s+(q.amount||0), 0);
+  $("qdb-amt", (totalAmt/1e8).toFixed(2));
+  const wonCnt = list.filter(q=>q.status==="수주").length;
+  $("qdb-won", wonCnt);
+  $("qdb-avg", list.length ? (totalAmt/list.length/1e8).toFixed(2) : "0");
+  // 고객사 필터 갱신
+  const coSel = document.getElementById("qdbCoFilter");
+  if(coSel) {
+    const companies = [...new Set(quoteDB.map(q=>q.company||""))].filter(Boolean).sort();
+    const cur = coSel.value;
+    coSel.innerHTML = `<option value="">전체 고객사</option>` +
+      companies.map(c=>`<option value="${c}"${c===cur?" selected":""}>${c}</option>`).join("");
+  }
+  // 테이블
+  const body = document.getElementById("qdbBody");
+  if(!body) return;
+  if(!list.length) {
+    body.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="ei">📄</div><div class="et">견적서 없음</div><div style="margin-top:10px"><button onclick="openQuoteModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button></div></div></td></tr>`;
+    return;
+  }
+  const STATUS_STYLE = {
+    "견적중": "background:#dbeafe;color:#1e40af",
+    "수주":   "background:#dcfce7;color:#166534",
+    "실패":   "background:#fee2e2;color:#991b1b",
+    "보류":   "background:#fef9c3;color:#854d0e",
+  };
+  body.innerHTML = list.map(q=>{
+    const ss = STATUS_STYLE[q.status]||"background:var(--bg3);color:var(--t3)";
+    const amt = q.amount ? (q.amount/1e8).toFixed(2)+"억" : "-";
+    const isLinked = !!q.actId;
+    const linkedAct = isLinked ? slData.find(x=>x.id===q.actId) : null;
+    const linkBadge = isLinked
+      ? `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#166534;font-weight:600">🔗 ${linkedAct?.company||"연결됨"}</span>`
+      : `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#fef9c3;color:#854d0e;font-weight:600;cursor:pointer" onclick="linkQDBToActivity('${q.id}')" title="영업활동 연결">⚠️ 미연결</span>`;
+    return `<tr>
+      <td>
+        <div style="font-size:14px;font-weight:700;font-family:var(--m);color:var(--p)">${q.docNo||"-"}</div>
+        <div style="font-size:12px;color:var(--t3)">${q.quoteNo||""}</div>
+        <div style="margin-top:3px">${linkBadge}</div>
+      </td>
+      <td style="font-size:14px;font-weight:600">${q.company||"<span style='color:var(--t3);font-style:italic'>미확정</span>"}</td>
+      <td style="font-size:13px">${q.items||q.subject||"-"}</td>
+      <td style="text-align:right;font-size:14px;font-weight:700;color:var(--p)">${amt}</td>
+      <td style="font-size:13px;color:var(--t3)">${(q.date||"").substring(0,10)}</td>
+      <td style="font-size:13px">${q.manager||"-"}</td>
+      <td><span style="font-size:12px;padding:2px 8px;border-radius:10px;font-weight:700;${ss}">${q.status||"견적중"}</span></td>
+      <td style="text-align:center">
+        ${q.fileUrl?`<a href="${q.fileUrl}" target="_blank" style="color:var(--p);font-size:13px;text-decoration:underline">📄 열기</a>`:
+          `<span style="color:var(--t3);font-size:13px">-</span>`}
+      </td>
+      <td style="white-space:nowrap">
+        ${!isLinked?`<span style="cursor:pointer;font-size:14px;margin-right:2px" onclick="linkQDBToActivity('${q.id}')" title="영업활동에 연결">🔗</span>`:""}
+        <span style="cursor:pointer;font-size:14px" onclick="editQDBEntry('${q.id}')" title="수정">✏️</span>
+        <span style="cursor:pointer;font-size:14px;margin-left:2px" onclick="updateQDBStatus('${q.id}')" title="상태 변경">🔄</span>
+        <span style="cursor:pointer;font-size:14px;color:var(--r);margin-left:2px" onclick="deleteQDBEntry('${q.id}')" title="삭제">🗑️</span>
+      </td>
+    </tr>`;
+  }).join("");
+  $("qdb-upd", "갱신: "+new Date().toLocaleTimeString("ko-KR"));
+  $("badge-qdb", quoteDB.length);
+}
+
+// 검색/필터
+function filterQDB() {
+  const q = (document.getElementById("qdbSrch")?.value||"").toLowerCase();
+  const st = document.getElementById("qdbStatusFilter")?.value||"";
+  const co = document.getElementById("qdbCoFilter")?.value||"";
+  const filtered = quoteDB.filter(r=>{
+    if(st && r.status!==st) return false;
+    if(co && r.company!==co) return false;
+    if(q) return [r.docNo,r.quoteNo,r.company,r.items,r.subject,r.manager]
+      .some(v=>String(v||"").toLowerCase().includes(q));
+    return true;
+  });
+  renderQDB(filtered);
+}
+
+// 상태 변경
+async function updateQDBStatus(id) {
+  const q = quoteDB.find(x=>x.id===id);
+  if(!q) return;
+  const statuses = ["견적중","수주","실패","보류"];
+  const cur = statuses.indexOf(q.status||"견적중");
+  const newSt = prompt(`상태 변경 (현재: ${q.status||"견적중"})\n\n0: 견적중\n1: 수주\n2: 실패\n3: 보류\n\n번호 입력:`, cur>=0?cur:0);
+  if(newSt===null) return;
+  const idx = parseInt(newSt);
+  if(idx>=0 && idx<statuses.length) {
+    q.status = statuses[idx];
+    q.updatedAt = new Date().toISOString();
+    await saveQuoteDB();
+    renderQDB();
+    // 연결된 영업활동 상태도 자동 업데이트
+    if(q.actId && q.status==="수주") {
+      const act = slData.find(x=>x.id===q.actId);
+      if(act && ["신규","제안","견적"].includes(act.status)) {
+        await updateSLStatus(q.actId, "발주");
+      }
+    }
+  }
+}
+
+// 삭제
+async function deleteQDBEntry(id) {
+  const q = quoteDB.find(x=>x.id===id);
+  if(!q || !confirm(`"${q.docNo}" 견적서를 DB에서 삭제할까요?\n파일은 삭제되지 않습니다.`)) return;
+  quoteDB = quoteDB.filter(x=>x.id!==id);
+  await saveQuoteDB();
+  renderQDB();
+}
+
+// 수정 (상태 + 비고)
+async function editQDBEntry(id) {
+  const q = quoteDB.find(x=>x.id===id);
+  if(!q) return;
+  const note = prompt(`견적서 ${q.docNo} 비고 수정:`, q.note||"");
+  if(note===null) return;
+  q.note = note;
+  q.updatedAt = new Date().toISOString();
+  await saveQuoteDB();
+  renderQDB();
+}
+
+// ━━ 영업활동 견적서 업로드 모달에서 DB 검색 연결 ━━
+let _qdbPickerCtx = { actId: null };
+
+function openQDBPicker(actId) {
+  _qdbPickerCtx.actId = actId;
+  const modal = document.getElementById("qdbPickerModal");
+  if(!modal) return;
+  document.getElementById("qdbPickerSrch").value = "";
+  renderQDBPickerList("");
+  modal.style.display = "flex";
+}
+
+function closeQDBPicker() {
+  const modal = document.getElementById("qdbPickerModal");
+  if(modal) modal.style.display = "none";
+}
+
+function renderQDBPickerList(q) {
+  const el = document.getElementById("qdbPickerBody");
+  if(!el) return;
+  const list = q
+    ? quoteDB.filter(r=>[r.docNo,r.quoteNo,r.company,r.items,r.subject].some(v=>String(v||"").toLowerCase().includes(q.toLowerCase())))
+    : quoteDB;
+  if(!list.length) {
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--t3)">검색 결과 없음</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,30).map(q2=>
+    `<div onclick="selectQDBEntry('${q2.id}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s"
+      onmouseover="this.style.background='var(--pd)'" onmouseout="this.style.background=''">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span style="font-size:14px;font-weight:800;color:var(--p);font-family:var(--m)">${q2.docNo||q2.quoteNo||"-"}</span>
+          <span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#dbeafe;color:#1e40af;font-weight:600">${q2.status||"견적중"}</span>
+          ${q2.amount?`<span style="font-size:12px;color:var(--t3);font-weight:600">${(q2.amount/1e8).toFixed(2)}억</span>`:""}
+        </div>
+        <div style="font-size:13px;color:var(--t);font-weight:600">${q2.company||""} · ${q2.items||q2.subject||""}</div>
+        <div style="font-size:12px;color:var(--t3)">${(q2.date||"").substring(0,10)} · ${q2.manager||""}</div>
+      </div>
+      ${q2.fileUrl?`<a href="${q2.fileUrl}" target="_blank" onclick="event.stopPropagation()" style="color:var(--p);font-size:13px;white-space:nowrap">📄 열기</a>`:""}
+      <div style="color:var(--p);font-size:13px;font-weight:700;white-space:nowrap">선택 →</div>
+    </div>`
+  ).join("");
+}
+
+async function selectQDBEntry(qdbId) {
+  const actId = _qdbPickerCtx.actId;
+  const q = quoteDB.find(x=>x.id===qdbId);
+  if(!q || !actId) { closeQDBPicker(); return; }
+  const act = slData.find(x=>x.id===actId);
+  if(!act) { closeQDBPicker(); return; }
+  // 견적서 파일을 영업활동에 연결
+  if(!act.files) act.files = {};
+  if(!act.files.estimate) act.files.estimate = [];
+  // 이미 연결된 파일인지 확인
+  const alreadyLinked = act.files.estimate.some(f=>f.qdbId===qdbId);
+  if(!alreadyLinked) {
+    act.files.estimate.push({
+      name: q.fileName || q.docNo+".xlsx",
+      url: q.fileUrl || "",
+      qdbId: qdbId,
+      docNo: q.docNo,
+      linkedAt: new Date().toISOString(),
+    });
+    if(!act.history) act.history = [];
+    act.history.unshift({
+      date: new Date().toISOString().split("T")[0],
+      action: `📄 견적서 DB 연결: ${q.docNo}`,
+      type: "file"
+    });
+    await saveSLToSP();
+    renderSLAll();
+  }
+  // 역방향: 견적서 DB에 actId 연결
+  q.actId = actId;
+  await saveQuoteDB();
+  closeQDBPicker();
+  alert(`✅ "${q.docNo}" 견적서가 영업활동에 연결됐습니다.`);
+}
+
+// ── 견적서 모달에서 영업활동 연결 (DB 모드용) ──
+function linkQuoteToActivity() {
+  // 고객사 기반으로 영업활동 검색 모달 열기
+  const recipient = document.getElementById("q-recipient")?.value || "";
+  _qdbLinkMode = "modal"; // 모달에서 호출된 경우
+  showActivityLinkModal(recipient);
+}
+
+// ── DB 목록에서 영업활동 연결 ──
+function linkQDBToActivity(qdbId) {
+  const q = quoteDB.find(x=>x.id===qdbId);
+  if(!q) return;
+  _qdbLinkTargetId = qdbId;
+  _qdbLinkMode = "db";
+  showActivityLinkModal(q.company||"");
+}
+
+// 영업활동 선택 모달 표시
+let _qdbLinkTargetId = null;
+let _qdbLinkMode = "db";
+
+function showActivityLinkModal(prefillCompany) {
+  const modal = document.getElementById("actLinkModal");
+  if(!modal) return;
+  document.getElementById("actLinkSrch").value = prefillCompany;
+  renderActLinkList(prefillCompany);
+  modal.style.display = "flex";
+}
+
+function closeActLinkModal() {
+  document.getElementById("actLinkModal").style.display = "none";
+}
+
+function renderActLinkList(q) {
+  const el = document.getElementById("actLinkBody");
+  if(!el) return;
+  const list = (q
+    ? slData.filter(r=>[r.company,r.pjcode,r.salesMgr].some(v=>String(v||"").toLowerCase().includes(q.toLowerCase())))
+    : slData
+  ).slice(0,30);
+
+  if(!list.length) {
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--t3)">검색 결과 없음</div>`;
+    return;
+  }
+  const STATUS_COLOR2 = {신규:"var(--t3)",제안:"var(--a)",견적:"var(--pu)",발주:"var(--p)",진행:"var(--g)"};
+  el.innerHTML = list.map(act=>`
+    <div onclick="confirmActLink('${act.id}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s"
+      onmouseover="this.style.background='var(--pd)'" onmouseout="this.style.background=''">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span style="font-size:15px;font-weight:800;color:var(--t)">${act.company}</span>
+          ${act.pjcode?`<span style="font-size:12px;color:var(--p);font-family:var(--m);font-weight:700">${act.pjcode}</span>`:""}
+          <span style="font-size:12px;padding:1px 7px;border-radius:4px;font-weight:700;color:${STATUS_COLOR2[act.status]||"var(--t3)"};background:var(--bg3)">${act.status||"신규"}</span>
+        </div>
+        <div style="font-size:12px;color:var(--t3)">${act.lastActivity||""} · ${act.salesMgr||""}</div>
+      </div>
+      <div style="font-size:13px;color:var(--p);font-weight:700">연결 →</div>
+    </div>`).join("");
+}
+
+async function confirmActLink(actId) {
+  const act = slData.find(x=>x.id===actId);
+  if(!act) return;
+
+  if(_qdbLinkMode === "modal") {
+    // 견적서 모달에서 호출: _quoteActId 업데이트 + DB 모드 알림 숨김
+    _quoteActId = actId;
+    const bar = document.getElementById("q-db-mode-bar");
+    if(bar) bar.style.display = "none";
+    closeActLinkModal();
+    // 수신처도 자동 채우기
+    if(act.company && !document.getElementById("q-recipient")?.value) {
+      document.getElementById("q-recipient").value = act.company;
+      updateQuotePreview();
+    }
+    alert(`✅ "${act.company}" 영업활동과 연결됐습니다.\n견적서 저장 시 자동으로 연결됩니다.`);
+  } else {
+    // DB 목록에서 호출: quoteDB 항목 업데이트
+    const q = quoteDB.find(x=>x.id===_qdbLinkTargetId);
+    if(!q) { closeActLinkModal(); return; }
+    q.actId = actId;
+    q.updatedAt = new Date().toISOString();
+    // 고객사 미확정이면 채우기
+    if(!q.company && act.company) q.company = act.company;
+    // 영업활동에도 파일 연결
+    if(q.fileUrl) {
+      if(!act.files) act.files = {};
+      if(!act.files.estimate) act.files.estimate = [];
+      const alreadyLinked = act.files.estimate.some(f=>f.qdbId===q.id);
+      if(!alreadyLinked) {
+        act.files.estimate.push({
+          name: q.fileName||q.docNo+".xlsx",
+          url: q.fileUrl,
+          qdbId: q.id,
+          docNo: q.docNo,
+          linkedAt: new Date().toISOString(),
+        });
+        if(!act.history) act.history = [];
+        act.history.unshift({
+          date: new Date().toISOString().split("T")[0],
+          action: `🔗 견적서 DB 연결: ${q.docNo}`,
+          type: "file"
+        });
+        await saveSLToSP();
+        renderSLAll();
+      }
+    }
+    await saveQuoteDB();
+    renderQDB();
+    closeActLinkModal();
+    alert(`✅ "${q.docNo}" → "${act.company}" 연결 완료!\n영업활동 견적서 탭에도 자동 연결됐습니다.`);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📝 회의록 DB 독립 작성 시스템
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let _mtgDBLinkTarget = null; // 연결 중인 회의록 ID
+
+// ━━ 참석자 태그 입력 시스템 ━━
+const MTG_TAG_CFG = {
+  author:    { color:"#374151", bg:"#f3f4f6", label:"작성자" },
+  sales:     { color:"var(--p)", bg:"var(--pd)", label:"영업담당자" },
+  attendees: { color:"#166534", bg:"#dcfce7", label:"고객사" },
+};
+let _mtgTags = { author:[], sales:[], attendees:[] };
+
+function renderMtgTags(type) {
+  const box = document.getElementById(`mtg-${type}-tags`);
+  if(!box) return;
+  const cfg = MTG_TAG_CFG[type];
+  box.innerHTML = _mtgTags[type].map((name,i)=>`
+    <span class="mtg-tag" style="color:${cfg.color};background:${cfg.bg}">
+      ${name}
+      <span class="mtg-tag-x" onclick="removeMtgTag('${type}',${i})">×</span>
+    </span>`).join("");
+}
+
+function removeMtgTag(type, idx) {
+  _mtgTags[type].splice(idx, 1);
+  renderMtgTags(type);
+}
+
+function addMtgTag(type, event) {
+  if(event.key !== "Enter" && event.key !== ",") return;
+  event.preventDefault();
+  const input = document.getElementById(`mtg-${type}-input`);
+  const val = (input?.value||"").trim().replace(/,$/,"").trim();
+  if(!val) return;
+  if(!_mtgTags[type].includes(val)) {
+    _mtgTags[type].push(val);
+    renderMtgTags(type);
+  }
+  input.value = "";
+  hideMtgSuggest(type);
+}
+
+function addMtgTagBtn(type) {
+  const input = document.getElementById(`mtg-${type}-input`);
+  const val = (input?.value||"").trim().replace(/,$/,"").trim();
+  if(!val) return;
+  if(!_mtgTags[type].includes(val)) {
+    _mtgTags[type].push(val);
+    renderMtgTags(type);
+  }
+  input.value = "";
+  hideMtgSuggest(type);
+}
+
+function showMtgSuggest(type, inputEl) {
+  const q = (inputEl?.value||"").trim().toLowerCase();
+  const suggest = document.getElementById(`mtg-${type}-suggest`);
+  if(!suggest || !q) { hideMtgSuggest(type); return; }
+
+  // 자동완성 소스: 팀원(영업담당자) or 고객 담당자
+  let candidates = [];
+  if(type === "sales" || type === "author") {
+    // ENJET 팀원 (acct + 기존 영업담당자 목록)
+    const teamNames = [...new Set([
+      acct?.name,
+      ...(slData||[]).map(x=>x.salesMgr).filter(Boolean),
+      ...(window._mtgLogs||[]).map(x=>x.salesMgr).filter(Boolean),
+    ].filter(Boolean))];
+    candidates = teamNames.filter(n=>n.toLowerCase().includes(q));
+  } else {
+    // 고객사 담당자 (CD에서)
+    candidates = (CD||[])
+      .filter(r=>(r["이름"]||"").toLowerCase().includes(q) || (r["회사"]||"").toLowerCase().includes(q))
+      .slice(0,8)
+      .map(r=>r["이름"]+(r["회사"]?" ("+r["회사"]+")":""));
+  }
+
+  if(!candidates.length) { hideMtgSuggest(type); return; }
+  suggest.style.display = "block";
+  suggest.innerHTML = candidates.slice(0,6).map(c=>`
+    <div class="mtg-suggest-item" onmousedown="event.preventDefault();selectMtgSuggest('${type}','${c.replace(/'/g,"\\'")}')">
+      ${c}
+    </div>`).join("");
+}
+
+function hideMtgSuggest(type) {
+  const el = document.getElementById(`mtg-${type}-suggest`);
+  if(el) el.style.display = "none";
+}
+
+function selectMtgSuggest(type, val) {
+  // 괄호 안 회사명 제거 (고객사 참석자의 경우 "홍길동 (셀러메드)" → "홍길동 (셀러메드)" 그대로)
+  if(!_mtgTags[type].includes(val)) {
+    _mtgTags[type].push(val);
+    renderMtgTags(type);
+  }
+  const input = document.getElementById(`mtg-${type}-input`);
+  if(input) input.value = "";
+  hideMtgSuggest(type);
+}
+
+// openMtgDBModal - 태그 초기화 포함
+function openMtgDBModal() {
+  const modal = document.getElementById("mtgDBModal");
+  if(!modal) return;
+  // 태그 초기화
+  _mtgTags = { author:[], sales:[], attendees:[] };
+  // 작성자 + 영업담당자 = 현재 로그인 유저 자동 추가
+  if(acct?.name) {
+    _mtgTags.author = [acct.name];
+    _mtgTags.sales  = [acct.name];
+  }
+  ["author","sales","attendees"].forEach(t=>{ renderMtgTags(t); hideMtgSuggest(t); });
+  ["mtg-author-input","mtg-sales-input","mtg-attendees-input"].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.value = "";
+  });
+  document.getElementById("mtgdb-company").value = "";
+  document.getElementById("mtgdb-pjcode").value = "";
+  document.getElementById("mtgdb-date").value = new Date().toISOString().split("T")[0];
+  document.getElementById("mtgdb-type").value = "영업미팅";
+  document.getElementById("mtgdb-place").value = "";
+  document.getElementById("mtgdb-content").value = "";
+  const fi = document.getElementById("mtgdb-file"); if(fi) fi.value = "";
+  modal.style.display = "flex";
+}
+
+function closeMtgDBModal() {
+  document.getElementById("mtgDBModal").style.display = "none";
+}
+
+async function saveMtgDBEntry() {
+  const content = document.getElementById("mtgdb-content")?.value?.trim();
+  if(!content) { alert("회의 내용을 입력해주세요."); return; }
+
+  const dateVal   = document.getElementById("mtgdb-date")?.value||new Date().toISOString().split("T")[0];
+  const company   = document.getElementById("mtgdb-company")?.value?.trim();
+  const pjcode    = document.getElementById("mtgdb-pjcode")?.value?.trim();
+  const type      = document.getElementById("mtgdb-type")?.value||"영업미팅";
+  const place     = document.getElementById("mtgdb-place")?.value?.trim();
+
+  // 태그에서 참석자 읽기
+  const author    = [..._mtgTags.author];
+  const salesMgr  = [..._mtgTags.sales];
+  const attendees = [..._mtgTags.attendees];
+
+  const files = Array.from(document.getElementById("mtgdb-file")?.files||[]);
+
+  const entry = {
+    id: "mtg_" + Date.now(),
+    date: dateVal,
+    company: company || "",
+    pjcode: pjcode || "",
+    type,
+    author,      // 작성자 (배열)
+    salesMgr,    // 영업담당자 (배열, ENJET 내부)
+    attendees,   // 고객사 참석자 (배열)
+    place,
+    content,
+    actId: null,
+    files: [],
+    createdBy: acct?.name||"",
+    createdAt: new Date().toISOString(),
+  };
+
+  // SharePoint에 파일 업로드
+  if(files.length > 0) {
+    try {
+      await getIds();
+      const t = await getToken();
+      const folder = company
+        ? `📦영업/99.Dashboard(real-time)/meetings/${dateVal}_${company.substring(0,10)}`
+        : `📦영업/99.Dashboard(real-time)/meetings/${dateVal}_미연결`;
+      await ensureSPFolder(folder);
+      for(const f of files) {
+        const enc2 = folder.split("/").map(encodeURIComponent).join("/");
+        const r = await fetch(
+          `https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc2}/${encodeURIComponent(f.name)}:/content`,
+          {method:"PUT", headers:{"Content-Type":f.type||"application/octet-stream","Authorization":"Bearer "+t}, body:f}
+        );
+        if(r.ok) {
+          const d = await r.json();
+          entry.files.push({name:f.name, url:d.webUrl, size:f.size});
+        }
+      }
+    } catch(e) { console.warn("파일 업로드 실패:", e.message); }
+  }
+
+  // mtgLogs에 추가 (기존 배열)
+  if(!window._mtgLogs) window._mtgLogs = [];
+  window._mtgLogs.unshift(entry);
+  await saveMtgLogsToSP();
+  renderMtgLog(window._mtgLogs);
+  closeMtgDBModal();
+
+  // 영업활동 연결 제안 (고객사 입력된 경우)
+  if(company) {
+    const matched = slData.filter(x=>x.company===company);
+    if(matched.length === 1) {
+      if(confirm(`"${company}" 영업활동에 자동 연결할까요?\n(${matched[0].pjcode||"신규"} · ${matched[0].status})`)) {
+        await linkMtgToActivity(entry.id, matched[0].id);
+        return;
+      }
+    } else if(matched.length > 1) {
+      _mtgDBLinkTarget = entry.id;
+      showMtgActLinkModal(company);
+      return;
+    }
+  }
+  alert(`✅ 회의록 저장 완료!\n${company?"":"고객사 미확정 — 나중에 DB에서 연결할 수 있습니다."}`);
+}
+
+// 회의록 → 영업활동 연결
+async function linkMtgToActivity(mtgId, actId) {
+  const mtg = (window._mtgLogs||[]).find(x=>x.id===mtgId);
+  const act = slData.find(x=>x.id===actId);
+  if(!mtg || !act) return;
+
+  mtg.actId = actId;
+  if(!mtg.company && act.company) mtg.company = act.company;
+  if(!mtg.pjcode && act.pjcode) mtg.pjcode = act.pjcode;
+
+  // 영업활동 회의록 파일 목록에도 추가
+  if(!act.files) act.files = {};
+  if(!act.files.minutes) act.files.minutes = [];
+  const txtFile = {
+    name: `회의록_${act.company}_${mtg.date.replace(/-/g,"")}.txt`,
+    content: mtg.content,
+    uploadedAt: mtg.createdAt,
+    mtgId: mtg.id,
+  };
+  act.files.minutes.push(txtFile);
+  if(!act.history) act.history = [];
+  act.history.unshift({date:mtg.date, action:`📝 회의록 연결: ${mtg.date} ${mtg.type}`, type:"file"});
+
+  await Promise.all([saveMtgLogsToSP(), saveSLToSP()]);
+  renderSLAll();
+  renderMtgLog(window._mtgLogs);
+  alert(`✅ "${act.company}" 영업활동에 회의록이 연결됐습니다.`);
+}
+
+// 회의록 영업활동 연결 모달
+function showMtgActLinkModal(prefill) {
+  const modal = document.getElementById("mtgActLinkModal");
+  if(!modal) return;
+  document.getElementById("mtgActLinkSrch").value = prefill||"";
+  renderMtgActLinkList(prefill||"");
+  modal.style.display = "flex";
+}
+function closeMtgActLinkModal() {
+  document.getElementById("mtgActLinkModal").style.display = "none";
+}
+function renderMtgActLinkList(q) {
+  const el = document.getElementById("mtgActLinkBody");
+  if(!el) return;
+  const list = (q
+    ? slData.filter(r=>[r.company,r.pjcode,r.salesMgr].some(v=>String(v||"").toLowerCase().includes(q.toLowerCase())))
+    : slData).slice(0,30);
+  if(!list.length) { el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--t3)">검색 결과 없음</div>`; return; }
+  const SC = {신규:"var(--t3)",제안:"var(--a)",견적:"var(--pu)",발주:"var(--p)",진행:"var(--g)"};
+  el.innerHTML = list.map(act=>`
+    <div onclick="confirmMtgActLink('${act.id}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s"
+      onmouseover="this.style.background='var(--pd)'" onmouseout="this.style.background=''">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span style="font-size:15px;font-weight:800;color:var(--t)">${act.company}</span>
+          ${act.pjcode?`<span style="font-size:12px;color:var(--p);font-family:var(--m);font-weight:700">${act.pjcode}</span>`:""}
+          <span style="font-size:12px;padding:1px 7px;border-radius:4px;font-weight:700;color:${SC[act.status]||"var(--t3)"};background:var(--bg3)">${act.status||"신규"}</span>
+        </div>
+        <div style="font-size:12px;color:var(--t3)">${act.lastActivity||""} · ${act.salesMgr||""}</div>
+      </div>
+      <div style="font-size:13px;color:var(--p);font-weight:700">연결 →</div>
+    </div>`).join("");
+}
+
+async function confirmMtgActLink(actId) {
+  const tgt = _mtgDBLinkTarget;
+  closeMtgActLinkModal();
+  if(!tgt) return;
+  await linkMtgToActivity(tgt, actId);
+  _mtgDBLinkTarget = null;
+}
+
+// renderMtgLog 수정 — 미연결 표시 + 연결 버튼 추가
+function renderMtgLog(logs) {
+  const body = document.getElementById("mtgLogBody");
+  if(!body) return;
+  const all = logs||window._mtgLogs||[];
+  // KPI 갱신
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  $("mtg-tot", all.length);
+  $("mtg-unlinked", all.filter(x=>!x.actId).length);
+  $("mtg-linked", all.filter(x=>x.actId).length);
+  $("mtg-month", all.filter(x=>(x.date||"").startsWith(thisMonth)).length);
+
+  if(!all.length) {
+    body.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">📝</div><div class="et">회의록 없음</div><div style="font-size:13px;color:var(--t3);margin-top:6px">영업활동에서 회의록 업로드 또는 [+ 신규 작성]으로 독립 작성</div></div></td></tr>`;
+    $("mtgLogCnt",""); return;
+  }
+
+  // 필터 적용
+  const q = (document.getElementById("mtgLogSrch")?.value||"").toLowerCase();
+  const tp = document.getElementById("mtgLogType")?.value||"";
+  const lk = document.getElementById("mtgLinkFilter")?.value||"";
+  const filtered = all.filter(m=>{
+    if(tp && m.type!==tp) return false;
+    if(lk==="unlinked" && m.actId) return false;
+    if(lk==="linked" && !m.actId) return false;
+    if(q) return [m.company,m.pjcode,m.attendees,m.content,m.type,m.place].some(v=>String(v||"").toLowerCase().includes(q));
+    return true;
+  });
+
+  body.innerHTML = filtered.map(m=>{
+    const linkedAct = m.actId ? slData.find(x=>x.id===m.actId) : null;
+    const linkBadge = linkedAct
+      ? `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#166534;font-weight:600">🔗 ${linkedAct.company}</span>`
+      : `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#fef9c3;color:#854d0e;font-weight:600;cursor:pointer" onclick="linkMtgFromDB('${m.id}')" title="클릭해서 연결">⚠️ 미연결</span>`;
+    const hasContent = m.content && m.content.length > 10;
+    const fileCount = (m.files||[]).length;
+    return `<tr>
+      <td style="font-size:13px;color:var(--t3)">${(m.date||"").substring(0,10)}</td>
+      <td style="font-size:14px;font-weight:600">${m.company||`<span style="color:var(--t3);font-style:italic">미확정</span>`}</td>
+      <td style="font-size:13px;color:var(--p);font-family:var(--m)">${m.pjcode||"-"}</td>
+      <td style="font-size:13px;color:var(--t3)">${m.place||"-"}</td>
+      <td style="font-size:13px">${Array.isArray(m.salesMgr)?m.salesMgr.join(", "):(m.salesMgr||m.createdBy||"-")}</td>
+      <td style="font-size:13px;color:var(--t2)">${Array.isArray(m.attendees)?m.attendees.join(", "):(m.attendees||"-")}</td>
+      <td><span style="font-size:12px;padding:2px 7px;border-radius:8px;background:var(--pd);color:var(--p);font-weight:600">${m.type||"-"}</span></td>
+      <td>${linkBadge}</td>
+      <td style="text-align:center">
+        ${hasContent?`<button onclick="viewMtgContent('${m.id}')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer">📄 보기</button>`:""}
+        ${fileCount>0?`<span style="font-size:12px;color:var(--g);margin-left:3px">📎${fileCount}</span>`:""}
+      </td>
+      <td style="white-space:nowrap">
+        ${!m.actId?`<span style="cursor:pointer;font-size:14px" onclick="linkMtgFromDB('${m.id}')" title="영업활동 연결">🔗</span>`:""}
+        <span style="cursor:pointer;font-size:14px;color:var(--r);margin-left:3px" onclick="deleteMtgEntry('${m.id}')" title="삭제">🗑️</span>
+      </td>
+    </tr>`;
+  }).join("");
+  $("mtgLogCnt", `총 ${filtered.length}건`);
+  $("mtgLogUpd", "갱신: "+new Date().toLocaleTimeString("ko-KR"));
+}
+
+// DB에서 연결 버튼 클릭
+function linkMtgFromDB(mtgId) {
+  _mtgDBLinkTarget = mtgId;
+  const mtg = (window._mtgLogs||[]).find(x=>x.id===mtgId);
+  showMtgActLinkModal(mtg?.company||"");
+}
+
+// 회의록 내용 보기
+function viewMtgContent(mtgId) {
+  const m = (window._mtgLogs||[]).find(x=>x.id===mtgId);
+  if(!m) return;
+  const arr = v => Array.isArray(v) ? v.join(", ") : (v||"-");
+  const header = [
+    `📝 회의록`,
+    `일시: ${m.date} · ${m.type} · ${m.place||"장소 미정"}`,
+    `고객사: ${m.company||"미확정"} ${m.pjcode?"/ "+m.pjcode:""}`,
+    `✍️ 작성자: ${arr(m.author)}`,
+    `🏢 영업담당자: ${arr(m.salesMgr)}`,
+    `🏭 고객사 참석자: ${arr(m.attendees)}`,
+    "─".repeat(35),
+    ""
+  ].join("\n");
+  alert(header + m.content);
+}
+
+// 삭제
+async function deleteMtgEntry(mtgId) {
+  const m = (window._mtgLogs||[]).find(x=>x.id===mtgId);
+  if(!m || !confirm(`"${m.date} ${m.company||"미확정"}" 회의록을 삭제할까요?`)) return;
+  window._mtgLogs = (window._mtgLogs||[]).filter(x=>x.id!==mtgId);
+  await saveMtgLogsToSP();
+  renderMtgLog(window._mtgLogs);
+}
+
 function go(id, el) {
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
   document.querySelectorAll(".ni").forEach(n=>n.classList.remove("on"));
@@ -9057,6 +10442,10 @@ function go(id, el) {
     },3*60*1000);
   }
   // 영업활동 Log 탭
+  // 견적서 DB 탭
+  if(id==="quote-db") {
+    loadQuoteDB();
+  }
   if(id==="sales-log") {
     loadSLFromSP().then(()=>syncSLFromTeams());
     // 고객담당자 자동완성 위해 컨택 데이터도 로드
@@ -9225,12 +10614,7 @@ async function loadMtgLogsFromSP() {
   const el=document.getElementById("mtgLogUpd"); if(el) el.textContent="로드:"+new Date().toLocaleTimeString("ko-KR");
 }
 function filterMtgLog(){
-  const q=(document.getElementById("mtgLogSrch")?.value||"").toLowerCase();
-  const type=document.getElementById("mtgLogType")?.value||"";
-  let data=window._mtgLogs||[];
-  if(q) data=data.filter(m=>[m.company,m.attendees,m.location].some(v=>String(v||"").toLowerCase().includes(q)));
-  if(type) data=data.filter(m=>m.type===type);
-  renderMtgLogTable(data);
+  renderMtgLog(window._mtgLogs||[]);
 }
 function renderMtgLogTable(data){
   data=data||window._mtgLogs||[];
