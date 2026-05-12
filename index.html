@@ -4034,6 +4034,66 @@ async function findTeamsGroup() {
 }
 
 // Teams 채널 캘린더에서 이벤트 읽기
+// ━━ 마케팅 캘린더 디버그 테스트 (콘솔에서 testMktCalendar() 실행) ━━
+async function testMktCalendar() {
+  console.log("=== 마케팅 캘린더 테스트 시작 ===");
+  try {
+    // 1. 토큰 확인
+    const t = await getToken();
+    console.log("✅ 토큰 OK:", t.substring(0,20)+"...");
+
+    // 2. 그룹 찾기
+    const gid = await findTeamsGroup();
+    console.log("✅ 그룹 ID:", gid);
+    if(!gid) { console.error("❌ 그룹 없음!"); return; }
+
+    // 3. 그룹 정보 확인
+    const grp = await gGet("/groups/"+gid+"?$select=displayName,mail,mailNickname");
+    console.log("✅ 그룹 정보:", grp.displayName, grp.mail);
+
+    // 4. 캘린더 이벤트 조회 (연도별 분할)
+    let allCalEvts = [];
+    for(const yr of ["2025","2026","2027"]) {
+      try {
+        const res = await gGet(`/groups/${gid}/calendarView?startDateTime=${yr}-01-01T00:00:00Z&endDateTime=${yr}-12-31T23:59:59Z&$top=50&$select=subject,start,end,isAllDay,categories`);
+        allCalEvts = allCalEvts.concat(res.value||[]);
+      } catch(e2) { console.warn(`캘린더 ${yr}년 조회 실패:`, e2.message); }
+    }
+    console.log("✅ 전체 이벤트 수:", allCalEvts.length);
+    allCalEvts.forEach(e=>console.log("  -", e.subject, e.start?.date||e.start?.dateTime?.split("T")[0], e.categories));
+
+    // 5. 테스트 이벤트 등록
+    const testBody = {
+      subject: "[마케팅] 테스트이벤트_삭제해주세요",
+      start: { date: "2026-06-01" },
+      end:   { date: "2026-06-02" },
+      isAllDay: true,
+      categories: ["국내전시회"]
+    };
+    console.log("📅 테스트 이벤트 등록 시도...", JSON.stringify(testBody));
+    const r = await fetch("https://graph.microsoft.com/v1.0/groups/"+gid+"/events", {
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+      body: JSON.stringify(testBody)
+    });
+    if(r.ok) {
+      const d = await r.json();
+      console.log("✅ 테스트 이벤트 등록 성공! ID:", d.id, "제목:", d.subject);
+      // 바로 삭제
+      await fetch("https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+d.id, {
+        method:"DELETE", headers:{"Authorization":"Bearer "+t}
+      });
+      console.log("✅ 테스트 이벤트 삭제 완료");
+    } else {
+      const err = await r.json();
+      console.error("❌ 등록 실패:", r.status, err.error?.code, err.error?.message);
+    }
+  } catch(e) {
+    console.error("❌ 테스트 실패:", e.message);
+  }
+  console.log("=== 테스트 완료 ===");
+}
+
 async function syncExhFromTeams() {
   $("exhSchedUpd", "Teams 동기화 중...");
   const badge = document.getElementById("exhSyncBadge");
@@ -4056,25 +4116,17 @@ async function syncExhFromTeams() {
       return;
     }
 
-    // 그룹 캘린더 이벤트 조회 (현재부터 2년)
-    const from = "2024-01-01";
-    const to = "2028-12-31";
-    const calUrl = "/groups/"+gid+"/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100&$orderby=start/dateTime";
-    const events = await Promise.race([
-      gGet(calUrl),
-      new Promise((_,reject)=>setTimeout(()=>reject(new Error("캘린더 조회 타임아웃")),10000))
-    ]);
-
-    // 전체 이벤트 목록 출력 (디버깅)
-    const allEvts = events.value||[];
-    console.log(`📅 그룹 캘린더 전체 이벤트 ${allEvts.length}개:`,
-      allEvts.map(e=>({
-        subject: e.subject,
-        start: e.start?.date||e.start?.dateTime?.split("T")[0],
-        cats: e.categories,
-        isAllDay: e.isAllDay
-      }))
-    );
+    // 그룹 캘린더 이벤트 조회 - 연도별 분할 (calendarView 최대 ~1년)
+    let allEvts = [];
+    for(const yr of ["2025","2026","2027","2028"]) {
+      try {
+        const calUrl = `/groups/${gid}/calendarView?startDateTime=${yr}-01-01T00:00:00Z&endDateTime=${yr}-12-31T23:59:59Z&$top=100&$select=id,subject,start,end,isAllDay,categories,location,organizer,body`;
+        const res = await gGet(calUrl);
+        allEvts = allEvts.concat(res.value||[]);
+      } catch(e2) { console.warn(`캘린더 ${yr}년 조회 실패:`, e2.message); }
+    }
+    const events = { value: allEvts };
+    console.log(`📅 그룹 캘린더 전체 ${allEvts.length}개:`, allEvts.map(e=>e.subject));
 
     // 이벤트를 전시회 형식으로 변환
     // 필터: [전시회]/[마케팅] 제목 prefix OR 전시회/마케팅 카테고리 → 마케팅 활동
@@ -5238,13 +5290,24 @@ async function syncSLFromTeams() {
     }
     $("sl-period",from+" ~ "+to);
 
-    // 그룹 캘린더에서 영업 일정 가져오기
-    // (Channel Calendar 앱과의 직접 동기화는 Graph API 미지원이라 그룹 캘린더만 사용.
-    //  Outlook 그룹 캘린더에 표시되고, 채널에는 메시지 알림으로 노출됨.)
+    // 그룹 캘린더에서 영업 일정 가져오기 - 연도별 분할 (calendarView 최대 ~1년)
     let allEvents = [];
     try {
-      const ge = await gGet("/groups/"+gid+"/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100&$orderby=start/dateTime");
-      allEvents.push(...(ge.value||[]));
+      if(to.substring(0,4) === from.substring(0,4)) {
+        // 같은 연도면 한 번에 조회
+        const ge = await gGet(`/groups/${gid}/calendarView?startDateTime=${from}T00:00:00Z&endDateTime=${to}T23:59:59Z&$top=100`);
+        allEvents.push(...(ge.value||[]));
+      } else {
+        // 다른 연도면 연도별 분할
+        const startYr = parseInt(from.substring(0,4));
+        const endYr   = parseInt(to.substring(0,4));
+        for(let yr = startYr; yr <= Math.min(endYr, startYr+3); yr++) {
+          try {
+            const ge = await gGet(`/groups/${gid}/calendarView?startDateTime=${yr}-01-01T00:00:00Z&endDateTime=${yr}-12-31T23:59:59Z&$top=100`);
+            allEvents.push(...(ge.value||[]));
+          } catch(e2){ console.warn(`그룹 캘린더 ${yr}년 조회 실패:`, e2.message); }
+        }
+      }
     } catch(e){ console.warn("그룹 캘린더 조회 실패:", e.message); }
 
     const events = {value: allEvents};
