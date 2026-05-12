@@ -2971,6 +2971,182 @@ function renderSLAll() {
   if(typeof renderRecentSLCard === "function") renderRecentSLCard();
 }
 
+
+// ─── 진행상태 인라인 업데이트 ───
+async function updateSLStatus(id, newStatus) {
+  const act = slData.find(x=>x.id===id);
+  if(!act) return;
+  const oldStatus = act.status;
+  act.status = newStatus;
+  const today = new Date().toISOString().split("T")[0];
+  act.updatedAt = new Date().toISOString();
+  act.lastActivity = today;
+  if(!act.history) act.history = [];
+  act.history.unshift({ date:today, action:"진행상태 변경: "+oldStatus+" → "+newStatus, type:"status" });
+  renderSLAll();
+  await saveSLToSP();
+}
+
+// ─── 프로젝트코드 발급요청 ───
+async function requestPJCode(id) {
+  const act = slData.find(x=>x.id===id);
+  if(!act) return;
+  if(!confirm('"'+act.company+'" 프로젝트코드 발급을 관리자('+SL_ADMIN_NAME+')에게 요청할까요?\nTeams 메시지 + 이메일이 발송됩니다.')) return;
+  const results = [];
+  $("slUpd","발급요청 발송 중...");
+  try {
+    const t = await getToken();
+    const emailBody = {
+      message: {
+        subject: "[ENJET 영업] 프로젝트코드 발급 요청 - "+act.company,
+        body: { contentType:"HTML", content:"<div style=\"font-family:맑은고딕,sans-serif\"><h2>📋 프로젝트코드 발급 요청</h2><table><tr><td><b>고객사</b></td><td>"+act.company+"</td></tr><tr><td><b>진행상태</b></td><td>제안 → 코드 발급 필요</td></tr><tr><td><b>영업담당자</b></td><td>"+(act.salesMgr||"-")+"</td></tr><tr><td><b>고객담당자</b></td><td>"+(act.custMgr||"-")+"</td></tr><tr><td><b>비고</b></td><td>"+(act.note||"-")+"</td></tr></table><p>ENJET 영업 대시보드 자동 발송</p></div>" },
+        toRecipients: [{ emailAddress:{ address:SL_ADMIN_EMAIL, name:SL_ADMIN_NAME }}],
+      },
+      saveToSentItems: true
+    };
+    const r = await fetch("https://graph.microsoft.com/v1.0/me/sendMail",{
+      method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+      body:JSON.stringify(emailBody)
+    });
+    if(!r.ok && r.status!==202) { const e=await r.json(); throw new Error(e.error?.message||r.status); }
+    results.push("📧 이메일 발송 완료");
+  } catch(e) { results.push("📧 이메일 실패: "+e.message.substring(0,30)); }
+  try {
+    if(!teamsGroupId) await findTeamsGroup();
+    const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
+    if(gid) {
+      const t = await getToken();
+      await fetch("https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(SL_TEAMS_CHANNEL_ID)+"/messages",{
+        method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+        body:JSON.stringify({body:{contentType:"html",content:"<p><b>📋 프로젝트코드 발급 요청</b></p><table><tr><td><b>고객사</b></td><td>"+act.company+"</td></tr><tr><td><b>상태</b></td><td>제안 → 코드 발급 필요</td></tr><tr><td><b>영업담당</b></td><td>"+(act.salesMgr||"-")+"</td></tr></table>"}})
+      });
+      results.push("💬 Teams 알림 완료");
+    }
+  } catch(e) { results.push("💬 Teams 실패: "+e.message.substring(0,30)); }
+  const today = new Date().toISOString().split("T")[0];
+  if(!act.history) act.history=[];
+  act.history.unshift({date:today, action:"프로젝트코드 발급요청 발송", type:"status"});
+  act.updatedAt = new Date().toISOString();
+  act.lastActivity = today;
+  await saveSLToSP();
+  renderSLAll();
+  $("slUpd","발급요청 완료: "+new Date().toLocaleTimeString("ko-KR"));
+  alert("✅ 발급요청 완료!\n"+results.join("\n"));
+}
+
+// ─── Teams 이벤트 → 영업활동 매칭 ───
+function syncSLActivityFromEvent(evt, save) {
+  const title = evt.title||"";
+  const pjMatch = title.match(/([A-Z]{2,3}\d{4,6}[-\w]*)/);
+  const pjCode = pjMatch ? pjMatch[1] : "";
+  let company = title
+    .replace(/^\[[^\]]*\]\s*/, "")
+    .replace(/\s*\([^)]*\)/g, "")
+    .replace(/[A-Z]{2,3}\d{4,6}[-\w]*/g, "")
+    .replace(/\s*(미팅|회의|방문|상담|견적|발주|납품|검수|영업|컨택|전화|화상)\s*$/g, "")
+    .trim();
+  let existing = null;
+  if(pjCode) existing = slData.find(x=>x.pjcode===pjCode);
+  if(!existing && company.length>1) existing = slData.find(x=>x.company&&(x.company.includes(company)||company.includes(x.company)));
+  const now = new Date().toISOString();
+  const today = (evt.start||"").substring(0,10);
+  if(existing) {
+    if(today > (existing.lastActivity||"")) existing.lastActivity = today;
+    existing.updatedAt = now;
+    if(pjCode && !existing.pjcode) existing.pjcode = pjCode;
+    if(!existing.history) existing.history=[];
+    const alreadyLogged = existing.history.some(h=>h.date===today && h.action.includes(evt.title));
+    if(!alreadyLogged) existing.history.unshift({date:today, action:"📅 "+evt.title, type:"teams"});
+    if(save) saveSLToSP().then(()=>renderSLAll());
+    return "updated";
+  } else if(company.length>1) {
+    const newAct = {
+      id:"sl_teams_"+evt.id, company, pjcode:pjCode||"", status:"신규",
+      custMgr:"", salesMgr:evt.organizer||"",
+      start:today, end:evt.end||today, lastActivity:today,
+      note:"[Teams 자동생성] "+title, files:{},
+      teamsEventId:evt.id, createdAt:now, updatedAt:now,
+      history:[{date:today, action:"🆕 Teams 자동생성: "+title, type:"create"}]
+    };
+    slData.push(newAct);
+    if(save) saveSLToSP().then(()=>renderSLAll());
+    return "created";
+  }
+  return "skipped";
+}
+
+// ─── 최근 영업활동 카드 ───
+function renderRecentSLCard() {
+  const el = document.getElementById("recentSLCard");
+  if(!el) return;
+  if(!slData.length) { el.innerHTML='<div class="empty"><div class="et" style="font-size:12px">영업활동 없음</div></div>'; return; }
+  const recent = [...slData]
+    .sort((a,b)=>(b.lastActivity||b.updatedAt||"").localeCompare(a.lastActivity||a.updatedAt||""))
+    .slice(0,5);
+  const SC={신규:"var(--t3)",제안:"var(--p)",견적:"var(--p)",발주:"var(--a)",진행:"var(--a)",납품완료:"var(--g)",세금계산서미발행:"var(--r)",세금계산서완료:"var(--g)",잔금:"var(--r)","유지보수(무상)":"var(--t3)",종료:"var(--t3)"};
+  el.innerHTML=recent.map(r=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showSLHistory('${r.id}')">
+      <div style="width:7px;height:7px;border-radius:50%;background:${SC[r.status]||"var(--t3)"};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:700;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.company}</div>
+        <div style="font-size:9px;color:var(--t3)">${r.status} · ${(r.lastActivity||r.start||"").substring(0,10)}</div>
+      </div>
+      <span class="badge ${STATUS_BADGE_SL[r.status]||"gray"}" style="font-size:8px;flex-shrink:0">${r.status}</span>
+    </div>`).join("")+'<div style="font-size:10px;color:var(--t3);padding-top:6px;text-align:center;cursor:pointer" onclick="go(\'sales-log\',document.querySelector(\'.ni[onclick*=sales-log]\'))">전체보기 →</div>';
+}
+
+// ─── 활동 이력 모달 ───
+function showSLHistory(id) {
+  const act = slData.find(x=>x.id===id);
+  if(!act) return;
+  const modal = document.getElementById("slHistoryModal");
+  const title = document.getElementById("slHistoryTitle");
+  const body  = document.getElementById("slHistoryBody");
+  if(!modal) return;
+  title.textContent = act.company+" 활동 이력";
+  const history = act.history||[];
+  const calEvents = slCalData.filter(e=>act.company&&(e.title.includes(act.company.substring(0,3))||(act.pjcode&&e.title.includes(act.pjcode))));
+  const extra = calEvents
+    .filter(e=>!history.some(h=>h.action.includes(e.title)))
+    .map(e=>({date:e.start,action:"📅 "+e.title,type:"teams"}));
+  const all = [...history,...extra].sort((a,b)=>b.date.localeCompare(a.date));
+  const TC={create:"var(--g)",edit:"var(--p)",status:"var(--a)",teams:"var(--pu)",default:"var(--t3)"};
+  const TI={create:"🆕",edit:"✏️",status:"🔄",teams:"📅",default:"📌"};
+  body.innerHTML = all.length
+    ? `<div style="position:relative;padding-left:18px">
+        <div style="position:absolute;left:6px;top:0;bottom:0;width:2px;background:var(--border2)"></div>
+        ${all.map(h=>`
+          <div style="position:relative;margin-bottom:14px">
+            <div style="position:absolute;left:-13px;top:4px;width:10px;height:10px;border-radius:50%;background:${TC[h.type]||TC.default};border:2px solid #fff;box-shadow:0 0 0 1px var(--border2)"></div>
+            <div style="font-size:9px;color:var(--t3);margin-bottom:2px">${h.date}</div>
+            <div style="font-size:11px;color:var(--t);font-weight:500">${TI[h.type]||"📌"} ${h.action}</div>
+          </div>`).join("")}
+      </div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);text-align:right">
+        <button onclick="addSLManualHistory('${id}')"
+          style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">
+          + 활동 직접 입력
+        </button>
+      </div>`
+    : `<div class="empty"><div class="ei">📋</div><div class="et">기록 없음</div></div>`;
+  modal.dataset.actId = id;
+  modal.style.display = "flex";
+}
+
+function addSLManualHistory(id) {
+  const act = slData.find(x=>x.id===id);
+  if(!act) return;
+  const txt = prompt("활동 내용:\n예) 고객사 방문, 견적 제출, 전화 상담");
+  if(!txt) return;
+  const dateStr = prompt("활동 날짜 (YYYY-MM-DD):", new Date().toISOString().split("T")[0]);
+  if(!dateStr) return;
+  if(!act.history) act.history=[];
+  act.history.unshift({date:dateStr, action:txt, type:"default"});
+  if(dateStr>(act.lastActivity||"")) act.lastActivity=dateStr;
+  act.updatedAt=new Date().toISOString();
+  saveSLToSP().then(()=>{ renderSLAll(); showSLHistory(id); });
+}
+
 function updateSLKPI(data) {
   $("sl-tot",data.length);
   $("sl-new",data.filter(d=>["신규","제안","견적"].includes(d.status)).length);
