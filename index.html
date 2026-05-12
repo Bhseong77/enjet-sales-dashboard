@@ -136,149 +136,123 @@
    모바일 반응형 (768px 이하)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 @media(max-width:768px){
-  /* 레이아웃 */
+  /* ── 레이아웃 ── */
   .layout{flex-direction:column}
-  .sb{display:none !important} /* 사이드바 숨김 → 하단 탭바로 대체 */
-  .main{padding-bottom:68px} /* 하단 탭바 여백 */
-  .content{padding:10px 12px}
-  .topbar{padding:8px 12px}
-  .tb-t{font-size:15px}
+  .sb{display:none !important}
+  .main{padding-bottom:68px}
+  .content{padding:8px 10px}
 
-  /* KPI 카드: 2열 */
-  .kr{grid-template-columns:repeat(2,1fr);gap:7px}
-  .kpi{padding:10px 12px}
-  .kl{font-size:14px}
-  .kv{font-size:22px}
+  /* ── 상단바: 타이틀만 표시, 버튼들 숨김 ── */
+  .topbar{padding:6px 10px;gap:6px;flex-wrap:nowrap;min-height:44px}
+  .tb-t{font-size:14px;font-weight:700;white-space:nowrap}
+  .tbs{flex:1}
+  /* 새로고침/로그아웃 버튼 - 상단바에서 숨기고 더보기로 이동 */
+  .bsm{display:none !important}
+  /* 사용자 상태 표시 축소 */
+  .aus{font-size:12px;white-space:nowrap}
 
-  /* 카드 */
+  /* ── KPI 카드: 2열 ── */
+  .kr{grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px}
+  .kpi{padding:9px 10px}
+  .kl{font-size:12px;margin-bottom:3px}
+  .kv{font-size:20px;margin-bottom:2px}
+  .ks{font-size:12px}
+
+  /* ── 카드 ── */
   .card{border-radius:10px;margin-bottom:8px}
-  .ch{padding:8px 12px 6px;flex-wrap:wrap;gap:6px}
-  .ct{font-size:17px}
+  .ch{padding:8px 10px 7px;flex-wrap:wrap;gap:5px}
+  .ct{font-size:15px}
   .cb{padding:8px 10px}
+  .cn{font-size:12px;padding:4px 10px}
 
-  /* 2열 그리드 → 1열 */
-  .g2,.g2b{grid-template-columns:1fr;gap:7px}
+  /* ── 2열 그리드 → 1열 ── */
+  .g2,.g2b{grid-template-columns:1fr;gap:6px}
 
-  /* 테이블 → 스크롤 */
+  /* ── 테이블 → 가로 스크롤 (테이블 있는 탭들) ── */
   .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .tbl th{font-size:13px;padding:0 6px 6px}
-  .tbl td{font-size:13px;padding:8px 6px}
+  .tbl th{font-size:12px;padding:0 5px 6px}
+  .tbl td{font-size:13px;padding:7px 5px}
 
-  /* 버튼 크기 */
-  .pp{font-size:13px;padding:3px 8px}
-  .bsm{font-size:14px;padding:6px 10px}
+  /* ── 버튼/입력 ── */
+  .pp{font-size:12px;padding:2px 7px}
+  input,select,textarea{font-size:16px !important} /* iOS 줌 방지 */
 
-  /* 헤더 버튼들 작게 */
-  .topbar button{font-size:13px;padding:5px 10px}
+  /* ── 모달 풀스크린 ── */
+  .modal-inner{
+    width:100vw !important;max-width:100vw !important;
+    min-height:100dvh !important;max-height:100dvh !important;
+    border-radius:0 !important;overflow-y:auto;
+    padding:16px 14px !important;
+  }
 
-  /* 영업활동 목록 - 모바일용 카드 뷰로 전환 */
-  #slBody td{white-space:normal}
-  .tbl .mob-hide{display:none} /* 모바일 숨김 컬럼 */
-
-  /* 모달 풀스크린 */
-  .modal-inner{width:100vw !important;max-width:100vw !important;height:100dvh !important;max-height:100dvh !important;border-radius:0 !important;overflow-y:auto}
-
-  /* 검색 입력 */
-  .si{font-size:16px !important} /* iOS 줌 방지 */
-  input,select,textarea{font-size:16px !important}
-
-  /* FAB (+추가 버튼) - 모바일 고정 */
+  /* ── FAB 표시 ── */
   .mob-fab{display:flex !important}
-
-  /* 페이지 상단 마진 줄이기 */
-  .page{padding-bottom:4px}
 }
 
-/* 하단 탭 네비게이션 (모바일 전용) */
+/* ━━ 영업활동 목록: 모바일 카드 뷰 ━━
+   테이블 대신 카드로 렌더링 (JS에서 처리)
+   아래 클래스들은 renderSLTable 모바일 분기에서 사용
+*/
+.sl-card{
+  background:#fff;border:1px solid var(--border);
+  border-radius:10px;padding:12px;margin-bottom:8px;
+}
+.sl-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.sl-card-company{font-size:16px;font-weight:800;color:var(--t)}
+.sl-card-status{font-size:13px;padding:2px 8px;border-radius:12px;font-weight:700;white-space:nowrap}
+.sl-card-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
+.sl-card-tag{font-size:13px;color:var(--t2);background:var(--bg3);padding:2px 8px;border-radius:6px;display:flex;align-items:center;gap:3px}
+.sl-card-files{display:flex;gap:6px;overflow-x:auto;padding:2px 0;-webkit-overflow-scrolling:touch}
+.sl-card-files::-webkit-scrollbar{display:none}
+.sl-card-btn{padding:4px 10px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid;white-space:nowrap;flex-shrink:0;font-family:var(--s)}
+.sl-card-actions{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.sl-card-actions button{flex:1;padding:7px 4px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--t2);font-family:var(--s)}
+
+/* 하단 탭 네비게이션 */
 .mob-nav{
-  display:none;
-  position:fixed;
-  bottom:0;left:0;right:0;
-  height:60px;
-  background:#fff;
-  border-top:1px solid var(--border);
-  z-index:1000;
-  padding:0;
-  align-items:stretch;
-  box-shadow:0 -2px 12px rgba(0,0,0,0.08);
+  display:none;position:fixed;bottom:0;left:0;right:0;height:60px;
+  background:#fff;border-top:1px solid var(--border);z-index:1000;
+  padding:0;align-items:stretch;box-shadow:0 -2px 12px rgba(0,0,0,.08);
 }
 .mob-nav-item{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:2px;
-  cursor:pointer;
-  color:var(--t3);
-  font-size:10px;
-  font-weight:600;
-  font-family:var(--s);
-  padding:6px 2px 4px;
-  border:none;
-  background:transparent;
-  transition:color .15s;
-  position:relative;
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;cursor:pointer;color:var(--t3);
+  font-size:10px;font-weight:600;font-family:var(--s);
+  padding:6px 2px 4px;border:none;background:transparent;transition:color .15s;position:relative;
 }
 .mob-nav-item.on{color:var(--p)}
-.mob-nav-item .mob-icon{font-size:20px;line-height:1}
+.mob-nav-item .mob-icon{font-size:22px;line-height:1}
 .mob-nav-item .mob-label{font-size:10px;line-height:1}
 .mob-nav-badge{
-  position:absolute;top:4px;right:calc(50% - 14px);
-  background:var(--r);color:#fff;
-  font-size:10px;font-weight:800;
-  padding:1px 4px;border-radius:6px;
-  font-family:var(--m);min-width:14px;text-align:center;
+  position:absolute;top:4px;right:calc(50% - 16px);
+  background:var(--r);color:#fff;font-size:10px;font-weight:800;
+  padding:1px 4px;border-radius:6px;font-family:var(--m);min-width:14px;text-align:center;
 }
 .mob-nav-more{
-  position:fixed;bottom:60px;left:0;right:0;
-  background:#fff;border-top:1px solid var(--border);
-  display:none;padding:12px;
-  box-shadow:0 -4px 20px rgba(0,0,0,0.1);
-  z-index:999;
+  position:fixed;bottom:60px;left:0;right:0;background:#fff;
+  border-top:1px solid var(--border);display:none;padding:10px;
+  box-shadow:0 -4px 20px rgba(0,0,0,.12);z-index:999;
 }
 .mob-nav-more.open{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .mob-more-item{
   display:flex;flex-direction:column;align-items:center;gap:4px;
-  padding:10px 6px;border-radius:10px;cursor:pointer;
-  font-size:12px;color:var(--t2);font-weight:600;
-  background:var(--bg3);border:1px solid transparent;
+  padding:10px 6px;border-radius:10px;cursor:pointer;font-size:12px;
+  color:var(--t2);font-weight:600;background:var(--bg3);border:1px solid transparent;
 }
 .mob-more-item.on,.mob-more-item:hover{background:var(--pd);color:var(--p);border-color:var(--p)}
 .mob-more-item .mob-icon{font-size:22px}
 
-@media(max-width:768px){
-  .mob-nav{display:flex}
-}
-
-/* FAB - 모바일 플로팅 추가 버튼 */
+/* 모바일 FAB */
 .mob-fab{
-  display:none;
-  position:fixed;
-  bottom:72px;right:14px;
-  width:50px;height:50px;
-  border-radius:50%;
-  background:var(--p);
-  color:#fff;
-  font-size:26px;
-  border:none;
-  cursor:pointer;
-  align-items:center;
-  justify-content:center;
-  box-shadow:0 4px 16px rgba(26,111,212,0.4);
-  z-index:998;
-  font-family:var(--s);
+  display:none;position:fixed;bottom:72px;right:16px;
+  width:52px;height:52px;border-radius:50%;background:var(--p);color:#fff;
+  font-size:28px;border:none;cursor:pointer;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(26,111,212,0.4);z-index:998;font-family:var(--s);
+  line-height:1;
 }
-
-/* 모바일 영업활동 카드 뷰 */
-@media(max-width:768px){
-  /* 영업활동 테이블 → 카드 스타일 */
-  #slBody tr{display:flex;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--border);gap:6px;position:relative}
-  #slBody td{border:none;padding:2px 0;white-space:normal}
-  #slBody td:first-child{font-size:15px;font-weight:700;width:100%;padding-bottom:4px;border-bottom:1px solid var(--border)}
-  #slBody td.mob-hide{display:none}
-  /* 파일 버튼들 가로 스크롤 */
-  .mob-file-row{display:flex;gap:4px;overflow-x:auto;padding:4px 0;width:100%;-webkit-overflow-scrolling:touch}
+@media(max-width:768px){.mob-nav{display:flex}.mob-fab{display:flex !important}
+  /* 모바일 상단 아이콘 버튼 표시 */
+  #btnRefreshMob{display:flex !important;padding:6px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);font-size:18px;cursor:pointer}
 }
 </style>
 </head>
@@ -321,6 +295,9 @@
     <div class="topbar">
       <div class="tb-t" id="ptitle">📊 매출 현황</div><div class="tbs"></div>
       <button class="bsm p" id="btnRefresh" onclick="syncAll()">🔄 새로고침</button>
+      <!-- 모바일: 아이콘만 -->
+      <button onclick="syncAll()" style="display:none" id="btnRefreshMob"
+        class="mob-topbtn">🔄</button>
       <div class="aus ld" id="aus">● 확인 중...</div>
       <button class="bsm" id="btnLogout">로그아웃</button>
     </div>
@@ -5604,6 +5581,137 @@ function filterSL() {
   $("slCnt",d.length+"건"+(d.length!==slData.length?" (필터됨)":""));
 }
 
+// ━━ 모바일 영업활동 카드 뷰 ━━
+function renderSLCards(data, container, FILE_TYPES) {
+  if(!FILE_TYPES) FILE_TYPES = [
+    {key:"minutes",label:"📝",col:"회의록"},
+    {key:"proposal",label:"📁",col:"자료"},
+    {key:"estimate",label:"📄",col:"견적서"},
+    {key:"order",label:"📦",col:"발주서"},
+    {key:"contract",label:"📑",col:"계약서"},
+    {key:"tax",label:"🧾",col:"세금계산서"},
+  ];
+
+  // 컨테이너를 tbody가 아닌 div로 교체 (모바일에서 thead 숨기기)
+  const wrapper = container.closest(".tw") || container.parentElement;
+
+  if(!data.length) {
+    // tbody에 바로 표시
+    container.innerHTML = `<tr><td colspan="14"><div class="empty">
+      <div class="ei">📋</div><div class="et">영업활동 없음</div>
+      <div style="margin-top:10px">
+        <button onclick="openSLModal(null)" style="padding:10px 24px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700">+ 추가</button>
+      </div></div></td></tr>`;
+    // 테이블 헤더 숨기기
+    const thead = container.closest("table")?.querySelector("thead");
+    if(thead) thead.style.display = "none";
+    return;
+  }
+
+  // 테이블 헤더 숨기기
+  const thead = container.closest("table")?.querySelector("thead");
+  if(thead) thead.style.display = "none";
+
+  const ALL_STATUS = ["신규","제안","견적","발주","진행","납품완료","세금계산서미발행","세금계산서완료","잔금","유지보수(무상)","종료"];
+  const STATUS_COLOR = {
+    신규:"var(--t3)",제안:"var(--a)",견적:"var(--pu)",발주:"var(--p)",
+    진행:"var(--g)",납품완료:"var(--g)",세금계산서미발행:"var(--r)",
+    세금계산서완료:"var(--g)",잔금:"var(--a)",종료:"var(--t3)"
+  };
+  const STATUS_BG = {
+    신규:"var(--bg3)",제안:"var(--ad)",견적:"var(--pud)",발주:"var(--pd)",
+    진행:"var(--gd)",납품완료:"var(--gd)",세금계산서미발행:"var(--rd)",
+    세금계산서완료:"var(--gd)",잔금:"var(--yd)",종료:"var(--bg3)"
+  };
+
+  const sorted = [...data].sort((a,b)=>{
+    const da=a.lastActivity||a.start||a.updatedAt||"";
+    const db=b.lastActivity||b.start||b.updatedAt||"";
+    return db.localeCompare(da);
+  });
+
+  // tbody 대신 아래 카드들을 렌더 (tr 구조는 유지하되 내용을 카드로)
+  container.innerHTML = sorted.map(r=>{
+    const isTempCode = r.pjcode && /^신규\d*차?$/.test(r.pjcode);
+    const hasOfficialCode = r.pjcode && !isTempCode;
+    const statusColor = STATUS_COLOR[r.status]||"var(--t3)";
+    const statusBg = STATUS_BG[r.status]||"var(--bg3)";
+    const seq = getSLSequence(r);
+
+    // 파일 버튼들
+    const fileBtns = FILE_TYPES.map(ft=>{
+      const cnt = (r.files?.[ft.key]||[]).length;
+      if(ft.key==="minutes") {
+        return `<button onclick="openSLMinutesModal('${r.id}')" class="sl-card-btn"
+          style="background:${cnt>0?"var(--gd)":"var(--pd)"};color:${cnt>0?"var(--g)":"var(--p)"};border-color:${cnt>0?"var(--g)":"var(--p)"}">
+          ${ft.label} ${cnt>0?cnt+"개":"작성"}</button>`;
+      }
+      return cnt>0
+        ? `<button onclick="openSLFileModal('${r.id}','${ft.key}')" class="sl-card-btn" style="background:var(--gd);color:var(--g);border-color:var(--g)">${ft.label} ${cnt}개</button>`
+        : `<button onclick="uploadSLFile('${r.id}','${ft.key}')" class="sl-card-btn" style="color:var(--t3);border-color:var(--border2)">${ft.label} ⬆</button>`;
+    }).join("");
+
+    // 프로젝트코드 표시
+    let pjBadge = "";
+    if(hasOfficialCode) {
+      pjBadge = `<span class="sl-card-tag" style="background:var(--pd);color:var(--p);font-family:var(--m);font-weight:700;cursor:pointer" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')">${r.pjcode}</span>`;
+    } else if(r.status==="제안"||r.status==="견적") {
+      pjBadge = `<button onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')"
+        style="padding:2px 9px;border-radius:5px;border:1.5px solid var(--a);background:var(--ad);color:var(--a);font-size:12px;cursor:pointer;font-weight:800;animation:pulse 1.2s infinite;font-family:var(--s)">📋 발급요청/입력</button>`;
+    } else if(isTempCode) {
+      pjBadge = `<span class="sl-card-tag" style="cursor:pointer" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')">${r.pjcode} (임시)</span>`;
+    } else {
+      pjBadge = `<span class="sl-card-tag" style="cursor:pointer;color:var(--t3)" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')")>+ 코드</span>`;
+    }
+
+    return `<tr style="display:block;padding:0;border:none;background:transparent">
+      <td colspan="14" style="display:block;border:none;padding:0 0 8px 0">
+        <div class="sl-card">
+          <!-- 상단: 회사명 + 상태 -->
+          <div class="sl-card-top">
+            <div>
+              <div class="sl-card-company">${r.company}</div>
+              <div style="height:2px;background:var(--p);border-radius:1px;width:32px;margin-top:3px"></div>
+            </div>
+            <select onchange="updateSLStatus('${r.id}',this.value)"
+              style="padding:4px 8px;border-radius:6px;border:1.5px solid ${statusColor};background:${statusBg};font-size:13px;font-weight:700;color:${statusColor};font-family:var(--s);cursor:pointer">
+              ${ALL_STATUS.map(s=>`<option value="${s}" ${s===r.status?"selected":""}>${s}</option>`).join("")}
+            </select>
+          </div>
+
+          <!-- 메타: 차수, 코드, 날짜 -->
+          <div class="sl-card-meta">
+            ${seq>1?`<span class="sl-card-tag" style="background:var(--pud);color:var(--pu);font-weight:700">${seq}차</span>`:""}
+            ${pjBadge}
+            <span class="sl-card-tag" style="cursor:pointer;color:var(--p);text-decoration:underline"
+              onclick="showSLHistory('${r.id}')">
+              ${(r.lastActivity||r.start||"").substring(0,10)||"-"}
+              ${(r.history||[]).length>1?`(${countUniqueHistory(r)}건 이력)`:""}
+            </span>
+          </div>
+
+          <!-- 담당자 -->
+          <div class="sl-card-meta" style="margin-bottom:8px">
+            <span class="sl-card-tag" style="cursor:pointer" onclick="openCustMgrPicker('${r.id}','${r.company.replace(/'/g,"\\'")}')")>
+              👤 ${r.custMgr || "담당자 선택"}
+            </span>
+            ${r.salesMgr?`<span class="sl-card-tag">🏢 ${r.salesMgr}</span>`:""}
+          </div>
+
+          <!-- 파일 버튼들 -->
+          <div class="sl-card-files">${fileBtns}</div>
+
+          <!-- 하단 액션 -->
+          <div class="sl-card-actions">
+            <button onclick="openSLModal(slData.find(x=>x.id==='${r.id}'))">✏️ 수정</button>
+            <button onclick="deleteSLActivity('${r.id}')" style="color:var(--r);border-color:var(--r)">🗑️ 삭제</button>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
 function renderSLTable(data) {
   const FILE_TYPES = [
     {key:"minutes",  label:"📝",  col:"회의록"},
@@ -5616,6 +5724,17 @@ function renderSLTable(data) {
   const PROPOSAL_DEFAULT_SUBS = ["제안서","교육","샘플test보고서"];
   const body = document.getElementById("slBody");
   if(!body) return;
+
+  // ── 모바일 감지: 768px 이하면 카드 뷰 ──
+  const isMobile = window.innerWidth <= 768;
+  if(isMobile) {
+    renderSLCards(data, body, FILE_TYPES);
+    return;
+  }
+  // 데스크톱: thead 복원 (모바일에서 숨겼을 수 있음)
+  const thead = body.closest("table")?.querySelector("thead");
+  if(thead) thead.style.display = "";
+
   if(!data.length){
     body.innerHTML='<tr><td colspan="14"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
     return;
