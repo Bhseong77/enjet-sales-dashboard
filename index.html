@@ -4811,14 +4811,16 @@ async function createSLTeamsEvent(act) {
   const t = await getToken();
   const startDate = act.start || new Date().toISOString().split("T")[0];
   const endDate   = act.end || startDate;
+  const sTime = act.startTime || "09:00";
+  const eTime = act.endTime   || "18:00";
   const eventTitle = "[영업] "+act.company+(act.pjcode?"-"+act.pjcode:"");
 
-  const body = {
+  const eventBody = {
     subject: eventTitle,
-    start:{ dateTime: startDate+"T"+(act.startTime||"09:00")+":00", timeZone:"Asia/Seoul" },
-    end:{   dateTime: (act.endDate||endDate)+"T"+(act.endTime||"18:00")+":00",   timeZone:"Asia/Seoul" },
+    start:{ dateTime: startDate+"T"+sTime+":00", timeZone:"Asia/Seoul" },
+    end:{   dateTime: endDate+"T"+eTime+":00",   timeZone:"Asia/Seoul" },
     isAllDay: false,
-    body:{contentType:"HTML", content:
+    body:{ contentType:"HTML", content:
       "<b>"+act.company+"</b><br>"+
       "진행상태: "+act.status+"<br>"+
       "프로젝트: "+(act.pjcode||"신규(미발급)")+"<br>"+
@@ -4827,66 +4829,52 @@ async function createSLTeamsEvent(act) {
       "비고: "+(act.note||"")+"<br><br>"+
       "<i>ENJET 영업 대시보드에서 등록됨</i>"
     },
-    categories:["영업활동"],
-    // 채널 연결 (그룹 캘린더가 채널 탭에 표시되도록)
-    allowNewTimeProposals: false,
+    categories: ["영업활동"],
   };
 
-  // 채널 연결: iCalUID 기반으로 채널 탭에 표시
-  // Teams 채널 일정 탭 = 같은 그룹 캘린더이므로 channel 정보 추가
-  body.isOnlineMeeting = false;
+  let eventId = null;
 
-  // 1. 그룹 캘린더에 이벤트 생성/수정
-  const url = act.teamsEventId
-    ? "https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+act.teamsEventId
-    : "https://graph.microsoft.com/v1.0/groups/"+gid+"/events";
-  const r = await fetch(url, {
-    method: act.teamsEventId ? "PATCH" : "POST",
-    headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-    body: JSON.stringify(body)
-  });
-  if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status); }
-  const data = await r.json();
-  const eventId = data.id;
-
-  // 2. 채널에 이벤트 연결 (채널 일정 탭에 표시)
-  // Teams 채널 일정 탭은 그룹 캘린더를 보여주므로 자동 반영됨
-  // 단, 채널 탭 필터가 있는 경우 채널 ID를 이벤트에 태그
+  // ── 방법 1: 채널 전용 Beta API ──
+  // Teams 채널 일정 탭에 직접 표시됨
   try {
-    // 이벤트에 채널 정보 확장 속성 추가
-    await fetch(
-      "https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+eventId+"/extensions",
-      {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-       body:JSON.stringify({
-         "@odata.type":"microsoft.graph.openTypeExtension",
-         "extensionName":"com.enjet.teamschannel",
-         "channelId": SL_TEAMS_CHANNEL_ID,
-         "channelName": "영업",
-       })}
-    );
-  } catch(e){ console.warn("채널 태그 실패(무시):", e.message); }
+    const chUrl = "https://graph.microsoft.com/beta/teams/"+gid+
+      "/channels/"+encodeURIComponent(SL_TEAMS_CHANNEL_ID)+"/events";
+    const cr = await fetch(chUrl, {
+      method: act.teamsEventId ? "PATCH" : "POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+      body: JSON.stringify(eventBody)
+    });
+    if(cr.ok) {
+      const cd = await cr.json();
+      eventId = cd.id;
+      console.log("✅ 채널 이벤트 등록 성공:", eventId);
+    } else {
+      const ce = await cr.json();
+      console.warn("채널 Beta API 실패:", ce.error?.message, "→ 그룹 캘린더로 폴백");
+    }
+  } catch(e) {
+    console.warn("채널 Beta API 오류:", e.message);
+  }
 
-  // 2. Teams 채널에 알림 메시지 전송 (채널 탭에서 확인 가능)
-  try {
-    const msgBody = {body:{contentType:"html", content:
-      "<p>📅 <b>영업 일정 등록됨</b></p>"+
-      "<table>"+
-      "<tr><td><b>일정</b></td><td>"+eventTitle+"</td></tr>"+
-      "<tr><td><b>기간</b></td><td>"+startDate+(endDate!==startDate?" ~ "+endDate:"")+"</td></tr>"+
-      "<tr><td><b>고객사</b></td><td>"+act.company+"</td></tr>"+
-      "<tr><td><b>상태</b></td><td>"+act.status+"</td></tr>"+
-      "</table>"+
-      "<i>Teams 캘린더에서 확인하세요</i>"
-    }};
-    await fetch(
-      "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+SL_TEAMS_CHANNEL_ID+"/messages",
-      {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-       body:JSON.stringify(msgBody)}
-    );
-  } catch(e) { console.warn("채널 알림 전송 실패:", e.message); }
+  // ── 방법 2: 그룹 캘린더 (폴백 또는 추가 등록) ──
+  if(!eventId) {
+    const url = act.teamsEventId
+      ? "https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+act.teamsEventId
+      : "https://graph.microsoft.com/v1.0/groups/"+gid+"/events";
+    const r = await fetch(url, {
+      method: act.teamsEventId ? "PATCH" : "POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+      body: JSON.stringify(eventBody)
+    });
+    if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status); }
+    const data = await r.json();
+    eventId = data.id;
+    console.log("✅ 그룹 캘린더 이벤트 등록:", eventId);
+  }
 
   return eventId;
 }
+
 
 // ─── Teams 채널 메시지 ───
 async function postSLTeamsMsg(act, action) {
