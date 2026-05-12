@@ -295,13 +295,19 @@
   /* FAB은 JS에서 탭에 따라 flex/none 제어 - CSS에서 강제 display:flex 제거 */
   #btnRefreshMob{display:flex !important;padding:6px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);font-size:18px;cursor:pointer}
 }
+/* ━━ 모달 z-index 계층 ━━
+   기본 모달(9999) → 견적서(10001) → 피커(10200) 순으로 항상 위에 표시 */
+#custMgrPickerModal { z-index: 10200 !important; }
+#pjCodePickerModal  { z-index: 10200 !important; }
+#newContactModal    { z-index: 10200 !important; }
+#quoteModal         { z-index: 10001 !important; }
 </style>
 </head>
 <body>
 
 <div class="lm" id="lm">
   <div class="lbox">
-    <div class="l-logo">ENJET</div><div class="l-sub">영업 대시보드 v5</div>
+    <div class="l-logo">ENJET</div><div class="l-sub">영업 대시보드 v5.3</div>
     <div class="l-desc">ENJET 영업팀 전용<br>Microsoft 365 계정으로 로그인 후 SharePoint 자동 연동</div>
     <button class="btn-ms" id="btnLogin"><div class="mslogo"></div>Microsoft 계정으로 로그인</button>
     <div class="l-foot">🔒 ENJET 조직 계정만 접근<br>SharePoint 99.Dashboard(real-time) 폴더 자동 연동</div>
@@ -1155,7 +1161,7 @@
       </div>
 
       <!-- 고객담당자 검색 + 신규등록 모달 -->
-      <div id="custMgrPickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div id="custMgrPickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10100;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div class="modal-inner" style="background:#fff;border-radius:16px;padding:24px;width:680px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
           <button onclick="closeCustMgrPicker()"
             style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
@@ -1320,7 +1326,7 @@
         </div>
       </div>
 
-      <div id="pjCodePickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div id="pjCodePickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10100;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div class="modal-inner" style="background:#fff;border-radius:16px;padding:24px;width:760px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
           <button onclick="closePjCodePicker()"
             style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
