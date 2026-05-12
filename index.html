@@ -494,45 +494,22 @@
         <div style="background:#fff;border-radius:16px;padding:28px;width:600px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
           <button onclick="closeSLModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
           <div style="font-size:19px;font-weight:900;color:var(--t);margin-bottom:20px" id="slModalTitle">영업활동 추가</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <div style="grid-column:1/-1">
-              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">고객사명 *</label>
-              <input class="si" type="text" id="sl-f-company" placeholder="예: 삼성전자㈜" style="width:100%">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div>
+              <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">일정 시작</label>
+              <div style="display:flex;gap:6px">
+                <input class="si" type="date" id="sl-f-start" style="flex:1.5">
+                <input class="si" type="time" id="sl-f-stime" value="09:00" style="flex:1">
+              </div>
             </div>
             <div>
-              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">프로젝트코드 <span style="color:var(--t3);font-weight:400">(신규=미발급)</span></label>
-              <input class="si" type="text" id="sl-f-pjcode" placeholder="BM26003 또는 비워두기" style="width:100%">
+              <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">일정 종료</label>
+              <div style="display:flex;gap:6px">
+                <input class="si" type="date" id="sl-f-end" style="flex:1.5">
+                <input class="si" type="time" id="sl-f-etime" value="18:00" style="flex:1">
+              </div>
             </div>
-            <div>
-              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">진행상태 *</label>
-              <select class="ss" id="sl-f-status" style="width:100%">
-                <option value="신규">🆕 신규</option><option value="제안">💡 제안</option><option value="견적">📋 견적</option>
-                <option value="발주">📦 발주</option><option value="진행">▶️ 진행</option>
-                <option value="납품완료">✅ 납품완료</option><option value="세금계산서미발행">🧾 세금계산서미발행</option>
-                <option value="세금계산서완료">✅ 세금계산서완료</option><option value="잔금">💰 잔금</option>
-                <option value="유지보수(무상)">🔧 유지보수(무상)</option><option value="종료">⛔ 종료</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">고객담당자</label>
-              <input class="si" type="text" id="sl-f-custmgr" placeholder="홍길동 부장" style="width:100%">
-            </div>
-            <div>
-              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">영업담당자</label>
-              <input class="si" type="text" id="sl-f-salesmgr" placeholder="성백훈" style="width:100%">
-            </div>
-            <div>
-              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">일정 시작일</label>
-              <input class="si" type="date" id="sl-f-start" style="width:100%">
-            </div>
-            <div>
-              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">일정 종료일</label>
-              <input class="si" type="date" id="sl-f-end" style="width:100%">
-            </div>
-            <div style="grid-column:1/-1">
-              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">비고/메모</label>
-              <textarea class="si" id="sl-f-note" placeholder="제품, 수량, 특이사항 등" style="width:100%;height:60px;resize:vertical"></textarea>
-            </div>
+          </div>
           </div>
           <div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px">
             <div style="font-size:15px;font-weight:700;color:var(--t2);margin-bottom:8px">저장 시 자동 실행</div>
@@ -789,7 +766,7 @@
       </div>
       <!-- 활동 이력 모달 -->
       <div id="slHistoryModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-        <div style="background:#fff;border-radius:16px;padding:24px;width:500px;max-width:95vw;max-height:75vh;overflow-y:auto;position:relative">
+        <div style="background:#fff;border-radius:16px;padding:28px;width:620px;max-width:96vw;max-height:85vh;overflow-y:auto;position:relative">
           <button onclick="document.getElementById('slHistoryModal').style.display='none'"
             style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
           <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:16px" id="slHistoryTitle">활동 이력</div>
@@ -4232,35 +4209,73 @@ function showSLHistory(id) {
   const title = document.getElementById("slHistoryTitle");
   const body  = document.getElementById("slHistoryBody");
   if(!modal) return;
-  title.textContent = act.company+" 활동 이력";
+
+  const pjLabel = act.pjcode || "신규";
+  title.textContent = act.company+" · "+pjLabel+" 활동 이력";
+
+  // Teams 이벤트 - 같은 고객사+코드 매칭
+  const calEvents = slCalData.filter(e=>{
+    const t = e.title||"";
+    if(act.pjcode && t.includes(act.pjcode)) return true;
+    if(act.company && t.includes(act.company.substring(0,3))) {
+      const otherPj = slData.filter(x=>x.id!==id&&x.company===act.company&&x.pjcode);
+      if(otherPj.some(x=>t.includes(x.pjcode))) return false;
+      return true;
+    }
+    return false;
+  });
+  const teamsEvtsSorted = [...calEvents].sort((a,b)=>a.start.localeCompare(b.start));
+  const teamsOrder = {};
+  teamsEvtsSorted.forEach((e,i)=>{ teamsOrder[e.id]=(i+1)+"차"; });
+
   const history = act.history||[];
-  const calEvents = slCalData.filter(e=>act.company&&(e.title.includes(act.company.substring(0,3))||(act.pjcode&&e.title.includes(act.pjcode))));
   const extra = calEvents
-    .filter(e=>!history.some(h=>h.action.includes(e.title)))
-    .map(e=>({date:e.start,action:"📅 "+e.title,type:"teams"}));
+    .filter(e=>!history.some(h=>h.action&&h.action.includes(e.title)))
+    .map(e=>({date:e.start, action:"📅 "+e.title, type:"teams", teamsId:e.id}));
   const all = [...history,...extra].sort((a,b)=>b.date.localeCompare(a.date));
+
   const TC={create:"var(--g)",edit:"var(--p)",status:"var(--a)",teams:"var(--pu)",default:"var(--t3)"};
   const TI={create:"🆕",edit:"✏️",status:"🔄",teams:"📅",default:"📌"};
-  body.innerHTML = all.length
-    ? `<div style="position:relative;padding-left:18px">
-        <div style="position:absolute;left:6px;top:0;bottom:0;width:2px;background:var(--border2)"></div>
-        ${all.map(h=>`
-          <div style="position:relative;margin-bottom:14px">
-            <div style="position:absolute;left:-13px;top:4px;width:10px;height:10px;border-radius:50%;background:${TC[h.type]||TC.default};border:2px solid #fff;box-shadow:0 0 0 1px var(--border2)"></div>
-            <div style="font-size:14px;color:var(--t3);margin-bottom:2px">${h.date}</div>
-            <div style="font-size:15px;color:var(--t);font-weight:500">${TI[h.type]||"📌"} ${h.action}</div>
+
+  body.innerHTML = all.length ? `
+    ${teamsEvtsSorted.length>0?`
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;color:var(--t2);margin-bottom:10px">📅 미팅 일정 (${teamsEvtsSorted.length}회)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${teamsEvtsSorted.map((e,i)=>`
+          <div onclick="openTeamsEvent('${e.id}')"
+            style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--pu);background:#f5f0ff;cursor:pointer;text-align:center;min-width:70px"
+            title="클릭: Teams 편집">
+            <div style="font-size:14px;font-weight:800;color:var(--pu)">${i+1}차</div>
+            <div style="font-size:12px;color:var(--t3)">${e.start}</div>
           </div>`).join("")}
       </div>
-      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);text-align:right">
-        <button onclick="addSLManualHistory('${id}')"
-          style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">
-          + 활동 직접 입력
-        </button>
-      </div>`
-    : `<div class="empty"><div class="ei">📋</div><div class="et">기록 없음</div></div>`;
+    </div>`:""}
+    <div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:8px">전체 활동 이력</div>
+    <div style="position:relative;padding-left:20px">
+      <div style="position:absolute;left:6px;top:0;bottom:0;width:2px;background:var(--border2)"></div>
+      ${all.map(h=>`
+        <div style="position:relative;margin-bottom:16px">
+          <div style="position:absolute;left:-15px;top:4px;width:10px;height:10px;border-radius:50%;background:${TC[h.type]||TC.default};border:2px solid #fff;box-shadow:0 0 0 1px var(--border2)"></div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:3px">
+            ${h.date}
+            ${h.teamsId&&teamsOrder[h.teamsId]?`<span style="font-size:11px;background:var(--pu);color:#fff;padding:1px 7px;border-radius:4px;margin-left:6px">${teamsOrder[h.teamsId]}</span>`:""}
+          </div>
+          <div style="font-size:14px;color:var(--t);font-weight:500">${TI[h.type]||"📌"} ${h.action}</div>
+        </div>`).join("")}
+    </div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);text-align:right">
+      <button onclick="addSLManualHistory('${id}')"
+        style="padding:8px 16px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
+        + 활동 직접 입력
+      </button>
+    </div>`
+  : `<div class="empty"><div class="ei">📋</div><div class="et">기록 없음</div></div>`;
+
   modal.dataset.actId = id;
   modal.style.display = "flex";
 }
+
 
 function addSLManualHistory(id) {
   const act = slData.find(x=>x.id===id);
@@ -4523,8 +4538,8 @@ async function createSLTeamsEvent(act) {
 
   const body = {
     subject: eventTitle,
-    start:{ dateTime: startDate+"T09:00:00", timeZone:"Asia/Seoul" },
-    end:{   dateTime: endDate+"T18:00:00",   timeZone:"Asia/Seoul" },
+    start:{ dateTime: startDate+"T"+(act.startTime||"09:00")+":00", timeZone:"Asia/Seoul" },
+    end:{   dateTime: (act.endDate||endDate)+"T"+(act.endTime||"18:00")+":00",   timeZone:"Asia/Seoul" },
     isAllDay: false,
     body:{contentType:"HTML", content:
       "<b>"+act.company+"</b><br>"+
