@@ -3183,7 +3183,25 @@ async function syncSLFromTeams() {
     }
     $("sl-period",from+" ~ "+to);
 
-    const events = await gGet("/groups/"+gid+"/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100&$orderby=start/dateTime");
+    // 그룹 캘린더 + 채널 캘린더 둘 다 가져오기
+    let allEvents = [];
+
+    // 1. 그룹 캘린더
+    try {
+      const ge = await gGet("/groups/"+gid+"/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100&$orderby=start/dateTime");
+      allEvents.push(...(ge.value||[]));
+    } catch(e){ console.warn("그룹 캘린더 조회 실패:", e.message); }
+
+    // 2. 채널 캘린더 (채널 일정 탭)
+    try {
+      const chId = decodeURIComponent(SL_TEAMS_CHANNEL_ID);
+      const ce = await gGet("/teams/"+gid+"/channels/"+chId+"/calendar/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100");
+      const chEvts = (ce.value||[]).filter(e=>!allEvents.some(g=>g.id===e.id));
+      allEvents.push(...chEvts);
+      console.log("채널 캘린더 이벤트:", chEvts.length+"개");
+    } catch(e){ console.warn("채널 캘린더 조회 실패:", e.message); }
+
+    const events = {value: allEvents};
     // 필터: [영업] prefix OR 영업활동 카테고리 → 영업활동
     //       [전시회] prefix OR 전시회 카테고리 → 제외
     slCalData = (events.value||[]).filter(e=>{
@@ -4834,12 +4852,15 @@ async function createSLTeamsEvent(act) {
 
   let eventId = null;
 
-  // ── 방법 1: 채널 전용 Beta API ──
-  // Teams 채널 일정 탭에 직접 표시됨
+  // ── 채널 캘린더에 직접 등록 ──
+  // 채널 일정 탭 = /teams/{gid}/channels/{channelId}/calendar/events
+  const chId = encodeURIComponent(decodeURIComponent(SL_TEAMS_CHANNEL_ID));
+  const chCalUrl = act.teamsEventId
+    ? "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+chId+"/calendar/events/"+act.teamsEventId
+    : "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+chId+"/calendar/events";
+
   try {
-    const chUrl = "https://graph.microsoft.com/beta/teams/"+gid+
-      "/channels/"+encodeURIComponent(SL_TEAMS_CHANNEL_ID)+"/events";
-    const cr = await fetch(chUrl, {
+    const cr = await fetch(chCalUrl, {
       method: act.teamsEventId ? "PATCH" : "POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
       body: JSON.stringify(eventBody)
@@ -4847,16 +4868,33 @@ async function createSLTeamsEvent(act) {
     if(cr.ok) {
       const cd = await cr.json();
       eventId = cd.id;
-      console.log("✅ 채널 이벤트 등록 성공:", eventId);
+      console.log("✅ 채널 캘린더 등록 성공:", eventId);
     } else {
       const ce = await cr.json();
-      console.warn("채널 Beta API 실패:", ce.error?.message, "→ 그룹 캘린더로 폴백");
+      console.warn("채널 캘린더 실패:", ce.error?.message||cr.status);
+      // Beta API 시도
+      const betaUrl = act.teamsEventId
+        ? "https://graph.microsoft.com/beta/teams/"+gid+"/channels/"+chId+"/events/"+act.teamsEventId
+        : "https://graph.microsoft.com/beta/teams/"+gid+"/channels/"+chId+"/events";
+      const br = await fetch(betaUrl, {
+        method: act.teamsEventId ? "PATCH" : "POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+        body: JSON.stringify(eventBody)
+      });
+      if(br.ok) {
+        const bd = await br.json();
+        eventId = bd.id;
+        console.log("✅ Beta 채널 등록 성공:", eventId);
+      } else {
+        const be = await br.json();
+        console.warn("Beta 채널도 실패:", be.error?.message);
+      }
     }
   } catch(e) {
-    console.warn("채널 Beta API 오류:", e.message);
+    console.warn("채널 등록 오류:", e.message);
   }
 
-  // ── 방법 2: 그룹 캘린더 (폴백 또는 추가 등록) ──
+  // ── 폴백: 그룹 캘린더 ──
   if(!eventId) {
     const url = act.teamsEventId
       ? "https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+act.teamsEventId
@@ -4869,8 +4907,20 @@ async function createSLTeamsEvent(act) {
     if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status); }
     const data = await r.json();
     eventId = data.id;
-    console.log("✅ 그룹 캘린더 이벤트 등록:", eventId);
+    console.log("⚠️ 그룹 캘린더 등록 (채널 탭 미반영):", eventId);
   }
+
+  // ── 채널에 알림 메시지도 전송 ──
+  try {
+    const chIdDec = decodeURIComponent(SL_TEAMS_CHANNEL_ID);
+    await fetch(
+      "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+chIdDec+"/messages",
+      {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+       body:JSON.stringify({body:{contentType:"html",
+         content:"<p>📅 <b>영업 일정 등록</b>: "+eventTitle+"</p><p>"+startDate+" "+sTime+" ~ "+eTime+"</p>"
+       }})}
+    );
+  } catch(e){ console.warn("채널 메시지 실패:", e.message); }
 
   return eventId;
 }
