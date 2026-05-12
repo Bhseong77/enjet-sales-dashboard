@@ -467,18 +467,18 @@
           <div style="overflow-x:auto"><table class="tbl" style="min-width:900px">
             <thead><tr>
               <th style="min-width:130px">고객사</th>
-              <th style="min-width:110px">진행상태</th>
-              <th style="min-width:90px">최근활동일</th>
               <th style="min-width:110px">프로젝트코드</th>
-              <th style="min-width:110px">고객담당자</th>
-              <th style="min-width:110px">영업담당자</th>
-              <th style="text-align:center;min-width:60px">📝</th>
-              <th style="text-align:center;min-width:60px">📁 자료</th>
-              <th style="text-align:center;min-width:60px">📄</th>
-              <th style="text-align:center;min-width:60px">📦</th>
-              <th style="text-align:center;min-width:60px">📑</th>
-              <th style="text-align:center;min-width:60px">🧾</th>
-              <th style="min-width:50px"></th>
+              <th style="min-width:100px">진행상태</th>
+              <th style="min-width:90px">최근활동일</th>
+              <th style="min-width:100px">고객담당자</th>
+              <th style="min-width:100px">영업담당자</th>
+              <th style="text-align:center;min-width:55px;font-size:10px">📝 회의록</th>
+              <th style="text-align:center;min-width:55px;font-size:10px">📂 자료</th>
+              <th style="text-align:center;min-width:55px;font-size:10px">📄 견적서</th>
+              <th style="text-align:center;min-width:55px;font-size:10px">📦 발주서</th>
+              <th style="text-align:center;min-width:55px;font-size:10px">📑 계약서</th>
+              <th style="text-align:center;min-width:55px;font-size:10px">🧾 세금</th>
+              <th style="min-width:45px"></th>
             </tr></thead>
             <tbody id="slBody">
               <tr><td colspan="13"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
@@ -2105,7 +2105,15 @@ async function syncExhFromTeams() {
     ]);
 
     // 이벤트를 전시회 형식으로 변환
-    const teamsEvts = (events.value||[]).filter(e=>e.subject).map(e=>{
+    // 카테고리 필터: 전시회 카테고리만, 없으면 전체
+    const SL_CATS = ["영업활동"];
+    const teamsEvts = (events.value||[]).filter(e=>{
+      if(!e.subject) return false;
+      const cats = e.categories||[];
+      // 영업활동 카테고리면 제외
+      if(cats.some(c=>SL_CATS.includes(c))) return false;
+      return true;
+    }).map(e=>{
       const loc = e.location?.displayName||"";
       // 날짜 처리: allDay면 date, 아니면 dateTime에서 날짜만 추출
       const parseDate = (d)=>{
@@ -2930,13 +2938,25 @@ async function syncSLFromTeams() {
     $("sl-period",from+" ~ "+to);
 
     const events = await gGet("/groups/"+gid+"/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100&$orderby=start/dateTime");
-    slCalData = (events.value||[]).filter(e=>e.subject).map(e=>({
+    // 카테고리 필터: "영업활동" 또는 카테고리 없는 것 (전시회 제외)
+    const EXH_CATS = ["국내전시회","해외전시회","전시회"];
+    slCalData = (events.value||[]).filter(e=>{
+      if(!e.subject) return false;
+      const cats = e.categories||[];
+      // 전시회 카테고리면 제외
+      if(cats.some(c=>EXH_CATS.includes(c))) return false;
+      // 영업활동 카테고리 있으면 포함
+      if(cats.includes("영업활동")) return true;
+      // 카테고리 없는 것도 포함 (기존 등록분)
+      return true;
+    }).map(e=>({
       id: e.id,
       title: e.subject,
       start: (e.start?.dateTime||e.start?.date||"").split("T")[0],
       end:   (e.end?.dateTime||e.end?.date||"").split("T")[0],
       organizer: e.organizer?.emailAddress?.name||"",
       location: e.location?.displayName||"",
+      categories: e.categories||[],
     }));
 
     // Teams 이벤트 → 영업활동 목록 자동 연동
@@ -3245,6 +3265,9 @@ async function requestPJCode(id) {
 // ─── Teams 이벤트 → 영업활동 매칭 ───
 function syncSLActivityFromEvent(evt, save) {
   const title = evt.title||"";
+  // 전시회 카테고리 이벤트는 영업활동으로 변환 안 함
+  const EXH_CATS = ["국내전시회","해외전시회","전시회"];
+  if((evt.categories||[]).some(c=>EXH_CATS.includes(c))) return "skipped";
   const pjMatch = title.match(/([A-Z]{2,3}\d{4,6}[-\w]*)/);
   const pjCode = pjMatch ? pjMatch[1] : "";
   let company = title
@@ -3698,11 +3721,29 @@ async function openSLFileModal(actId, fileType) {
     await saveSLToSP(); renderSLAll();
 
     const spWebUrl="https://enjetco.sharepoint.com/sites/06.BackOffice/_layouts/15/onedrive.aspx?id="+encodeURIComponent("/sites/06.BackOffice/Shared Documents/"+spPath);
+    // 파일 목록 렌더링 (삭제/이름변경 포함)
     body.innerHTML=!files.length
       ?'<div class="empty"><div class="ei">📂</div><div class="et">파일 없음</div></div>'
       :`<div style="margin-bottom:10px;text-align:right"><a href="${spWebUrl}" target="_blank" style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;text-decoration:none;font-weight:700">🔗 SP에서 열기</a></div>
-      <table class="tbl"><thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th>열기</th></tr></thead>
-      <tbody>${files.map(f=>`<tr><td><span class="tn" style="font-size:11px">📄 ${f.name}</span></td><td style="font-size:10px;color:var(--t3)">${Math.round(f.size/1024)}KB</td><td style="font-size:10px;color:var(--t3)">${(f.lastModifiedDateTime||"").substring(0,10)}</td><td><a href="${f.webUrl}" target="_blank" style="font-size:10px;color:var(--p)">열기→</a></td></tr>`).join("")}</tbody></table>`;
+      <table class="tbl"><thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th style="text-align:center">열기</th><th style="text-align:center">이름변경</th><th style="text-align:center">삭제</th></tr></thead>
+      <tbody>${files.map(f=>`<tr>
+        <td><span class="tn" style="font-size:11px">📄 ${f.name}</span></td>
+        <td style="font-size:10px;color:var(--t3)">${Math.round(f.size/1024)}KB</td>
+        <td style="font-size:10px;color:var(--t3)">${(f.lastModifiedDateTime||"").substring(0,10)}</td>
+        <td style="text-align:center"><a href="${f.webUrl}" target="_blank" style="font-size:10px;color:var(--p)">열기→</a></td>
+        <td style="text-align:center">
+          <button onclick="renameSLFileItem('${encodeURIComponent(f.id)}','${f.name.replace(/'/g,"\'").replace(/"/g,"&quot;")}','${encodeURIComponent(actId)}','${fileType}')"
+            style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;font-size:9px;cursor:pointer;font-family:var(--s)">
+            ✏️ 이름변경
+          </button>
+        </td>
+        <td style="text-align:center">
+          <button onclick="deleteSLFileItem('${encodeURIComponent(f.id)}','${f.name.replace(/'/g,"\'").replace(/"/g,"&quot;")}','${encodeURIComponent(actId)}','${fileType}')"
+            style="padding:2px 8px;border-radius:5px;border:1px solid var(--rd);background:var(--rd);color:var(--r);font-size:9px;cursor:pointer;font-family:var(--s)">
+            🗑️ 삭제
+          </button>
+        </td>
+      </tr>`).join("")}</tbody></table>`;
   } catch(e){
     if(!act.files) act.files={}; act.files[fileType]=[];
     await saveSLToSP(); renderSLAll();
