@@ -2167,7 +2167,8 @@ let teamsGroupId = null; // Teams 그룹 ID (자동 탐색)
 // Teams 그룹 ID 자동 탐색 (채널 ID로)
 let _findingGroup = false;
 // 영업 그룹 이메일 (1순위 - 직접 조회)
-const SALES_GROUP_EMAIL = "futuresales@enjet.co.kr";
+// 실제 그룹: 미래성장전략팀, mail=futresales@enjet.co.kr, mailNickname=futresales
+const SALES_GROUP_EMAIL = "futresales@enjet.co.kr";
 
 // sessionStorage에 팀 ID 캐싱 → 재로그인 전까지 재탐색 불필요
 async function findTeamsGroup() {
@@ -2201,6 +2202,21 @@ async function findTeamsGroup() {
         _findingGroup=false; return direct.id;
       }
     } catch(e){ console.warn("이메일 직접 조회 실패:", e.message); }
+
+    // ⭐ 1.5순위: mailNickname startsWith 검색 (철자 변형 대비: futresales/futuresales 모두)
+    try {
+      const nickR = await gGet("/groups?$filter=startswith(mailNickname,'futresales') or startswith(mailNickname,'futuresales')&$select=id,displayName,mail,mailNickname&$top=5");
+      const candidates = (nickR.value||[]).filter(g=>g.displayName && (g.displayName.includes("미래성장") || g.displayName.includes("영업")));
+      if(candidates.length) {
+        const pick = candidates[0];
+        teamsGroupId = pick.id;
+        sessionStorage.setItem("enjet_teams_group_id", pick.id);
+        sessionStorage.setItem("enjet_teams_group_name", pick.displayName);
+        sessionStorage.setItem("enjet_teams_group_email", pick.mail||"");
+        console.log("✅ 영업 그룹 nickname 조회:", pick.displayName, "(" + pick.mail + ")");
+        _findingGroup=false; return pick.id;
+      }
+    } catch(e){ console.warn("nickname 조회 실패:", e.message); }
 
     // 2순위: Teams 팀 목록에서 탐색 (이메일 조회 실패 시 폴백)
     const teams = await gGet("/me/joinedTeams");
