@@ -4520,12 +4520,12 @@ async function createTeamsCalEvent(evt) {
     return d.toISOString().split("T")[0];
   })();
 
-  // ✅ allDay 이벤트: date 형식 + timeZone 없이 (Graph API 요구사항)
+  // allDay 이벤트: date 형식만 사용 (timeZone 불가 - Graph API 규칙)
   const body = {
     subject: evt.name.startsWith("[마케팅]")||evt.name.startsWith("[전시회]")
               ? evt.name : "[마케팅] "+evt.name,
-    start: { date: evt.start, timeZone: "Asia/Seoul" },
-    end:   { date: endDatePlusOne, timeZone: "Asia/Seoul" },
+    start: { date: evt.start },
+    end:   { date: endDatePlusOne },
     isAllDay: true,
     location: { displayName: [evt.venue, evt.city, evt.country].filter(Boolean).join(", ") },
     body: {
