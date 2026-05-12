@@ -10,123 +10,123 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f4f6fa;--bg2:#fff;--bg3:#eef1f6;--border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.13);--p:#1a6fd4;--pd:rgba(26,111,212,0.08);--g:#00875a;--gd:rgba(0,135,90,0.08);--a:#d95f00;--ad:rgba(217,95,0,0.08);--r:#c8201e;--rd:rgba(200,32,30,0.08);--y:#9a6400;--yd:rgba(154,100,0,0.09);--pu:#6b35b8;--pud:rgba(107,53,184,0.08);--t:#111827;--t2:#4b5563;--t3:#9ca3af;--m:"JetBrains Mono",monospace;--s:"Pretendard",sans-serif}
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--s);background:var(--bg);color:var(--t)}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--s);background:var(--bg);color:var(--t);font-size:16px}
 .layout{display:flex;min-height:100vh}
 .sb{width:196px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0}
 .sb-logo{padding:16px 16px 12px;border-bottom:1px solid var(--border)}
-.sb-mark{font-size:16px;font-weight:900;color:var(--p);letter-spacing:3px;font-family:var(--m)}
-.sb-sub{font-size:9px;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
-.sb-sync{display:flex;align-items:center;gap:6px;padding:6px 16px;border-bottom:1px solid var(--border);font-size:10px;color:var(--t3)}
+.sb-mark{font-size:20px;font-weight:900;color:var(--p);letter-spacing:3px;font-family:var(--m)}
+.sb-sub{font-size:14px;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
+.sb-sync{display:flex;align-items:center;gap:6px;padding:6px 16px;border-bottom:1px solid var(--border);font-size:14px;color:var(--t3)}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex-shrink:0}
 .dot.live{background:var(--g);animation:pulse 2s infinite}.dot.spin{background:var(--y)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .sb-nav{padding:8px;flex:1;overflow-y:auto}
-.sb-sec{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--t3);padding:10px 8px 3px;font-weight:700}
-.ni{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;font-size:12px;color:var(--t2);cursor:pointer;font-weight:500;margin-bottom:1px;transition:all .15s}
+.sb-sec{font-size:16px;text-transform:uppercase;letter-spacing:1.5px;color:var(--t3);padding:10px 8px 3px;font-weight:700}
+.ni{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;font-size:18px;color:var(--t2);cursor:pointer;font-weight:500;margin-bottom:1px;transition:all .15s}
 .ni:hover{background:var(--bg3)}.ni.on{background:var(--pd);color:var(--p);font-weight:700}
-.nb{margin-left:auto;font-size:9px;padding:1px 5px;border-radius:5px;font-family:var(--m);font-weight:700;background:var(--rd);color:var(--r)}
+.nb{margin-left:auto;font-size:14px;padding:1px 5px;border-radius:5px;font-family:var(--m);font-weight:700;background:var(--rd);color:var(--r)}
 .nbg{background:var(--gd);color:var(--g)}
 .sb-foot{padding:10px 16px;border-top:1px solid var(--border)}
 .main{flex:1;display:flex;flex-direction:column;min-width:0}
 .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
-.tb-t{font-size:13px;font-weight:800;color:var(--t)}.tbs{flex:1}
-.aus{font-size:11px;font-weight:600}.aus.ok{color:var(--g)}.aus.ld{color:var(--y)}
-.bsm{padding:4px 11px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--s);font-weight:600;display:none}
+.tb-t{font-size:17px;font-weight:800;color:var(--t)}.tbs{flex:1}
+.aus{font-size:15px;font-weight:600}.aus.ok{color:var(--g)}.aus.ld{color:var(--y)}
+.bsm{padding:8px 14px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:15px;color:var(--t2);cursor:pointer;font-family:var(--s);font-weight:600;display:none}
 .bsm.p{background:var(--pd);border-color:var(--p);color:var(--p)}
 .content{padding:14px 18px;flex:1}.page{display:none}.page.on{display:block}
 /* LOGIN */
 .lm{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
 .lm.hidden{display:none}
 .lbox{background:#fff;border-radius:16px;padding:38px;width:400px;max-width:90vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-.l-logo{font-size:20px;font-weight:900;color:var(--p);letter-spacing:3px;font-family:var(--m);margin-bottom:4px}
-.l-sub{color:var(--t3);font-size:11px;margin-bottom:20px}
-.l-desc{color:var(--t2);font-size:12px;line-height:1.6;margin-bottom:20px}
-.btn-ms{background:#2f2f2f;color:#fff;border:none;width:100%;padding:12px;font-size:13px;font-weight:600;font-family:var(--s);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px}
+.l-logo{font-size:24px;font-weight:900;color:var(--p);letter-spacing:3px;font-family:var(--m);margin-bottom:4px}
+.l-sub{color:var(--t3);font-size:15px;margin-bottom:20px}
+.l-desc{color:var(--t2);font-size:16px;line-height:1.6;margin-bottom:20px}
+.btn-ms{background:#2f2f2f;color:#fff;border:none;width:100%;padding:12px;font-size:17px;font-weight:600;font-family:var(--s);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px}
 .btn-ms:hover{background:#111}.btn-ms:disabled{background:#999}
 .mslogo{width:20px;height:20px;background-image:linear-gradient(to right,#f25022 50%,#7fba00 50%),linear-gradient(to right,#00a4ef 50%,#ffb900 50%);background-size:100% 50%;background-repeat:no-repeat;background-position:top,bottom}
-.l-foot{margin-top:14px;font-size:10px;color:var(--t3);line-height:1.6}
+.l-foot{margin-top:14px;font-size:14px;color:var(--t3);line-height:1.6}
 /* KPI */
 .kr{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}
 .kpi{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px 15px;position:relative;overflow:hidden}
 .kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:3px}
 .kpi.c1::before{background:var(--p)}.kpi.c2::before{background:var(--g)}.kpi.c3::before{background:var(--r)}.kpi.c4::before{background:var(--a)}.kpi.c5::before{background:var(--pu)}
-.kl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:6px}
-.kv{font-size:21px;font-weight:900;font-family:var(--m);line-height:1;margin-bottom:4px}
+.kl{font-size:17px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:6px}
+.kv{font-size:26px;font-weight:900;font-family:var(--m);line-height:1;margin-bottom:4px}
 .kpi.c1 .kv{color:var(--p)}.kpi.c2 .kv{color:var(--g)}.kpi.c3 .kv{color:var(--r)}.kpi.c4 .kv{color:var(--a)}.kpi.c5 .kv{color:var(--pu)}
-.ks{font-size:10px;color:var(--t3)}
-.badge{font-size:9px;padding:2px 5px;border-radius:4px;font-weight:800;font-family:var(--m);display:inline-block}
+.ks{font-size:15px;color:var(--t3)}
+.badge{font-size:14px;padding:2px 5px;border-radius:4px;font-weight:800;font-family:var(--m);display:inline-block}
 .badge.up{background:var(--gd);color:var(--g)}.badge.dn{background:var(--rd);color:var(--r)}.badge.warn{background:var(--yd);color:var(--y)}.badge.info{background:var(--pd);color:var(--p)}.badge.gray{background:var(--bg3);color:var(--t2)}
 /* LAYOUT */
 .g2{display:grid;grid-template-columns:1.5fr 1fr;gap:9px;margin-bottom:9px}.g2b{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:9px}
 .ch{padding:10px 15px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-.ct{font-size:12px;font-weight:800;color:var(--t);display:flex;align-items:center;gap:6px}
-.ci{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px}
+.ct{font-size:20px;font-weight:800;color:var(--t);display:flex;align-items:center;gap:6px}
+.ci{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px}
 .ci.c1{background:var(--pd);color:var(--p)}.ci.c2{background:var(--gd);color:var(--g)}.ci.c3{background:var(--rd);color:var(--r)}.ci.c4{background:var(--ad);color:var(--a)}
-.cb{padding:11px 15px}.cn{font-size:9px;color:var(--t3);padding:5px 15px;border-top:1px solid var(--border);background:var(--bg3)}
+.cb{padding:11px 15px}.cn{font-size:15px;color:var(--t3);padding:5px 15px;border-top:1px solid var(--border);background:var(--bg3)}
 /* PERIOD */
 .pbar{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:11px;flex-wrap:wrap}
-.pl{font-size:11px;font-weight:700;color:var(--t2)}.pps{display:flex;gap:4px;flex-wrap:wrap}.pw{position:relative}
-.pp{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--border2);background:transparent;color:var(--t2);white-space:nowrap;transition:all .15s}
+.pl{font-size:15px;font-weight:700;color:var(--t2)}.pps{display:flex;gap:4px;flex-wrap:wrap}.pw{position:relative}
+.pp{padding:3px 10px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;border:1.5px solid var(--border2);background:transparent;color:var(--t2);white-space:nowrap;transition:all .15s}
 .pp.on{background:var(--p);color:#fff;border-color:var(--p)}.pp:hover:not(.on){border-color:var(--p);color:var(--p)}
 .dm{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--border2);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;min-width:130px;max-height:260px;overflow-y:auto;padding:4px 0}
 .dm.open{display:block}
-.dsec{font-size:9px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:1px;padding:6px 12px 2px}
-.di{font-size:11px;color:var(--t2);padding:6px 12px;cursor:pointer;white-space:nowrap}
+.dsec{font-size:14px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:1px;padding:6px 12px 2px}
+.di{font-size:15px;color:var(--t2);padding:6px 12px;cursor:pointer;white-space:nowrap}
 .di:hover,.di.sel{background:var(--pd);color:var(--p)}
-.pr{margin-left:auto;font-size:10px;color:var(--t3);font-family:var(--m)}
+.pr{margin-left:auto;font-size:14px;color:var(--t3);font-family:var(--m)}
 /* TABLE */
 .tw{overflow-x:auto}
 .tbl{width:100%;border-collapse:collapse}
-.tbl th{font-size:9px;color:var(--t3);text-transform:uppercase;font-weight:700;padding:0 7px 7px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl th{font-size:16px;color:var(--t3);text-transform:uppercase;font-weight:700;padding:0 7px 7px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
 .tbl th.r{text-align:right}
-.tbl td{padding:7px;font-size:11px;color:var(--t2);border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:10px 8px;font-size:16px;color:var(--t2);border-bottom:1px solid var(--border);white-space:nowrap}
 .tbl tr:last-child td{border-bottom:none}.tbl tr:hover td{background:var(--bg3)}
 .tn{color:var(--t);font-weight:700}.tm{font-family:var(--m);font-weight:600}.tm.b{color:var(--p)}.tm.g{color:var(--g)}.tm.r{color:var(--r)}
 /* BARS */
 .bl{display:flex;flex-direction:column;gap:7px}
 .bi{display:flex;align-items:center;gap:8px}
-.brnk{font-size:10px;font-family:var(--m);color:var(--t3);width:18px;text-align:center;font-weight:700;flex-shrink:0}.brnk.top{color:var(--y)}
+.brnk{font-size:14px;font-family:var(--m);color:var(--t3);width:18px;text-align:center;font-weight:700;flex-shrink:0}.brnk.top{color:var(--y)}
 .binf{flex:1;min-width:0}
-.bnm{font-size:11px;font-weight:700;color:var(--t);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bnm{font-size:15px;font-weight:700;color:var(--t);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .brow{display:flex;align-items:center;gap:5px}
 .bbg{flex:1;height:4px;background:var(--bg3);border-radius:3px;overflow:hidden}
 .bfil{height:100%;border-radius:3px;transition:width .5s ease}
-.bval{font-family:var(--m);font-size:10px;color:var(--t2);white-space:nowrap}
+.bval{font-family:var(--m);font-size:14px;color:var(--t2);white-space:nowrap}
 /* CONTACTS */
 .cgd{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:7px}
 .cc{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;transition:border-color .15s}
 .cc:hover{border-color:var(--p)}
-.cc-nm{font-size:12px;font-weight:700;color:var(--t);margin-bottom:2px}
-.cc-co{font-size:11px;color:var(--p);font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cc-rl{font-size:10px;color:var(--t2);margin-bottom:3px}
-.cc-if{font-size:10px;color:var(--t3);display:flex;flex-direction:column;gap:1px}
-.ctag{display:inline-block;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700;margin-top:3px}
+.cc-nm{font-size:16px;font-weight:700;color:var(--t);margin-bottom:2px}
+.cc-co{font-size:15px;color:var(--p);font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-rl{font-size:14px;color:var(--t2);margin-bottom:3px}
+.cc-if{font-size:14px;color:var(--t3);display:flex;flex-direction:column;gap:1px}
+.ctag{display:inline-block;font-size:14px;padding:1px 5px;border-radius:4px;font-weight:700;margin-top:3px}
 .col{display:flex;flex-direction:column;gap:5px}
 .coi{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:border-color .15s}
 .coi:hover{border-color:var(--p)}.coi.sel{border-color:var(--p);background:var(--pd)}
-.co-ic{width:32px;height:32px;border-radius:7px;background:var(--pd);color:var(--p);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;flex-shrink:0}
+.co-ic{width:32px;height:32px;border-radius:7px;background:var(--pd);color:var(--p);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex-shrink:0}
 .co-in{flex:1;min-width:0}
-.co-nm{font-size:12px;font-weight:700;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.co-mt{font-size:10px;color:var(--t3)}.co-cn{font-family:var(--m);font-size:12px;font-weight:700;color:var(--p)}
+.co-nm{font-size:16px;font-weight:700;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.co-mt{font-size:14px;color:var(--t3)}.co-cn{font-family:var(--m);font-size:16px;font-weight:700;color:var(--p)}
 /* PIPELINE */
 .pc{display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap}
-.si{flex:1;min-width:150px;padding:7px 11px;border:1px solid var(--border2);border-radius:7px;font-family:var(--s);font-size:12px;background:var(--bg2);color:var(--t)}
+.si{flex:1;min-width:150px;padding:7px 11px;border:1px solid var(--border2);border-radius:7px;font-family:var(--s);font-size:16px;background:var(--bg2);color:var(--t)}
 .si:focus{outline:none;border-color:var(--p)}
-.ss{padding:7px 10px;border:1px solid var(--border2);border-radius:7px;font-family:var(--s);font-size:12px;background:var(--bg2);color:var(--t);cursor:pointer}
+.ss{padding:7px 10px;border:1px solid var(--border2);border-radius:7px;font-family:var(--s);font-size:16px;background:var(--bg2);color:var(--t);cursor:pointer}
 .qf{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
-.qb{padding:4px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--border2);background:transparent;color:var(--t2);transition:all .15s}
+.qb{padding:4px 11px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;border:1.5px solid var(--border2);background:transparent;color:var(--t2);transition:all .15s}
 .qb.on{background:var(--p);color:#fff;border-color:var(--p)}.qb:hover:not(.on){border-color:var(--p);color:var(--p)}
 /* UNPAID */
 .ul{display:flex;flex-direction:column;gap:5px}
 .ui{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:var(--bg3);border:1px solid var(--border)}
-.urk{font-size:10px;font-family:var(--m);color:var(--t3);width:18px;font-weight:700}.urk.top{color:var(--r)}
-.uinf{flex:1;min-width:0}.unm{font-size:11px;font-weight:700;color:var(--t)}.urt{font-size:10px;color:var(--t3);margin-top:1px}
+.urk{font-size:14px;font-family:var(--m);color:var(--t3);width:18px;font-weight:700}.urk.top{color:var(--r)}
+.uinf{flex:1;min-width:0}.unm{font-size:15px;font-weight:700;color:var(--t)}.urt{font-size:14px;color:var(--t3);margin-top:1px}
 .ubg{width:44px;height:4px;background:#e4e9f2;border-radius:2px;overflow:hidden}
 .ufil{height:100%;border-radius:2px;background:var(--g)}
-.uamt{font-family:var(--m);font-size:11px;font-weight:700}
+.uamt{font-family:var(--m);font-size:15px;font-weight:700}
 .empty{text-align:center;padding:36px 20px;color:var(--t3)}
-.ei{font-size:32px;margin-bottom:8px}.et{font-size:13px;font-weight:700;color:var(--t2);margin-bottom:4px}
+.ei{font-size:38px;margin-bottom:8px}.et{font-size:17px;font-weight:700;color:var(--t2);margin-bottom:4px}
 .sw{display:flex;align-items:center;justify-content:center;padding:28px}
 .spr{width:30px;height:30px;border:3px solid var(--border2);border-top-color:var(--p);border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -147,7 +147,7 @@
 <div class="layout" id="ml" style="display:none;">
   <aside class="sb">
     <div class="sb-logo"><div class="sb-mark">ENJET</div><div class="sb-sub">Sales Dashboard</div></div>
-    <div class="sb-sync"><span class="dot" id="sd"></span><span id="ss" style="font-size:10px">연결 중...</span></div>
+    <div class="sb-sync"><span class="dot" id="sd"></span><span id="ss" style="font-size:14px">연결 중...</span></div>
     <nav class="sb-nav">
       <div class="sb-sec">영업</div>
       <div class="ni on" onclick="go('sales',this)">📊 매출 현황</div>
@@ -163,8 +163,8 @@
       <div class="ni" onclick="go('exhibition',this)">🎪 전시회 Contact <span class="nb nbg" id="badge-exh">-</span></div>
     </nav>
     <div class="sb-foot">
-      <div style="font-size:10px;color:var(--t3);font-family:var(--m)" id="clock">--:--:--</div>
-      <div style="font-size:9px;color:var(--t3);margin-top:2px" id="lsync">SharePoint 연동 대기</div>
+      <div style="font-size:14px;color:var(--t3);font-family:var(--m)" id="clock">--:--:--</div>
+      <div style="font-size:14px;color:var(--t3);margin-top:2px" id="lsync">SharePoint 연동 대기</div>
     </div>
   </aside>
 
@@ -227,10 +227,10 @@
         <div class="pr" id="prange">전체 · SharePoint 연동</div>
       </div>
       <div class="kr">
-        <div class="kpi c1"><div class="kl">공급가액</div><div class="kv"><span id="k-tax">-</span><span style="font-size:11px;color:var(--t2)">억</span></div><div class="ks"><span class="badge info" id="k-badge">로딩중</span></div></div>
-        <div class="kpi c2"><div class="kl">입금 완료</div><div class="kv"><span id="k-inc">-</span><span style="font-size:11px;color:var(--t2)">억</span></div><div class="ks">수금률 <span id="k-rate">-%</span></div></div>
-        <div class="kpi c3"><div class="kl">잔금 (미수금)</div><div class="kv"><span id="k-unp">-</span><span style="font-size:11px;color:var(--t2)">억</span></div><div class="ks"><span class="badge warn">수금 필요</span></div></div>
-        <div class="kpi c4"><div class="kl">진행중 프로젝트</div><div class="kv"><span id="k-proj">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"><span id="k-proj-amt">-억</span></div></div>
+        <div class="kpi c1"><div class="kl">공급가액</div><div class="kv"><span id="k-tax">-</span><span style="font-size:15px;color:var(--t2)">억</span></div><div class="ks"><span class="badge info" id="k-badge">로딩중</span></div></div>
+        <div class="kpi c2"><div class="kl">입금 완료</div><div class="kv"><span id="k-inc">-</span><span style="font-size:15px;color:var(--t2)">억</span></div><div class="ks">수금률 <span id="k-rate">-%</span></div></div>
+        <div class="kpi c3"><div class="kl">잔금 (미수금)</div><div class="kv"><span id="k-unp">-</span><span style="font-size:15px;color:var(--t2)">억</span></div><div class="ks"><span class="badge warn">수금 필요</span></div></div>
+        <div class="kpi c4"><div class="kl">진행중 프로젝트</div><div class="kv"><span id="k-proj">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span id="k-proj-amt">-억</span></div></div>
       </div>
       <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px;margin-bottom:9px">
         <div class="card">
@@ -239,17 +239,17 @@
           <div class="cn">※ 2023~2025 감사보고서 확정 · 2026 매출기록부 기준</div>
         </div>
         <div class="card">
-          <div class="ch"><div class="ct"><div class="ci c2">🏆</div>고객사별 매출 <span id="bar-yr" style="font-size:10px;color:var(--t3);margin-left:3px">전체</span></div></div>
+          <div class="ch"><div class="ct"><div class="ci c2">🏆</div>고객사별 매출 <span id="bar-yr" style="font-size:14px;color:var(--t3);margin-left:3px">전체</span></div></div>
           <div class="cb"><div class="bl" id="custBars"><div class="sw"><div class="spr"></div></div></div></div>
         </div>
         <div class="card">
-          <div class="ch"><div class="ct"><div class="ci c3">⚠️</div>미수금 현황</div><span style="font-size:10px;font-family:var(--m);font-weight:700;color:var(--r)" id="sales-unp-total">-</span></div>
+          <div class="ch"><div class="ct"><div class="ci c3">⚠️</div>미수금 현황</div><span style="font-size:14px;font-family:var(--m);font-weight:700;color:var(--r)" id="sales-unp-total">-</span></div>
           <div class="cb" style="padding:8px 15px" id="salesUnpaidList"><div class="sw"><div class="spr"></div></div></div>
         </div>
       </div>
       <div class="g2b">
         <div class="card">
-          <div class="ch"><div class="ct"><div class="ci c3">📅</div>월별 공급가액 <span id="m-lbl" style="font-size:10px;color:var(--t3);margin-left:3px"></span></div></div>
+          <div class="ch"><div class="ct"><div class="ci c3">📅</div>월별 공급가액 <span id="m-lbl" style="font-size:14px;color:var(--t3);margin-left:3px"></span></div></div>
           <div class="cb"><div style="height:175px"><canvas id="mC"></canvas></div></div>
         </div>
         <div class="card">
@@ -299,10 +299,10 @@
         <div class="pr" id="cf-range">전체 · SharePoint 연동</div>
       </div>
       <div class="kr">
-        <div class="kpi c1"><div class="kl">공급가액</div><div class="kv"><span id="cf-tax">-</span><span style="font-size:11px;color:var(--t2)">억</span></div><div class="ks" id="cf-sub">로딩중</div></div>
-        <div class="kpi c2"><div class="kl">입금 완료</div><div class="kv"><span id="cf-inc">-</span><span style="font-size:11px;color:var(--t2)">억</span></div><div class="ks">수금률 <span id="cf-rate">-%</span></div></div>
-        <div class="kpi c3"><div class="kl">잔금 (미수금)</div><div class="kv"><span id="cf-unp">-</span><span style="font-size:11px;color:var(--t2)">억</span></div><div class="ks"><span class="badge warn">수금 필요</span></div></div>
-        <div class="kpi c4"><div class="kl">건수</div><div class="kv"><span id="cf-cnt">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks" id="cf-cnt-s"></div></div>
+        <div class="kpi c1"><div class="kl">공급가액</div><div class="kv"><span id="cf-tax">-</span><span style="font-size:15px;color:var(--t2)">억</span></div><div class="ks" id="cf-sub">로딩중</div></div>
+        <div class="kpi c2"><div class="kl">입금 완료</div><div class="kv"><span id="cf-inc">-</span><span style="font-size:15px;color:var(--t2)">억</span></div><div class="ks">수금률 <span id="cf-rate">-%</span></div></div>
+        <div class="kpi c3"><div class="kl">잔금 (미수금)</div><div class="kv"><span id="cf-unp">-</span><span style="font-size:15px;color:var(--t2)">억</span></div><div class="ks"><span class="badge warn">수금 필요</span></div></div>
+        <div class="kpi c4"><div class="kl">건수</div><div class="kv"><span id="cf-cnt">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks" id="cf-cnt-s"></div></div>
       </div>
       <div class="g2">
         <div class="card">
@@ -311,12 +311,12 @@
           <div class="cn">※ 감사보고서 확정 2022~2025 · 2026 매출기록부 · 잔금은 영업기록부 기준</div>
         </div>
         <div class="card">
-          <div class="ch"><div class="ct"><div class="ci c3">⚠️</div>미수금 현황</div><span style="font-size:10px;font-family:var(--m);font-weight:700;color:var(--r)" id="unp-total">-</span></div>
+          <div class="ch"><div class="ct"><div class="ci c3">⚠️</div>미수금 현황</div><span style="font-size:14px;font-family:var(--m);font-weight:700;color:var(--r)" id="unp-total">-</span></div>
           <div class="cb" id="unpaidList"><div class="sw"><div class="spr"></div></div></div>
         </div>
       </div>
       <div class="card">
-        <div class="ch"><div class="ct"><div class="ci c1">📋</div>매출 내역 <span id="cf-tbl-l" style="font-size:10px;color:var(--t3);font-weight:400;margin-left:4px">로딩중...</span></div></div>
+        <div class="ch"><div class="ct"><div class="ci c1">📋</div>매출 내역 <span id="cf-tbl-l" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:4px">로딩중...</span></div></div>
         <div class="cb" style="padding:10px 14px">
           <div class="tw"><table class="tbl">
             <thead><tr><th>수익인식일</th><th>거래처</th><th>프로젝트코드</th><th>구분</th><th class="r">공급가액</th><th class="r">입금액</th><th class="r">잔금</th></tr></thead>
@@ -329,15 +329,15 @@
     <!-- 파이프라인 -->
     <div class="page" id="tab-pipeline">
       <div class="kr">
-        <div class="kpi c1"><div class="kl">전체 프로젝트</div><div class="kv"><span id="pl-tot">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks">ERP 기준</div></div>
-        <div class="kpi c2"><div class="kl">진행중 (확정+작성)</div><div class="kv"><span id="pl-act">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"><span id="pl-act-amt">-억</span></div></div>
-        <div class="kpi c3"><div class="kl">완료</div><div class="kv"><span id="pl-don">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"></div></div>
-        <div class="kpi c5"><div class="kl">중단</div><div class="kv"><span id="pl-stp">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi c1"><div class="kl">전체 프로젝트</div><div class="kv"><span id="pl-tot">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks">ERP 기준</div></div>
+        <div class="kpi c2"><div class="kl">진행중 (확정+작성)</div><div class="kv"><span id="pl-act">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span id="pl-act-amt">-억</span></div></div>
+        <div class="kpi c3"><div class="kl">완료</div><div class="kv"><span id="pl-don">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi c5"><div class="kl">중단</div><div class="kv"><span id="pl-stp">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
       </div>
       <div class="card">
         <div class="ch">
-          <div class="ct"><div class="ci c1">🔄</div>프로젝트 조회 <span id="pl-lbl" style="font-size:10px;color:var(--t3);font-weight:400;margin-left:4px">SharePoint 연동 대기</span></div>
-          <span style="font-size:10px;color:var(--t3)" id="pl-upd">-</span>
+          <div class="ct"><div class="ci c1">🔄</div>프로젝트 조회 <span id="pl-lbl" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:4px">SharePoint 연동 대기</span></div>
+          <span style="font-size:14px;color:var(--t3)" id="pl-upd">-</span>
         </div>
         <div class="cb" style="padding:10px 14px">
           <div class="pc">
@@ -358,7 +358,7 @@
             <thead><tr><th>번호</th><th>프로젝트명</th><th>거래처</th><th>유형</th><th class="r">금액(원화)</th><th>상태</th><th>계약일</th><th>담당자</th><th>PM</th></tr></thead>
             <tbody id="plTb"><tr><td colspan="9"><div class="sw"><div class="spr"></div></div></td></tr></tbody>
           </table></div>
-          <div style="font-size:10px;color:var(--t3);margin-top:7px;text-align:right" id="pl-cnt2"></div>
+          <div style="font-size:14px;color:var(--t3);margin-top:7px;text-align:right" id="pl-cnt2"></div>
         </div>
         <div class="cn">※ SharePoint 99.Dashboard(real-time) 폴더의 [프로젝트List]... 파일 자동 연동</div>
       </div>
@@ -367,14 +367,14 @@
     <!-- 고객사 -->
     <div class="page" id="tab-customer">
       <div class="kr">
-        <div class="kpi c1"><div class="kl">전체 연락처</div><div class="kv"><span id="ct-tot">-</span><span style="font-size:11px;color:var(--t2)">명</span></div><div class="ks">리멤버 DB</div></div>
-        <div class="kpi c2"><div class="kl">등록 회사</div><div class="kv"><span id="ct-co">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks"></div></div>
-        <div class="kpi c3"><div class="kl">국내</div><div class="kv"><span id="ct-dom">-</span><span style="font-size:11px;color:var(--t2)">명</span></div><div class="ks"></div></div>
-        <div class="kpi c4"><div class="kl">해외</div><div class="kv"><span id="ct-int">-</span><span style="font-size:11px;color:var(--t2)">명</span></div><div class="ks"></div></div>
+        <div class="kpi c1"><div class="kl">전체 연락처</div><div class="kv"><span id="ct-tot">-</span><span style="font-size:15px;color:var(--t2)">명</span></div><div class="ks">리멤버 DB</div></div>
+        <div class="kpi c2"><div class="kl">등록 회사</div><div class="kv"><span id="ct-co">-</span><span style="font-size:15px;color:var(--t2)">개</span></div><div class="ks"></div></div>
+        <div class="kpi c3"><div class="kl">국내</div><div class="kv"><span id="ct-dom">-</span><span style="font-size:15px;color:var(--t2)">명</span></div><div class="ks"></div></div>
+        <div class="kpi c4"><div class="kl">해외</div><div class="kv"><span id="ct-int">-</span><span style="font-size:15px;color:var(--t2)">명</span></div><div class="ks"></div></div>
       </div>
       <div class="g2">
         <div class="card" style="margin-bottom:0">
-          <div class="ch"><div class="ct"><div class="ci c1">🏢</div>고객사 목록</div><span style="font-size:10px;color:var(--t3)" id="ct-upd">-</span></div>
+          <div class="ch"><div class="ct"><div class="ci c1">🏢</div>고객사 목록</div><span style="font-size:14px;color:var(--t3)" id="ct-upd">-</span></div>
           <div class="cb" style="padding:8px 12px">
             <div style="display:flex;gap:6px;margin-bottom:8px">
               <input class="si" type="text" placeholder="🔍 회사명..." id="coSrch" oninput="filterCos()">
@@ -385,8 +385,8 @@
         </div>
         <div class="card" style="margin-bottom:0">
           <div class="ch">
-            <div class="ct"><div class="ci c2">👥</div>담당자 <span id="selCoNm" style="font-size:10px;color:var(--t3);font-weight:400;margin-left:3px">회사를 선택하세요</span></div>
-            <span style="font-size:10px;color:var(--t3)" id="ctCnt"></span>
+            <div class="ct"><div class="ci c2">👥</div>담당자 <span id="selCoNm" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:3px">회사를 선택하세요</span></div>
+            <span style="font-size:14px;color:var(--t3)" id="ctCnt"></span>
           </div>
           <div class="cb" style="padding:8px 12px">
             <div style="margin-bottom:8px"><input class="si" type="text" placeholder="🔍 이름 / 직함..." id="ctSrch" oninput="filterCtP()"></div>
@@ -401,17 +401,17 @@
     <!-- 영업활동 Log -->
     <div class="page" id="tab-sales-log">
       <div class="kr">
-        <div class="kpi c1"><div class="kl">전체 활동</div><div class="kv"><span id="sl-tot">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks" id="sl-period">-</div></div>
-        <div class="kpi c2"><div class="kl">신규/견적</div><div class="kv"><span id="sl-new">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"></div></div>
-        <div class="kpi c3"><div class="kl">진행중</div><div class="kv"><span id="sl-active">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"><span class="badge info">진행</span></div></div>
-        <div class="kpi c4"><div class="kl">완료/마감</div><div class="kv"><span id="sl-done">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"><span class="badge up">완료</span></div></div>
+        <div class="kpi c1"><div class="kl">전체 활동</div><div class="kv"><span id="sl-tot">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks" id="sl-period">-</div></div>
+        <div class="kpi c2"><div class="kl">신규/견적</div><div class="kv"><span id="sl-new">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi c3"><div class="kl">진행중</div><div class="kv"><span id="sl-active">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span class="badge info">진행</span></div></div>
+        <div class="kpi c4"><div class="kl">완료/마감</div><div class="kv"><span id="sl-done">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span class="badge up">완료</span></div></div>
       </div>
 
       <!-- 최근 영업활동 카드 -->
       <div class="card" style="margin-bottom:9px">
         <div class="ch">
           <div class="ct"><div class="ci c2">🔥</div>최근 영업활동</div>
-          <span style="font-size:10px;color:var(--t3)">최근 5건</span>
+          <span style="font-size:14px;color:var(--t3)">최근 5건</span>
         </div>
         <div class="cb" style="padding:8px 14px" id="recentSLCard">
           <div class="sw"><div class="spr"></div></div>
@@ -422,16 +422,16 @@
       <div class="card">
         <div class="ch">
           <div class="ct"><div class="ci c1">📅</div>영업활동 일정
-            <span id="slSyncBadge" style="font-size:9px;padding:1px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Teams 연동</span>
+            <span id="slSyncBadge" style="font-size:14px;padding:1px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Teams 연동</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <div style="display:flex;gap:3px">
-              <button class="pp on" id="sl-view-w" onclick="setSLView('week',this)" style="padding:3px 10px;font-size:11px">주간</button>
-              <button class="pp" id="sl-view-m" onclick="setSLView('month',this)" style="padding:3px 10px;font-size:11px">월간</button>
-              <button class="pp" id="sl-view-a" onclick="setSLView('all',this)" style="padding:3px 10px;font-size:11px">전체</button>
+              <button class="pp on" id="sl-view-w" onclick="setSLView('week',this)" style="padding:3px 10px;font-size:15px">주간</button>
+              <button class="pp" id="sl-view-m" onclick="setSLView('month',this)" style="padding:3px 10px;font-size:15px">월간</button>
+              <button class="pp" id="sl-view-a" onclick="setSLView('all',this)" style="padding:3px 10px;font-size:15px">전체</button>
             </div>
-            <button onclick="syncSLFromTeams()" style="padding:4px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">🔄 동기화</button>
-            <button onclick="openSLModal(null)" style="padding:4px 10px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button>
+            <button onclick="syncSLFromTeams()" style="padding:4px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">🔄 동기화</button>
+            <button onclick="openSLModal(null)" style="padding:4px 10px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button>
           </div>
         </div>
         <div class="cb" style="padding:12px 16px;min-height:120px" id="slCalendar">
@@ -446,7 +446,7 @@
           <div class="ct"><div class="ci c2">📋</div>영업활동 목록</div>
           <div style="display:flex;gap:6px;align-items:center">
             <input class="si" type="text" id="slSrch" placeholder="🔍 고객사/프로젝트코드..." oninput="filterSL()" style="width:180px">
-            <select class="ss" id="slStatusFilter" onchange="filterSL()" style="font-size:11px">
+            <select class="ss" id="slStatusFilter" onchange="filterSL()" style="font-size:15px">
               <option value="">전체 상태</option>
               <option value="신규">🆕 신규</option>
               <option value="제안">💡 제안</option>
@@ -460,7 +460,7 @@
               <option value="유지보수(무상)">🔧 유지보수</option>
               <option value="종료">⛔ 종료</option>
             </select>
-            <span style="font-size:10px;color:var(--t3)" id="slUpd">-</span>
+            <span style="font-size:14px;color:var(--t3)" id="slUpd">-</span>
           </div>
         </div>
         <div class="cb" style="padding:10px 14px">
@@ -472,19 +472,19 @@
               <th style="min-width:90px">최근활동일</th>
               <th style="min-width:100px">고객담당자</th>
               <th style="min-width:100px">영업담당자</th>
-              <th style="text-align:center;min-width:55px;font-size:10px">📝 회의록</th>
-              <th style="text-align:center;min-width:55px;font-size:10px">📂 자료</th>
-              <th style="text-align:center;min-width:55px;font-size:10px">📄 견적서</th>
-              <th style="text-align:center;min-width:55px;font-size:10px">📦 발주서</th>
-              <th style="text-align:center;min-width:55px;font-size:10px">📑 계약서</th>
-              <th style="text-align:center;min-width:55px;font-size:10px">🧾 세금</th>
+              <th style="text-align:center;min-width:55px;font-size:14px">📝 회의록</th>
+              <th style="text-align:center;min-width:55px;font-size:14px">📂 자료</th>
+              <th style="text-align:center;min-width:55px;font-size:14px">📄 견적서</th>
+              <th style="text-align:center;min-width:55px;font-size:14px">📦 발주서</th>
+              <th style="text-align:center;min-width:55px;font-size:14px">📑 계약서</th>
+              <th style="text-align:center;min-width:55px;font-size:14px">🧾 세금</th>
               <th style="min-width:45px"></th>
             </tr></thead>
             <tbody id="slBody">
-              <tr><td colspan="13"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
+              <tr><td colspan="13"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
             </tbody>
           </table></div>
-          <div style="font-size:10px;color:var(--t3);margin-top:6px;text-align:right" id="slCnt"></div>
+          <div style="font-size:14px;color:var(--t3);margin-top:6px;text-align:right" id="slCnt"></div>
         </div>
         <div class="cn">※ SharePoint 📦영업/7.영업활동/ 자동 저장 · 고객사별 폴더 자동 생성</div>
       </div>
@@ -492,19 +492,19 @@
       <!-- 추가/수정 모달 -->
       <div id="slModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:28px;width:600px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
-          <button onclick="closeSLModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
-          <div style="font-size:15px;font-weight:900;color:var(--t);margin-bottom:20px" id="slModalTitle">영업활동 추가</div>
+          <button onclick="closeSLModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:19px;font-weight:900;color:var(--t);margin-bottom:20px" id="slModalTitle">영업활동 추가</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div style="grid-column:1/-1">
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">고객사명 *</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">고객사명 *</label>
               <input class="si" type="text" id="sl-f-company" placeholder="예: 삼성전자㈜" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">프로젝트코드 <span style="color:var(--t3);font-weight:400">(신규=미발급)</span></label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">프로젝트코드 <span style="color:var(--t3);font-weight:400">(신규=미발급)</span></label>
               <input class="si" type="text" id="sl-f-pjcode" placeholder="BM26003 또는 비워두기" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">진행상태 *</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">진행상태 *</label>
               <select class="ss" id="sl-f-status" style="width:100%">
                 <option value="신규">🆕 신규</option><option value="제안">💡 제안</option><option value="견적">📋 견적</option>
                 <option value="발주">📦 발주</option><option value="진행">▶️ 진행</option>
@@ -514,37 +514,37 @@
               </select>
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">고객담당자</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">고객담당자</label>
               <input class="si" type="text" id="sl-f-custmgr" placeholder="홍길동 부장" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">영업담당자</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">영업담당자</label>
               <input class="si" type="text" id="sl-f-salesmgr" placeholder="성백훈" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">일정 시작일</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">일정 시작일</label>
               <input class="si" type="date" id="sl-f-start" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">일정 종료일</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">일정 종료일</label>
               <input class="si" type="date" id="sl-f-end" style="width:100%">
             </div>
             <div style="grid-column:1/-1">
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">비고/메모</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">비고/메모</label>
               <textarea class="si" id="sl-f-note" placeholder="제품, 수량, 특이사항 등" style="width:100%;height:60px;resize:vertical"></textarea>
             </div>
           </div>
           <div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px">
-            <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">저장 시 자동 실행</div>
+            <div style="font-size:15px;font-weight:700;color:var(--t2);margin-bottom:8px">저장 시 자동 실행</div>
             <div style="display:flex;gap:14px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer"><input type="checkbox" id="sl-opt-folder" checked> 📁 SP 폴더 생성</label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer"><input type="checkbox" id="sl-opt-teams" checked> 📅 Teams 캘린더 등록</label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer"><input type="checkbox" id="sl-opt-msg" checked> 💬 Teams 채널 알림</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:15px;cursor:pointer"><input type="checkbox" id="sl-opt-folder" checked> 📁 SP 폴더 생성</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:15px;cursor:pointer"><input type="checkbox" id="sl-opt-teams" checked> 📅 Teams 캘린더 등록</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:15px;cursor:pointer"><input type="checkbox" id="sl-opt-msg" checked> 💬 Teams 채널 알림</label>
             </div>
           </div>
           <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
-            <button onclick="closeSLModal()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:12px;cursor:pointer;font-family:var(--s)">취소</button>
-            <button onclick="saveSLActivity()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장 + 폴더생성</button>
+            <button onclick="closeSLModal()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:16px;cursor:pointer;font-family:var(--s)">취소</button>
+            <button onclick="saveSLActivity()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장 + 폴더생성</button>
           </div>
         </div>
       </div>
@@ -554,18 +554,18 @@
       <div id="proposalPickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:24px;width:420px;max-width:95vw;position:relative">
           <button onclick="document.getElementById('proposalPickerModal').style.display='none'"
-            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
-          <div style="font-size:14px;font-weight:900;color:var(--t);margin-bottom:6px">📁 자료 폴더 선택</div>
-          <div style="font-size:11px;color:var(--t3);margin-bottom:16px" id="proposalPickerCompany">고객사</div>
+            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:6px">📁 자료 폴더 선택</div>
+          <div style="font-size:15px;color:var(--t3);margin-bottom:16px" id="proposalPickerCompany">고객사</div>
           <!-- 기본 폴더 목록 -->
           <div id="proposalSubList" style="display:flex;flex-direction:column;gap:7px;margin-bottom:16px"></div>
           <!-- 신규 폴더 생성 -->
           <div style="border-top:1px solid var(--border);padding-top:14px">
-            <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px">+ 신규 폴더 생성</div>
+            <div style="font-size:15px;font-weight:700;color:var(--t2);margin-bottom:6px">+ 신규 폴더 생성</div>
             <div style="display:flex;gap:6px">
               <input class="si" type="text" id="proposalNewFolder" placeholder="폴더명 입력..." style="flex:1">
               <button onclick="createProposalSubFolder()"
-                style="padding:6px 14px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">생성</button>
+                style="padding:6px 14px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">생성</button>
             </div>
           </div>
         </div>
@@ -574,26 +574,26 @@
       <div id="slSubfolderModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:24px;width:400px;max-width:95vw;position:relative">
           <button onclick="document.getElementById('slSubfolderModal').style.display='none'"
-            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
-          <div style="font-size:14px;font-weight:900;color:var(--t);margin-bottom:6px">📂 자료 폴더 선택</div>
-          <div style="font-size:11px;color:var(--t3);margin-bottom:16px" id="slSubfolderActName"></div>
+            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:6px">📂 자료 폴더 선택</div>
+          <div style="font-size:15px;color:var(--t3);margin-bottom:16px" id="slSubfolderActName"></div>
 
           <!-- 기본 폴더 목록 -->
           <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="slSubfolderList">
             <button onclick="selectSLSubfolder('제안서')"
-              style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:12px;font-family:var(--s);display:flex;align-items:center;gap:8px;transition:all .15s"
+              style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:16px;font-family:var(--s);display:flex;align-items:center;gap:8px;transition:all .15s"
               onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
               onmouseout="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'">
               📄 제안서
             </button>
             <button onclick="selectSLSubfolder('교육')"
-              style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:12px;font-family:var(--s);display:flex;align-items:center;gap:8px;transition:all .15s"
+              style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:16px;font-family:var(--s);display:flex;align-items:center;gap:8px;transition:all .15s"
               onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
               onmouseout="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'">
               📚 교육
             </button>
             <button onclick="selectSLSubfolder('샘플test보고서')"
-              style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:12px;font-family:var(--s);display:flex;align-items:center;gap:8px;transition:all .15s"
+              style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:16px;font-family:var(--s);display:flex;align-items:center;gap:8px;transition:all .15s"
               onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
               onmouseout="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'">
               🧪 샘플test보고서
@@ -605,12 +605,12 @@
 
           <!-- 새 폴더 만들기 -->
           <div style="border-top:1px solid var(--border);padding-top:14px">
-            <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">+ 새 폴더 만들기</div>
+            <div style="font-size:15px;font-weight:700;color:var(--t2);margin-bottom:8px">+ 새 폴더 만들기</div>
             <div style="display:flex;gap:8px">
               <input class="si" type="text" id="slNewSubfolder" placeholder="폴더명 입력..."
                 style="flex:1" onkeydown="if(event.key==='Enter') createAndSelectSLSubfolder()">
               <button onclick="createAndSelectSLSubfolder()"
-                style="padding:6px 14px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                style="padding:6px 14px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">
                 생성
               </button>
             </div>
@@ -622,8 +622,8 @@
       <div id="slHistoryModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:24px;width:500px;max-width:95vw;max-height:75vh;overflow-y:auto;position:relative">
           <button onclick="document.getElementById('slHistoryModal').style.display='none'"
-            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
-          <div style="font-size:14px;font-weight:900;color:var(--t);margin-bottom:16px" id="slHistoryTitle">활동 이력</div>
+            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:16px" id="slHistoryTitle">활동 이력</div>
           <div id="slHistoryBody"></div>
         </div>
       </div>
@@ -631,11 +631,11 @@
       <!-- 파일 모달 -->
       <div id="slFileModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:24px;width:680px;max-width:95vw;max-height:80vh;overflow-y:auto;position:relative">
-          <button onclick="document.getElementById('slFileModal').style.display='none'" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
-          <div style="font-size:14px;font-weight:900;color:var(--t);margin-bottom:16px" id="slFileModalTitle">파일 목록</div>
+          <button onclick="document.getElementById('slFileModal').style.display='none'" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:16px" id="slFileModalTitle">파일 목록</div>
           <div id="slFileModalBody"></div>
           <div style="margin-top:16px;text-align:right">
-            <button onclick="uploadSLFile(document.getElementById('slFileModal').dataset.actId,document.getElementById('slFileModal').dataset.fileType)" style="padding:7px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">⬆ 파일 추가</button>
+            <button onclick="uploadSLFile(document.getElementById('slFileModal').dataset.actId,document.getElementById('slFileModal').dataset.fileType)" style="padding:7px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">⬆ 파일 추가</button>
           </div>
         </div>
       </div>
@@ -646,31 +646,31 @@
 
       <!-- KPI 요약 -->
       <div class="kr">
-        <div class="kpi c1"><div class="kl">전체 전시회</div><div class="kv"><span id="exh-sched-tot">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks" id="exh-yr-label">2026년</div></div>
-        <div class="kpi c2"><div class="kl">부스 참가</div><div class="kv"><span id="exh-sched-booth">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks"></div></div>
-        <div class="kpi c3"><div class="kl">준비중/진행중</div><div class="kv"><span id="exh-sched-prep">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks"><span class="badge warn">액션 필요</span></div></div>
-        <div class="kpi c4"><div class="kl">완료</div><div class="kv"><span id="exh-sched-done">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks"><span class="badge up">완료</span></div></div>
+        <div class="kpi c1"><div class="kl">전체 전시회</div><div class="kv"><span id="exh-sched-tot">-</span><span style="font-size:15px;color:var(--t2)">개</span></div><div class="ks" id="exh-yr-label">2026년</div></div>
+        <div class="kpi c2"><div class="kl">부스 참가</div><div class="kv"><span id="exh-sched-booth">-</span><span style="font-size:15px;color:var(--t2)">개</span></div><div class="ks"></div></div>
+        <div class="kpi c3"><div class="kl">준비중/진행중</div><div class="kv"><span id="exh-sched-prep">-</span><span style="font-size:15px;color:var(--t2)">개</span></div><div class="ks"><span class="badge warn">액션 필요</span></div></div>
+        <div class="kpi c4"><div class="kl">완료</div><div class="kv"><span id="exh-sched-done">-</span><span style="font-size:15px;color:var(--t2)">개</span></div><div class="ks"><span class="badge up">완료</span></div></div>
       </div>
 
       <!-- 전시회 일정 캘린더 뷰 -->
       <div class="card">
         <div class="ch">
           <div class="ct"><div class="ci c1">📅</div>국내/해외 전시회 일정
-            <span id="exhSyncBadge" style="font-size:9px;padding:1px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Teams 연동</span>
+            <span id="exhSyncBadge" style="font-size:14px;padding:1px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Teams 연동</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
-            <select class="ss" id="exhYearFilter" onchange="filterExhSched()" style="font-size:11px">
+            <select class="ss" id="exhYearFilter" onchange="filterExhSched()" style="font-size:15px">
               <option value="">전체연도</option>
               <option value="2026" selected>2026년</option>
               <option value="2027">2027년</option>
             </select>
-            <select class="ss" id="exhTypeFilter" onchange="filterExhSched()" style="font-size:11px">
+            <select class="ss" id="exhTypeFilter" onchange="filterExhSched()" style="font-size:15px">
               <option value="">전체</option>
               <option value="국내">🇰🇷 국내</option>
               <option value="해외">🌏 해외</option>
             </select>
-            <button onclick="syncExhFromTeams()" style="padding:4px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">🔄 Teams 동기화</button>
-            <button onclick="openExhModal(null)" style="padding:4px 10px;border-radius:7px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button>
+            <button onclick="syncExhFromTeams()" style="padding:4px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">🔄 Teams 동기화</button>
+            <button onclick="openExhModal(null)" style="padding:4px 10px;border-radius:7px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button>
           </div>
         </div>
         <div class="cb" style="padding:0">
@@ -685,8 +685,8 @@
         <div class="ch">
           <div class="ct"><div class="ci c2">📋</div>전시회 목록 상세</div>
           <div style="display:flex;gap:6px;align-items:center">
-            <span style="font-size:10px;color:var(--t3)" id="exhSchedUpd">-</span>
-            <button onclick="openExhModal(null)" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button>
+            <span style="font-size:14px;color:var(--t3)" id="exhSchedUpd">-</span>
+            <button onclick="openExhModal(null)" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button>
           </div>
         </div>
         <div class="cb" style="padding:10px 14px">
@@ -701,7 +701,7 @@
               <th></th>
             </tr></thead>
             <tbody id="exhSchedBody">
-              <tr><td colspan="11"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 번째 전시회 추가</button></div></div></td></tr>
+              <tr><td colspan="11"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 번째 전시회 추가</button></div></div></td></tr>
             </tbody>
           </table></div>
         </div>
@@ -711,12 +711,12 @@
       <div id="exhFileModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:24px;width:680px;max-width:95vw;max-height:80vh;overflow-y:auto;position:relative">
           <button onclick="document.getElementById('exhFileModal').style.display='none'"
-            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
-          <div style="font-size:14px;font-weight:900;color:var(--t);margin-bottom:16px" id="exhFileModalTitle">파일 목록</div>
+            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:16px" id="exhFileModalTitle">파일 목록</div>
           <div id="exhFileModalBody"></div>
           <div style="margin-top:16px;text-align:right">
             <button onclick="uploadExhFile(document.getElementById('exhFileModal').dataset.exhId, document.getElementById('exhFileModal').dataset.fileType)"
-              style="padding:7px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">
+              style="padding:7px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">
               ⬆ 파일 추가 업로드
             </button>
           </div>
@@ -726,30 +726,30 @@
       <!-- 추가/수정 모달 -->
       <div id="exhModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:28px;width:580px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
-          <button onclick="closeExhModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
-          <div style="font-size:15px;font-weight:900;color:var(--t);margin-bottom:20px" id="exhModalTitle">전시회 추가</div>
+          <button onclick="closeExhModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:19px;font-weight:900;color:var(--t);margin-bottom:20px" id="exhModalTitle">전시회 추가</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div style="grid-column:1/-1">
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">전시회명 *</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">전시회명 *</label>
               <input class="si" type="text" id="exh-f-name" placeholder="예: SEMICON Korea 2027" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">시작일 *</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">시작일 *</label>
               <input class="si" type="date" id="exh-f-start" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">종료일 *</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">종료일 *</label>
               <input class="si" type="date" id="exh-f-end" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">국내/해외</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">국내/해외</label>
               <select class="ss" id="exh-f-region" style="width:100%">
                 <option value="국내">🇰🇷 국내</option>
                 <option value="해외">🌏 해외</option>
               </select>
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">참가유형</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">참가유형</label>
               <select class="ss" id="exh-f-type" style="width:100%">
                 <option value="부스참가">🏪 부스 참가</option>
                 <option value="방문참관">👀 방문 참관</option>
@@ -757,27 +757,27 @@
               </select>
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">국가</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">국가</label>
               <input class="si" type="text" id="exh-f-country" placeholder="예: 한국, USA, Germany" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">도시</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">도시</label>
               <input class="si" type="text" id="exh-f-city" placeholder="예: 서울, San Jose, Munich" style="width:100%">
             </div>
             <div style="grid-column:1/-1">
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">행사장</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">행사장</label>
               <input class="si" type="text" id="exh-f-venue" placeholder="예: COEX, San Jose Convention Center" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">담당자</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">담당자</label>
               <input class="si" type="text" id="exh-f-manager" placeholder="예: 성백훈" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">담당자 이메일 <span style="font-weight:400;color:var(--t3)">(초대장 발송용)</span></label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">담당자 이메일 <span style="font-weight:400;color:var(--t3)">(초대장 발송용)</span></label>
               <input class="si" type="email" id="exh-f-manager-email" placeholder="예: bh@enjet.co.kr" style="width:100%">
             </div>
             <div>
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">진행상태</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">진행상태</label>
               <select class="ss" id="exh-f-status" style="width:100%">
                 <option value="준비중">🔄 준비중</option>
                 <option value="진행중">▶️ 진행중</option>
@@ -786,27 +786,27 @@
               </select>
             </div>
             <div style="grid-column:1/-1">
-              <label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">비고/메모</label>
+              <label style="font-size:15px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">비고/메모</label>
               <textarea class="si" id="exh-f-note" placeholder="부스 크기, 예산, 준비 사항 등" style="width:100%;height:70px;resize:vertical"></textarea>
             </div>
           </div>
           <div style="margin-top:16px;padding:12px;background:var(--bg3);border-radius:8px">
-            <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">저장 시 자동 실행</div>
+            <div style="font-size:15px;font-weight:700;color:var(--t2);margin-bottom:8px">저장 시 자동 실행</div>
             <div style="display:flex;gap:12px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer">
+              <label style="display:flex;align-items:center;gap:5px;font-size:15px;cursor:pointer">
                 <input type="checkbox" id="opt-teams-cal" checked> 📅 Teams 캘린더 등록
               </label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer">
+              <label style="display:flex;align-items:center;gap:5px;font-size:15px;cursor:pointer">
                 <input type="checkbox" id="opt-email" checked> 📧 이메일 초대장
               </label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer">
+              <label style="display:flex;align-items:center;gap:5px;font-size:15px;cursor:pointer">
                 <input type="checkbox" id="opt-teams-msg" checked> 💬 Teams 채널 알림
               </label>
             </div>
           </div>
           <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
-            <button onclick="closeExhModal()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:12px;cursor:pointer;font-family:var(--s)">취소</button>
-            <button onclick="saveExhEvent()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장 + 공유</button>
+            <button onclick="closeExhModal()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:16px;cursor:pointer;font-family:var(--s)">취소</button>
+            <button onclick="saveExhEvent()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장 + 공유</button>
           </div>
         </div>
       </div>
@@ -816,7 +816,7 @@
     <div class="page" id="tab-sales-meeting">
       <!-- 업로드 영역 -->
       <div class="card" id="uploadCard">
-        <div class="ch"><div class="ct"><div class="ci c2">📝</div>회의록 자동 요약</div><span style="font-size:10px;color:var(--t3)" id="mtg-status">AI 요약 준비</span></div>
+        <div class="ch"><div class="ct"><div class="ci c2">📝</div>회의록 자동 요약</div><span style="font-size:14px;color:var(--t3)" id="mtg-status">AI 요약 준비</span></div>
         <div class="cb" style="padding:14px">
           <!-- 드래그앤드롭 영역 -->
           <div id="dropZone" style="border:2px dashed var(--border2);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3);margin-bottom:12px"
@@ -824,17 +824,17 @@
             ondragleave="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'"
             ondrop="handleDrop(event)"
             onclick="document.getElementById('fileInput').click()">
-            <div style="font-size:28px;margin-bottom:8px">🎙️</div>
-            <div style="font-size:13px;font-weight:700;color:var(--t);margin-bottom:4px">파일을 드래그하거나 클릭해서 업로드</div>
-            <div style="font-size:11px;color:var(--t3)">🎵 오디오: mp3, mp4, m4a, wav, webm (→ Whisper STT → Claude 요약)<br>📄 텍스트: txt, vtt, srt, docx (→ Claude 직접 요약)</div>
+            <div style="font-size:34px;margin-bottom:8px">🎙️</div>
+            <div style="font-size:17px;font-weight:700;color:var(--t);margin-bottom:4px">파일을 드래그하거나 클릭해서 업로드</div>
+            <div style="font-size:15px;color:var(--t3)">🎵 오디오: mp3, mp4, m4a, wav, webm (→ Whisper STT → Claude 요약)<br>📄 텍스트: txt, vtt, srt, docx (→ Claude 직접 요약)</div>
           </div>
           <input type="file" id="fileInput" accept=".mp3,.mp4,.m4a,.wav,.webm,.txt,.vtt,.srt" style="display:none" onchange="handleFile(this.files[0])">
 
           <!-- OpenAI 키 입력 (오디오용) -->
           <div id="apiKeyRow" style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
-            <span style="font-size:11px;color:var(--t2);white-space:nowrap;font-weight:600">🔑 OpenAI API Key</span>
-            <input type="password" id="oaiKey" placeholder="sk-... (오디오 파일 업로드 시 필요, 텍스트는 불필요)" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:7px;font-size:11px;font-family:var(--sans);background:var(--bg2)">
-            <button onclick="saveOaiKey()" style="padding:5px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;cursor:pointer;font-weight:700;font-family:var(--sans)">저장</button>
+            <span style="font-size:15px;color:var(--t2);white-space:nowrap;font-weight:600">🔑 OpenAI API Key</span>
+            <input type="password" id="oaiKey" placeholder="sk-... (오디오 파일 업로드 시 필요, 텍스트는 불필요)" style="flex:1;padding:6px 10px;border:1px solid var(--border2);border-radius:7px;font-size:15px;font-family:var(--sans);background:var(--bg2)">
+            <button onclick="saveOaiKey()" style="padding:5px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--sans)">저장</button>
           </div>
 
           <!-- 회의 메타 입력 -->
@@ -860,7 +860,7 @@
           <div id="progressBox" style="display:none;background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
               <div class="spr"></div>
-              <span id="progressTxt" style="font-size:12px;font-weight:600;color:var(--t)">처리 중...</span>
+              <span id="progressTxt" style="font-size:16px;font-weight:600;color:var(--t)">처리 중...</span>
             </div>
             <div style="height:4px;background:var(--card2);border-radius:2px;overflow:hidden">
               <div id="progressBar" style="height:100%;background:var(--p);border-radius:2px;transition:width .5s;width:0%"></div>
@@ -870,14 +870,14 @@
           <!-- 요약 결과 -->
           <div id="summaryBox" style="display:none">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <span style="font-size:12px;font-weight:800;color:var(--t)">📋 AI 요약 결과</span>
+              <span style="font-size:16px;font-weight:800;color:var(--t)">📋 AI 요약 결과</span>
               <div style="display:flex;gap:6px">
-                <button onclick="editSummary()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:11px;cursor:pointer;font-family:var(--sans)">✏️ 수정</button>
-                <button onclick="saveMeeting()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;cursor:pointer;font-weight:700;font-family:var(--sans)">💾 SharePoint 저장</button>
+                <button onclick="editSummary()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:15px;cursor:pointer;font-family:var(--sans)">✏️ 수정</button>
+                <button onclick="saveMeeting()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--sans)">💾 SharePoint 저장</button>
               </div>
             </div>
-            <div id="summaryView" style="background:var(--bg3);border-radius:10px;padding:14px;font-size:12px;line-height:1.7;color:var(--t);white-space:pre-wrap;max-height:360px;overflow-y:auto"></div>
-            <textarea id="summaryEdit" style="display:none;width:100%;height:300px;padding:12px;border:1px solid var(--border2);border-radius:10px;font-size:12px;line-height:1.7;font-family:var(--sans);resize:vertical"></textarea>
+            <div id="summaryView" style="background:var(--bg3);border-radius:10px;padding:14px;font-size:16px;line-height:1.7;color:var(--t);white-space:pre-wrap;max-height:360px;overflow-y:auto"></div>
+            <textarea id="summaryEdit" style="display:none;width:100%;height:300px;padding:12px;border:1px solid var(--border2);border-radius:10px;font-size:16px;line-height:1.7;font-family:var(--sans);resize:vertical"></textarea>
           </div>
         </div>
       </div>
@@ -885,10 +885,10 @@
       <!-- 미팅 로그 목록 -->
       <div class="card">
         <div class="ch">
-          <div class="ct"><div class="ci c1">📚</div>미팅 로그 <span id="mtg-lbl" style="font-size:10px;color:var(--t3);font-weight:400;margin-left:4px">SharePoint 연동</span></div>
+          <div class="ct"><div class="ci c1">📚</div>미팅 로그 <span id="mtg-lbl" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:4px">SharePoint 연동</span></div>
           <div style="display:flex;gap:6px;align-items:center">
             <input class="si" type="text" placeholder="🔍 거래처/제목 검색..." id="mtgSrch" oninput="filterMtg()" style="width:200px;flex:none">
-            <button onclick="loadMeetings()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:11px;cursor:pointer;font-family:var(--sans)">새로고침</button>
+            <button onclick="loadMeetings()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:15px;cursor:pointer;font-family:var(--sans)">새로고침</button>
           </div>
         </div>
         <div class="cb" style="padding:10px 14px">
@@ -900,7 +900,7 @@
       <!-- 미팅 상세 모달 -->
       <div id="mtgModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:28px;width:700px;max-width:95vw;max-height:85vh;overflow-y:auto;position:relative">
-          <button onclick="closeMtgModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:18px;cursor:pointer;color:var(--t3)">✕</button>
+          <button onclick="closeMtgModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:22px;cursor:pointer;color:var(--t3)">✕</button>
           <div id="mtgModalContent"></div>
         </div>
       </div>
@@ -910,11 +910,11 @@
     <!-- 마케팅 미팅 로그 -->
     <div class="page" id="tab-mkt-meeting">
       <div class="card">
-        <div class="ch"><div class="ct"><div class="ci c2">📝</div>미팅 로그 (마케팅)</div><span style="font-size:10px;color:var(--t3)" id="mkt-mtg-upd">-</span></div>
+        <div class="ch"><div class="ct"><div class="ci c2">📝</div>미팅 로그 (마케팅)</div><span style="font-size:14px;color:var(--t3)" id="mkt-mtg-upd">-</span></div>
         <div class="cb" style="padding:10px 14px">
           <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
             <input class="si" type="text" placeholder="🔍 거래처/제목 검색..." id="mktMtgSrch" oninput="filterMtgByType('marketing')" style="flex:1;min-width:160px">
-            <button onclick="go('meeting-upload',null)" style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)" onclick="openUploadForType('marketing')">+ 새 회의록</button>
+            <button onclick="go('meeting-upload',null)" style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)" onclick="openUploadForType('marketing')">+ 새 회의록</button>
           </div>
           <div id="mktMtgList"><div class="sw"><div class="spr"></div></div></div>
         </div>
@@ -925,16 +925,16 @@
     <!-- 전시회 Contact -->
     <div class="page" id="tab-exhibition">
       <div class="kr">
-        <div class="kpi c1"><div class="kl">전시회 수</div><div class="kv"><span id="exh-cnt">-</span><span style="font-size:11px;color:var(--t2)">개</span></div><div class="ks">등록된 전시회</div></div>
-        <div class="kpi c2"><div class="kl">전체 컨택</div><div class="kv"><span id="exh-total">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"></div></div>
-        <div class="kpi c3"><div class="kl">팔로업 필요</div><div class="kv"><span id="exh-follow">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"><span class="badge warn">액션 필요</span></div></div>
-        <div class="kpi c4"><div class="kl">거래 연결</div><div class="kv"><span id="exh-conv">-</span><span style="font-size:11px;color:var(--t2)">건</span></div><div class="ks"><span class="badge up">성과</span></div></div>
+        <div class="kpi c1"><div class="kl">전시회 수</div><div class="kv"><span id="exh-cnt">-</span><span style="font-size:15px;color:var(--t2)">개</span></div><div class="ks">등록된 전시회</div></div>
+        <div class="kpi c2"><div class="kl">전체 컨택</div><div class="kv"><span id="exh-total">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi c3"><div class="kl">팔로업 필요</div><div class="kv"><span id="exh-follow">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span class="badge warn">액션 필요</span></div></div>
+        <div class="kpi c4"><div class="kl">거래 연결</div><div class="kv"><span id="exh-conv">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span class="badge up">성과</span></div></div>
       </div>
 
       <div class="card">
         <div class="ch">
           <div class="ct"><div class="ci c1">🎪</div>전시회별 Contact 현황</div>
-          <span style="font-size:10px;color:var(--t3)" id="exh-upd">데이터 업로드 대기</span>
+          <span style="font-size:14px;color:var(--t3)" id="exh-upd">데이터 업로드 대기</span>
         </div>
         <div class="cb" style="padding:10px 14px">
           <!-- 전시회 필터 -->
@@ -950,7 +950,7 @@
               <option value="종료">⬛ 종료</option>
             </select>
             <input class="si" type="text" placeholder="🔍 회사명 / 담당자..." id="exhSrch" oninput="filterExh()" style="flex:1;min-width:150px">
-            <button onclick="document.getElementById('exhFileInput').click()" style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">📂 Excel 업로드</button>
+            <button onclick="document.getElementById('exhFileInput').click()" style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">📂 Excel 업로드</button>
             <input type="file" id="exhFileInput" accept=".xlsx,.csv" style="display:none" onchange="loadExhFile(this.files[0])">
           </div>
 
@@ -964,10 +964,10 @@
               <th>연락처</th><th>관심제품</th><th>상태</th><th>팔로업</th><th>비고</th>
             </tr></thead>
             <tbody id="exhBody">
-              <tr><td colspan="10"><div class="empty"><div class="ei">📂</div><div class="et">전시회 Contact 데이터 없음</div><div style="font-size:11px;color:var(--t3);margin-top:4px">우측 상단 Excel 업로드 또는 데이터 공유해주세요</div></div></td></tr>
+              <tr><td colspan="10"><div class="empty"><div class="ei">📂</div><div class="et">전시회 Contact 데이터 없음</div><div style="font-size:15px;color:var(--t3);margin-top:4px">우측 상단 Excel 업로드 또는 데이터 공유해주세요</div></div></td></tr>
             </tbody>
           </table></div>
-          <div style="font-size:10px;color:var(--t3);margin-top:8px;text-align:right" id="exh-count"></div>
+          <div style="font-size:14px;color:var(--t3);margin-top:8px;text-align:right" id="exh-count"></div>
         </div>
         <div class="cn">※ Excel 업로드: 전시회명, 회사명, 담당자, 직함, 국가, 이메일, 전화, 관심제품, 상태, 팔로업일, 비고 컬럼 형식</div>
       </div>
@@ -1156,15 +1156,15 @@ function renderSalesUnpaid(data) {
     return `<div class="bi" style="margin-bottom:6px">
       <div class="brnk ${i<2?"top":""}">${String(i+1).padStart(2,"0")}</div>
       <div class="binf">
-        <div class="bnm" style="font-size:10px">${co.substring(0,18)}</div>
+        <div class="bnm" style="font-size:14px">${co.substring(0,18)}</div>
         <div class="brow">
           <div class="bbg"><div class="bfil" style="width:${pct}%;background:${color}"></div></div>
-          <div class="bval" style="color:${color};font-size:10px">${(v.amt/1e8).toFixed(3)}억</div>
+          <div class="bval" style="color:${color};font-size:14px">${(v.amt/1e8).toFixed(3)}억</div>
         </div>
       </div>
     </div>`;
   }).join("")+
-  `<div style="font-size:9px;color:var(--t3);padding-top:6px;border-top:1px solid var(--border)">
+  `<div style="font-size:14px;color:var(--t3);padding-top:6px;border-top:1px solid var(--border)">
     ※ BM26001 5.26억 별도(세금계산서 미발행)<br>✅ 아이센스원주공장 완납
   </div>`;
 }
@@ -1177,7 +1177,7 @@ function renderUnpaid(data) {
   document.getElementById("unpaidList").innerHTML=(sorted.length?sorted.slice(0,10).map(([co,v],i)=>{
     const rate=v.g>0?Math.round(v.i/v.g*100):0;
     return `<div class="ui"><div class="urk ${i<3?"top":""}">${String(i+1).padStart(2,"0")}</div><div class="uinf"><div class="unm">${co.substring(0,22)}</div><div class="urt">수금률 ${rate}%</div></div><div class="ubg"><div class="ufil" style="width:${rate}%"></div></div><div class="uamt" style="color:${i<3?"var(--r)":"var(--t2)"}">${(v.amt/1e8).toFixed(3)}억</div></div>`;
-  }).join("")+"<div style='padding:8px 0 0;font-size:10px;color:var(--t3)'>※ 에이치비솔루션 BM26001 5.26억 세금계산서 미발행(별도) · 아이센스원주공장 2025년 완납</div>"
+  }).join("")+"<div style='padding:8px 0 0;font-size:14px;color:var(--t3)'>※ 에이치비솔루션 BM26001 5.26억 세금계산서 미발행(별도) · 아이센스원주공장 2025년 완납</div>"
   : "<div class='empty'><div class='ei'>✅</div><div class='et'>미수금 없음</div></div>");
 }
 
@@ -1185,7 +1185,7 @@ function renderCFTable(data) {
   $("cf-tbl-l",data.length+"건");
   document.getElementById("cfTb").innerHTML=data.slice(0,300).map(r=>{
     const dt=r.날짜?String(r.날짜).substring(0,10):"-";
-    return `<tr><td style="font-size:10px;color:var(--t3)">${dt}</td><td>${r.거래처.substring(0,16)}</td><td><span class="tm" style="font-size:10px">${r.프번}</span></td><td><span class="badge ${r.구분==="수출"||r.구분==="해외"?"warn":"info"}" style="font-size:9px">${r.구분}</span></td><td class="r"><span class="tm b">${r.공급>0?(r.공급/1e4).toFixed(0)+"만":"-"}</span></td><td class="r"><span class="tm g">${r.입금>0?(r.입금/1e4).toFixed(0)+"만":"0"}</span></td><td class="r"><span class="tm ${r.잔금>0?"r":""}">${r.잔금>0?(r.잔금/1e4).toFixed(0)+"만":"0"}</span></td></tr>`;
+    return `<tr><td style="font-size:14px;color:var(--t3)">${dt}</td><td>${r.거래처.substring(0,16)}</td><td><span class="tm" style="font-size:14px">${r.프번}</span></td><td><span class="badge ${r.구분==="수출"||r.구분==="해외"?"warn":"info"}" style="font-size:14px">${r.구분}</span></td><td class="r"><span class="tm b">${r.공급>0?(r.공급/1e4).toFixed(0)+"만":"-"}</span></td><td class="r"><span class="tm g">${r.입금>0?(r.입금/1e4).toFixed(0)+"만":"0"}</span></td><td class="r"><span class="tm ${r.잔금>0?"r":""}">${r.잔금>0?(r.잔금/1e4).toFixed(0)+"만":"0"}</span></td></tr>`;
   }).join("");
 }
 
@@ -1262,7 +1262,7 @@ async function loadProject() {
     console.log("✅ 프로젝트:", PD.length, "건 ←", name);
   } catch(e) {
     console.error("❌ 프로젝트 실패:", e.message);
-    document.getElementById("plTb").innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">⚠️</div><div class="et">SharePoint 연결 실패</div><div style="font-size:11px;color:var(--t3)">${e.message}</div></div></td></tr>`;
+    document.getElementById("plTb").innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">⚠️</div><div class="et">SharePoint 연결 실패</div><div style="font-size:15px;color:var(--t3)">${e.message}</div></div></td></tr>`;
   }
 }
 function updPlKPI() {
@@ -1296,7 +1296,7 @@ function renderPL(data) {
     const amt=r.원화금액>0?(r.원화금액/1e8).toFixed(3)+"억":"-";
     const dt=r.계약일&&r.계약일!=""?String(r.계약일).substring(0,10):"-";
     const nm=r.프로젝트명.replace(/\(.*?\)/g,"").trim().substring(0,28);
-    return `<tr><td><span class="tm" style="font-size:10px">${r.프로젝트번호}</span></td><td><span class="tn" style="font-size:11px" title="${r.프로젝트명}">${nm}</span></td><td style="max-width:110px;overflow:hidden;text-overflow:ellipsis">${r.거래처.substring(0,14)}</td><td style="font-size:10px;color:var(--t3)">${r.유형}</td><td class="r"><span class="tm b">${amt}</span></td><td><span class="badge ${SC[r.진행구분]||"gray"}">${r.진행구분}</span></td><td style="font-size:10px;color:var(--t3)">${dt}</td><td style="font-size:10px">${r.책임자}</td><td style="font-size:10px;color:var(--t3)">${r.PM}</td></tr>`;
+    return `<tr><td><span class="tm" style="font-size:14px">${r.프로젝트번호}</span></td><td><span class="tn" style="font-size:15px" title="${r.프로젝트명}">${nm}</span></td><td style="max-width:110px;overflow:hidden;text-overflow:ellipsis">${r.거래처.substring(0,14)}</td><td style="font-size:14px;color:var(--t3)">${r.유형}</td><td class="r"><span class="tm b">${amt}</span></td><td><span class="badge ${SC[r.진행구분]||"gray"}">${r.진행구분}</span></td><td style="font-size:14px;color:var(--t3)">${dt}</td><td style="font-size:14px">${r.책임자}</td><td style="font-size:14px;color:var(--t3)">${r.PM}</td></tr>`;
   }).join("");
   $("pl-cnt2",data.length+"건 (최대 300)");
 }
@@ -1770,7 +1770,7 @@ async function loadMeetings(tabId) {
     $("mkt-mtg-upd","동기화: "+new Date().toLocaleTimeString("ko-KR"));
   } catch(e) {
     console.error("미팅 로드 실패:", e.message);
-    if(listEl) listEl.innerHTML = '<div class="empty"><div class="ei">📂</div><div class="et">저장된 회의록 없음</div><div style="font-size:11px;color:var(--t3);margin-top:4px">회의록 요약 후 SharePoint 저장하면 여기 표시돼요</div></div>';
+    if(listEl) listEl.innerHTML = '<div class="empty"><div class="ei">📂</div><div class="et">저장된 회의록 없음</div><div style="font-size:15px;color:var(--t3);margin-top:4px">회의록 요약 후 SharePoint 저장하면 여기 표시돼요</div></div>';
   }
 }
 
@@ -1793,7 +1793,7 @@ function renderMeetingsToEl(data, el, total) {
   if(!data.length){ el.innerHTML='<div class="empty"><div class="ei">🔍</div><div class="et">회의록 없음</div></div>'; return; }
   const TYPE_ICON = {기술미팅:"⚙️",영업미팅:"💼",내부회의:"🏢",계약협의:"📝",고객방문:"🤝",전시회:"🎪",마케팅미팅:"📣"};
   el.innerHTML=`<table class="tbl"><thead><tr><th>일자</th><th>회의명</th><th>거래처</th><th>유형</th><th>참석자</th><th>저장일시</th><th></th></tr></thead><tbody>${
-    data.map((m,i)=>`<tr style="cursor:pointer" onclick="openMtg(${meetings.indexOf(m)})"><td style="font-size:10px;color:var(--t3)">${m.date||"-"}</td><td><span class="tn" style="font-size:11px">${(m.title||"무제").substring(0,20)}</span></td><td style="font-size:11px">${(m.company||"-").substring(0,14)}</td><td><span class="badge info" style="font-size:9px">${TYPE_ICON[m.type]||"📝"} ${m.type||"-"}</span></td><td style="font-size:10px;color:var(--t2)">${(m.attendees||"-").substring(0,14)}</td><td style="font-size:10px;color:var(--t3)">${m.savedAt?m.savedAt.substring(0,16).replace("T"," "):"-"}</td><td><span style="font-size:10px;color:var(--p)">열기 →</span></td></tr>`).join("")
+    data.map((m,i)=>`<tr style="cursor:pointer" onclick="openMtg(${meetings.indexOf(m)})"><td style="font-size:14px;color:var(--t3)">${m.date||"-"}</td><td><span class="tn" style="font-size:15px">${(m.title||"무제").substring(0,20)}</span></td><td style="font-size:15px">${(m.company||"-").substring(0,14)}</td><td><span class="badge info" style="font-size:14px">${TYPE_ICON[m.type]||"📝"} ${m.type||"-"}</span></td><td style="font-size:14px;color:var(--t2)">${(m.attendees||"-").substring(0,14)}</td><td style="font-size:14px;color:var(--t3)">${m.savedAt?m.savedAt.substring(0,16).replace("T"," "):"-"}</td><td><span style="font-size:14px;color:var(--p)">열기 →</span></td></tr>`).join("")
   }</tbody></table>`;
 }
 
@@ -1801,7 +1801,7 @@ function renderMeetings(data) {
   const listEl = document.getElementById("mtgList");
   if(!listEl) return;
   if(!data.length) {
-    listEl.innerHTML = '<div class="empty"><div class="ei">🔍</div><div class="et">저장된 회의록 없음</div><div style="font-size:11px;color:var(--t3);margin-top:4px">회의록 요약 후 SharePoint 저장하면 여기 표시돼요</div></div>';
+    listEl.innerHTML = '<div class="empty"><div class="ei">🔍</div><div class="et">저장된 회의록 없음</div><div style="font-size:15px;color:var(--t3);margin-top:4px">회의록 요약 후 SharePoint 저장하면 여기 표시돼요</div></div>';
     return;
   }
   renderMeetingsToEl(data, listEl, data.length);
@@ -1814,13 +1814,13 @@ function _renderMeetingsOld(data) {
       <thead><tr><th>일자</th><th>회의명</th><th>거래처</th><th>유형</th><th>참석자</th><th>저장일시</th><th></th></tr></thead>
       <tbody>
         ${data.map((m,i) => `<tr style="cursor:pointer" onclick="openMtg(${i})">
-          <td style="font-size:10px;color:var(--t3)">${m.date||"-"}</td>
-          <td><span class="tn" style="font-size:11px">${(m.title||"무제").substring(0,20)}</span></td>
-          <td style="font-size:11px">${(m.company||"-").substring(0,14)}</td>
-          <td><span class="badge info" style="font-size:9px">${TYPE_ICON[m.type]||"📝"} ${m.type||"-"}</span></td>
-          <td style="font-size:10px;color:var(--t2)">${(m.attendees||"-").substring(0,14)}</td>
-          <td style="font-size:10px;color:var(--t3)">${m.savedAt?m.savedAt.substring(0,16).replace("T"," "):"-"}</td>
-          <td><span style="font-size:10px;color:var(--p);cursor:pointer">열기 →</span></td>
+          <td style="font-size:14px;color:var(--t3)">${m.date||"-"}</td>
+          <td><span class="tn" style="font-size:15px">${(m.title||"무제").substring(0,20)}</span></td>
+          <td style="font-size:15px">${(m.company||"-").substring(0,14)}</td>
+          <td><span class="badge info" style="font-size:14px">${TYPE_ICON[m.type]||"📝"} ${m.type||"-"}</span></td>
+          <td style="font-size:14px;color:var(--t2)">${(m.attendees||"-").substring(0,14)}</td>
+          <td style="font-size:14px;color:var(--t3)">${m.savedAt?m.savedAt.substring(0,16).replace("T"," "):"-"}</td>
+          <td><span style="font-size:14px;color:var(--p);cursor:pointer">열기 →</span></td>
         </tr>`).join("")}
       </tbody>
     </table>`;
@@ -1832,8 +1832,8 @@ function openMtg(idx) {
   const TYPE_ICON = {기술미팅:"⚙️",영업미팅:"💼",내부회의:"🏢",계약협의:"📝",고객방문:"🤝",전시회:"🎪"};
   document.getElementById("mtgModalContent").innerHTML = `
     <div style="margin-bottom:16px">
-      <div style="font-size:16px;font-weight:900;color:var(--t);margin-bottom:6px">${TYPE_ICON[m.type]||"📝"} ${m.title||"회의록"}</div>
-      <div style="display:flex;gap:12px;font-size:11px;color:var(--t2);flex-wrap:wrap">
+      <div style="font-size:20px;font-weight:900;color:var(--t);margin-bottom:6px">${TYPE_ICON[m.type]||"📝"} ${m.title||"회의록"}</div>
+      <div style="display:flex;gap:12px;font-size:15px;color:var(--t2);flex-wrap:wrap">
         <span>📅 ${m.date||"-"}</span>
         <span>🏢 ${m.company||"-"}</span>
         <span>👥 ${m.attendees||"-"}</span>
@@ -1842,8 +1842,8 @@ function openMtg(idx) {
       </div>
     </div>
     <hr style="border:none;border-top:1px solid var(--border);margin-bottom:16px">
-    <div style="font-size:12px;line-height:1.8;color:var(--t);white-space:pre-wrap;max-height:500px;overflow-y:auto">${m.summary||"요약 없음"}</div>
-    <div style="margin-top:16px;font-size:10px;color:var(--t3);text-align:right">저장: ${m.savedAt||"-"}</div>`;
+    <div style="font-size:16px;line-height:1.8;color:var(--t);white-space:pre-wrap;max-height:500px;overflow-y:auto">${m.summary||"요약 없음"}</div>
+    <div style="margin-top:16px;font-size:14px;color:var(--t3);text-align:right">저장: ${m.savedAt||"-"}</div>`;
   document.getElementById("mtgModal").style.display = "flex";
 }
 function closeMtgModal() { document.getElementById("mtgModal").style.display = "none"; }
@@ -1918,7 +1918,7 @@ function updateExhUI() {
 
   // 전시회 탭 버튼
   document.getElementById("exhTabs").innerHTML = exhs.map(e=>`
-    <button class="qb on" onclick="clickExhTab('${e}',this)" style="font-size:10px;padding:3px 10px">${e}</button>
+    <button class="qb on" onclick="clickExhTab('${e}',this)" style="font-size:14px;padding:3px 10px">${e}</button>
   `).join("");
 
   // 전시회별 요약 카드
@@ -1956,16 +1956,16 @@ function renderExhTable(data) {
   $("exh-count", data.length+"건 표시");
   document.getElementById("exhBody").innerHTML = data.length
     ? data.map(r=>`<tr>
-        <td><span class="badge info" style="font-size:9px">${r.exh.substring(0,14)}</span></td>
-        <td><span class="tn" style="font-size:11px">${r.company.substring(0,18)}</span></td>
-        <td style="font-size:11px">${r.name}</td>
-        <td style="font-size:10px;color:var(--t3)">${r.title.substring(0,12)}</td>
-        <td><span style="font-size:10px">${r.country||"-"}</span></td>
-        <td style="font-size:10px;color:var(--t2)">${r.email||r.phone||"-"}</td>
-        <td style="font-size:10px;color:var(--t2);max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.product.substring(0,20)}</td>
-        <td><span class="badge ${STATUS_STYLE[r.status]||"gray"}" style="font-size:9px">${r.status||"-"}</span></td>
-        <td style="font-size:10px;color:var(--t3)">${r.followup||"-"}</td>
-        <td style="font-size:10px;color:var(--t3);max-width:100px;overflow:hidden;text-overflow:ellipsis">${r.note.substring(0,20)}</td>
+        <td><span class="badge info" style="font-size:14px">${r.exh.substring(0,14)}</span></td>
+        <td><span class="tn" style="font-size:15px">${r.company.substring(0,18)}</span></td>
+        <td style="font-size:15px">${r.name}</td>
+        <td style="font-size:14px;color:var(--t3)">${r.title.substring(0,12)}</td>
+        <td><span style="font-size:14px">${r.country||"-"}</span></td>
+        <td style="font-size:14px;color:var(--t2)">${r.email||r.phone||"-"}</td>
+        <td style="font-size:14px;color:var(--t2);max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.product.substring(0,20)}</td>
+        <td><span class="badge ${STATUS_STYLE[r.status]||"gray"}" style="font-size:14px">${r.status||"-"}</span></td>
+        <td style="font-size:14px;color:var(--t3)">${r.followup||"-"}</td>
+        <td style="font-size:14px;color:var(--t3);max-width:100px;overflow:hidden;text-overflow:ellipsis">${r.note.substring(0,20)}</td>
       </tr>`).join("")
     : `<tr><td colspan="10"><div class="empty"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div></td></tr>`;
 }
@@ -1978,16 +1978,16 @@ function renderExhSummaryCards(exhs) {
     rows.forEach(r=>{ const s=r.status||"미확인"; byStatus[s]=(byStatus[s]||0)+1; });
     const countries = [...new Set(rows.map(r=>r.country).filter(Boolean))];
     return `<div class="card" style="margin:0">
-      <div class="ch"><div class="ct"><div class="ci c1">🎪</div>${exh.substring(0,20)}</div><span style="font-size:11px;font-family:var(--m);font-weight:700;color:var(--p)">${rows.length}건</span></div>
+      <div class="ch"><div class="ct"><div class="ci c1">🎪</div>${exh.substring(0,20)}</div><span style="font-size:15px;font-family:var(--m);font-weight:700;color:var(--p)">${rows.length}건</span></div>
       <div class="cb" style="padding:10px 14px">
         <div style="display:flex;flex-direction:column;gap:4px">
           ${Object.entries(byStatus).map(([s,n])=>`
-            <div style="display:flex;justify-content:space-between;font-size:11px">
+            <div style="display:flex;justify-content:space-between;font-size:15px">
               <span style="color:${STATUS_COLOR[s]||"var(--t2)"}">● ${s}</span>
               <span style="font-family:var(--m);font-weight:700">${n}</span>
             </div>`).join("")}
         </div>
-        <div style="margin-top:8px;font-size:10px;color:var(--t3)">
+        <div style="margin-top:8px;font-size:14px;color:var(--t3)">
           🌏 ${countries.slice(0,4).join(", ")}${countries.length>4?"...":""}
         </div>
       </div>
@@ -2243,7 +2243,7 @@ function updateExhKPI(data) {
 // 타임라인 뷰 (월별 가로 바)
 function renderExhTimeline(data) {
   const el = document.getElementById("exhTimeline");
-  if(!data.length){ el.innerHTML='<div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div>'; return; }
+  if(!data.length){ el.innerHTML='<div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div>'; return; }
 
   // 연도/월 범위 계산
   const dates = data.flatMap(e=>[e.start,e.end]).filter(Boolean).sort();
@@ -2267,7 +2267,7 @@ function renderExhTimeline(data) {
     <div style="overflow-x:auto">
       <!-- 월 헤더 -->
       <div style="display:flex;gap:0;margin-bottom:8px;min-width:${months.length*80}px">
-        ${months.map(m=>`<div style="flex:0 0 80px;text-align:center;font-size:10px;font-weight:700;color:var(--t3);border-left:1px solid var(--border);padding:4px 0">${m}</div>`).join("")}
+        ${months.map(m=>`<div style="flex:0 0 80px;text-align:center;font-size:14px;font-weight:700;color:var(--t3);border-left:1px solid var(--border);padding:4px 0">${m}</div>`).join("")}
       </div>
       <!-- 전시회 바 -->
       <div style="min-width:${months.length*80}px">
@@ -2280,15 +2280,15 @@ function renderExhTimeline(data) {
             <div style="position:absolute;left:${left}px;width:${width}px;height:32px;border-radius:8px;background:${REGION_BG[e.region]||"var(--bg3)"};border:1.5px solid ${REGION_C[e.region]||"var(--border2)"};display:flex;align-items:center;padding:0 10px;cursor:pointer;overflow:hidden;white-space:nowrap"
               onclick='openExhModal(${JSON.stringify(e).replace(/'/g,"&apos;")})'
               title="${e.name} | ${e.start}~${e.end} | ${e.venue}">
-              <span style="font-size:10px;margin-right:4px">${TYPE_ICON[e.type]||"📅"}</span>
-              <span style="font-size:11px;font-weight:700;color:${REGION_C[e.region]||"var(--t)"};overflow:hidden;text-overflow:ellipsis">${e.name}</span>
-              <span style="margin-left:auto;font-size:9px;padding:1px 5px;border-radius:3px;background:${STATUS_COLOR[e.status]||"var(--t3)"};color:#fff;flex-shrink:0">${e.status}</span>
+              <span style="font-size:14px;margin-right:4px">${TYPE_ICON[e.type]||"📅"}</span>
+              <span style="font-size:15px;font-weight:700;color:${REGION_C[e.region]||"var(--t)"};overflow:hidden;text-overflow:ellipsis">${e.name}</span>
+              <span style="margin-left:auto;font-size:14px;padding:1px 5px;border-radius:3px;background:${STATUS_COLOR[e.status]||"var(--t3)"};color:#fff;flex-shrink:0">${e.status}</span>
             </div>
           </div>`;
         }).join("")}
       </div>
     </div>
-    <div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:var(--t2)">
+    <div style="display:flex;gap:12px;margin-top:8px;font-size:14px;color:var(--t2)">
       <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:var(--pd);border:1.5px solid var(--p);display:inline-block"></span>국내</span>
       <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:var(--ad);border:1.5px solid var(--a);display:inline-block"></span>해외</span>
       <span>🏪 부스참가</span><span>👀 방문참관</span><span>💻 온라인</span>
@@ -2311,28 +2311,28 @@ function renderExhTable(data) {
         const prepFiles = (e.prepFiles||[]);
         const resultFiles = (e.resultFiles||[]);
         return `<tr>
-          <td><span class="tn" style="font-size:11px">${e.name}</span>${e.source==="teams"?'<span style="font-size:9px;color:var(--p);margin-left:4px">Teams</span>':''}</td>
-          <td><span class="badge ${e.region==="국내"?"info":"warn"}" style="font-size:9px">${e.region==="국내"?"🇰🇷":"🌏"} ${e.region}</span></td>
-          <td style="font-size:11px">${TYPE_ICON[e.type]||""} ${e.type}</td>
-          <td style="font-size:10px;color:var(--t3)">${e.start||"-"}</td>
-          <td style="font-size:10px;color:var(--t3)">${e.end||"-"}</td>
-          <td style="font-size:11px">${[e.country,e.city].filter(Boolean).join(" / ")||"-"}</td>
-          <td style="font-size:10px;color:var(--t2)">${e.venue||"-"}</td>
-          <td style="font-size:11px">${e.manager||"-"}</td>
+          <td><span class="tn" style="font-size:15px">${e.name}</span>${e.source==="teams"?'<span style="font-size:14px;color:var(--p);margin-left:4px">Teams</span>':''}</td>
+          <td><span class="badge ${e.region==="국내"?"info":"warn"}" style="font-size:14px">${e.region==="국내"?"🇰🇷":"🌏"} ${e.region}</span></td>
+          <td style="font-size:15px">${TYPE_ICON[e.type]||""} ${e.type}</td>
+          <td style="font-size:14px;color:var(--t3)">${e.start||"-"}</td>
+          <td style="font-size:14px;color:var(--t3)">${e.end||"-"}</td>
+          <td style="font-size:15px">${[e.country,e.city].filter(Boolean).join(" / ")||"-"}</td>
+          <td style="font-size:14px;color:var(--t2)">${e.venue||"-"}</td>
+          <td style="font-size:15px">${e.manager||"-"}</td>
           <td><span class="badge ${STATUS_BADGE[e.status]||"gray"}">${e.status||"-"}</span></td>
           <td style="text-align:center">
             <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
               ${prepFiles.length>0
                 ? `<button onclick="openExhFolder('${e.id}','prep')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:9px;cursor:pointer;font-weight:700;white-space:nowrap">
+                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
                     📂 ${prepFiles.length}개 보기
                   </button>
                   <button onclick="uploadExhFile('${e.id}','prep')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:9px;cursor:pointer;white-space:nowrap">
+                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer;white-space:nowrap">
                     ⬆ 추가
                   </button>`
                 : `<button onclick="uploadExhFile('${e.id}','prep')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:9px;cursor:pointer;font-weight:700;white-space:nowrap">
+                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
                     ⬆ 업로드
                   </button>`
               }
@@ -2342,27 +2342,27 @@ function renderExhTable(data) {
             <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
               ${resultFiles.length>0
                 ? `<button onclick="openExhFolder('${e.id}','result')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:9px;cursor:pointer;font-weight:700;white-space:nowrap">
+                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
                     📂 ${resultFiles.length}개 보기
                   </button>
                   <button onclick="uploadExhFile('${e.id}','result')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:9px;cursor:pointer;white-space:nowrap">
+                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer;white-space:nowrap">
                     ⬆ 추가
                   </button>`
                 : `<button onclick="uploadExhFile('${e.id}','result')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--a);background:var(--ad);color:var(--a);font-size:9px;cursor:pointer;font-weight:700;white-space:nowrap">
+                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--a);background:var(--ad);color:var(--a);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
                     ⬆ 업로드
                   </button>`
               }
             </div>
           </td>
           <td>
-            <span style="font-size:10px;color:var(--p);cursor:pointer" onclick="openExhModal(exhSchedule.find(x=>x.id==='${e.id}'))">✏️</span>
-            <span style="font-size:10px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteExh('${e.id}')">🗑️</span>
+            <span style="font-size:14px;color:var(--p);cursor:pointer" onclick="openExhModal(exhSchedule.find(x=>x.id==='${e.id}'))">✏️</span>
+            <span style="font-size:14px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteExh('${e.id}')">🗑️</span>
           </td>
         </tr>`;
       }).join("")
-    : `<tr><td colspan="12"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div></td></tr>`;
+    : `<tr><td colspan="12"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div></td></tr>`;
 }
 
 // 모달 열기/닫기
@@ -2570,7 +2570,7 @@ async function sendCalendarInvite(evt) {
       <tr><td style="padding:8px;background:#f4f6fa;font-weight:700">준비상태</td><td style="padding:8px">${evt.status}</td></tr>
       ${evt.note ? `<tr><td style="padding:8px;background:#f4f6fa;font-weight:700">비고</td><td style="padding:8px">${evt.note}</td></tr>` : ""}
     </table>
-    <p style="color:#9ca3af;font-size:12px;margin-top:20px">본 메일은 ENJET 영업 대시보드에서 자동 발송되었습니다.</p>
+    <p style="color:#9ca3af;font-size:16px;margin-top:20px">본 메일은 ENJET 영업 대시보드에서 자동 발송되었습니다.</p>
   </div>
 </div>`
       },
@@ -2786,7 +2786,7 @@ async function openExhFolder(exhId, fileType) {
     renderExhSched(); // 테이블 업데이트
 
     if(!files.length) {
-      modalBody.innerHTML = '<div class="empty"><div class="ei">📂</div><div class="et">파일 없음</div><div style="font-size:11px;color:var(--t3);margin-top:4px">업로드 버튼으로 파일을 추가하세요</div></div>';
+      modalBody.innerHTML = '<div class="empty"><div class="ei">📂</div><div class="et">파일 없음</div><div style="font-size:15px;color:var(--t3);margin-top:4px">업로드 버튼으로 파일을 추가하세요</div></div>';
       return;
     }
 
@@ -2797,7 +2797,7 @@ async function openExhFolder(exhId, fileType) {
     modalBody.innerHTML = `
       <div style="margin-bottom:10px;display:flex;justify-content:flex-end">
         <a href="${spWebUrl}" target="_blank"
-          style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;text-decoration:none;font-weight:700">
+          style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;text-decoration:none;font-weight:700">
           🔗 SharePoint에서 열기
         </a>
       </div>
@@ -2805,17 +2805,17 @@ async function openExhFolder(exhId, fileType) {
         <thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th style="text-align:center">열기</th></tr></thead>
         <tbody>
           ${files.map(f=>`<tr>
-            <td><span class="tn" style="font-size:11px">📄 ${f.name}</span></td>
-            <td style="font-size:10px;color:var(--t3)">${Math.round(f.size/1024)}KB</td>
-            <td style="font-size:10px;color:var(--t3)">${f.lastModifiedDateTime?.substring(0,10)||"-"}</td>
+            <td><span class="tn" style="font-size:15px">📄 ${f.name}</span></td>
+            <td style="font-size:14px;color:var(--t3)">${Math.round(f.size/1024)}KB</td>
+            <td style="font-size:14px;color:var(--t3)">${f.lastModifiedDateTime?.substring(0,10)||"-"}</td>
             <td style="text-align:center">
               <a href="${f.webUrl}" target="_blank"
-                style="font-size:10px;color:var(--p);cursor:pointer;text-decoration:none">열기 →</a>
+                style="font-size:14px;color:var(--p);cursor:pointer;text-decoration:none">열기 →</a>
             </td>
           </tr>`).join("")}
         </tbody>
       </table>
-      <div style="margin-top:10px;font-size:10px;color:var(--t3)">
+      <div style="margin-top:10px;font-size:14px;color:var(--t3)">
         파일 삭제는 SharePoint에서 직접 해주세요 (🔗 SharePoint에서 열기)
       </div>`;
 
@@ -2909,7 +2909,15 @@ async function loadSLFromSP() {
     const enc = SL_SP_JSON.split("/").map(encodeURIComponent).join("/");
     const fd = await gGet("/drives/"+spDrive+"/root:/"+enc);
     const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
-    slData = await res.json();
+    const rawData = await res.json();
+    // 전시회 항목 자동 제거
+    const before = rawData.length;
+    slData = rawData.filter(item => isSLEvent(item));
+    const removed = before - slData.length;
+    if(removed > 0) {
+      console.log(`전시회 항목 ${removed}개 제거됨`);
+      await saveSLToSP(); // 필터된 데이터로 다시 저장
+    }
     renderSLAll();
     $("slUpd","로드: "+new Date().toLocaleTimeString("ko-KR"));
   } catch(e) {
@@ -2960,6 +2968,7 @@ async function syncSLFromTeams() {
     }).map(e=>({
       id: e.id,
             title: (e.subject||"").replace(/^\[(영업|영업활동|전시회)\]\s*/,""),
+      originalTitle: e.subject||"",
       start: (e.start?.dateTime||e.start?.date||"").split("T")[0],
       end:   (e.end?.dateTime||e.end?.date||"").split("T")[0],
       organizer: e.organizer?.emailAddress?.name||"",
@@ -2975,6 +2984,13 @@ async function syncSLFromTeams() {
     if(created > 0 || updated > 0) {
       await saveSLToSP();
       console.log(`Teams→영업활동: 신규 ${created}건, 업데이트 ${updated}건`);
+    }
+
+    // 기존 slData에서 전시회 항목 제거
+    const beforeSync = slData.length;
+    slData = slData.filter(item => isSLEvent(item));
+    if(slData.length < beforeSync) {
+      console.log(`동기화 중 전시회 항목 ${beforeSync-slData.length}개 제거`);
     }
 
     // Teams 이벤트 → 영업활동 목록 자동 연동
@@ -3008,7 +3024,7 @@ function renderSLCalendar() {
   const el = document.getElementById("slCalendar");
   if(!el) return;
   if(!slCalData.length) {
-    el.innerHTML='<div class="empty"><div class="ei">📅</div><div class="et">일정 없음</div><div style="font-size:11px;color:var(--t3);margin-top:4px">Teams 채널에 일정을 추가하거나 + 추가 버튼을 사용하세요</div></div>';
+    el.innerHTML='<div class="empty"><div class="ei">📅</div><div class="et">일정 없음</div><div style="font-size:15px;color:var(--t3);margin-top:4px">Teams 채널에 일정을 추가하거나 + 추가 버튼을 사용하세요</div></div>';
     return;
   }
 
@@ -3029,8 +3045,8 @@ function renderSLWeek() {
       const dayEvts=slCalData.filter(e=>e.start<=ds&&(e.end||e.start)>=ds);
       const isToday=ds===now.toISOString().split("T")[0];
       return `<div style="border:1px solid var(--border);border-radius:8px;padding:8px;min-height:80px;${isToday?"background:var(--pd);border-color:var(--p)":""}">
-        <div style="font-size:10px;font-weight:700;color:${isToday?"var(--p)":"var(--t3)"};margin-bottom:4px">${KOR_DAY[d.getDay()]} ${d.getDate()}</div>
-        ${dayEvts.map(e=>`<div style="font-size:9px;padding:2px 5px;border-radius:4px;background:var(--pd);color:var(--p);margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="${e.title}">${e.title}</div>`).join("")}
+        <div style="font-size:14px;font-weight:700;color:${isToday?"var(--p)":"var(--t3)"};margin-bottom:4px">${KOR_DAY[d.getDay()]} ${d.getDate()}</div>
+        ${dayEvts.map(e=>`<div style="font-size:14px;padding:2px 5px;border-radius:4px;background:var(--pd);color:var(--p);margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="${e.title}">${e.title}</div>`).join("")}
       </div>`;
     }).join("")}
   </div>`;
@@ -3049,16 +3065,16 @@ function renderSLMonth() {
   for(let d=1;d<=daysInMonth;d++) cells.push(d);
   while(cells.length%7!==0) cells.push(null);
   el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">
-    ${KOR_DAY.map(d=>`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--t3);padding:4px">${d}</div>`).join("")}
+    ${KOR_DAY.map(d=>`<div style="text-align:center;font-size:14px;font-weight:700;color:var(--t3);padding:4px">${d}</div>`).join("")}
     ${cells.map(d=>{
       if(!d) return '<div style="height:70px"></div>';
       const ds=year+"-"+(month+1).toString().padStart(2,"0")+"-"+String(d).padStart(2,"0");
       const dayEvts=slCalData.filter(e=>e.start<=ds&&(e.end||e.start)>=ds);
       const isToday=ds===todayStr;
       return `<div style="border:1px solid var(--border);border-radius:6px;padding:4px;min-height:70px;${isToday?"background:var(--pd);border-color:var(--p)":""}">
-        <div style="font-size:10px;font-weight:700;color:${isToday?"var(--p)":"var(--t2)"};margin-bottom:2px">${d}</div>
-        ${dayEvts.slice(0,2).map(e=>`<div style="font-size:8px;padding:1px 4px;border-radius:3px;background:var(--pd);color:var(--p);margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${e.title}</div>`).join("")}
-        ${dayEvts.length>2?`<div style="font-size:8px;color:var(--t3)">+${dayEvts.length-2}건</div>`:""}
+        <div style="font-size:14px;font-weight:700;color:${isToday?"var(--p)":"var(--t2)"};margin-bottom:2px">${d}</div>
+        ${dayEvts.slice(0,2).map(e=>`<div style="font-size:14px;padding:1px 4px;border-radius:3px;background:var(--pd);color:var(--p);margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${e.title}</div>`).join("")}
+        ${dayEvts.length>2?`<div style="font-size:14px;color:var(--t3)">+${dayEvts.length-2}건</div>`:""}
       </div>`;
     }).join("")}
   </div>`;
@@ -3068,7 +3084,7 @@ function renderSLList() {
   const el = document.getElementById("slCalendar");
   if(!slCalData.length){el.innerHTML='<div class="empty"><div class="et">일정 없음</div></div>';return;}
   el.innerHTML=`<table class="tbl"><thead><tr><th>일정명</th><th>시작일</th><th>종료일</th><th>담당자</th><th>장소</th></tr></thead>
-    <tbody>${slCalData.map(e=>`<tr><td><span class="tn" style="font-size:11px">${e.title}</span></td><td style="font-size:10px;color:var(--t3)">${e.start}</td><td style="font-size:10px;color:var(--t3)">${e.end||e.start}</td><td style="font-size:11px">${e.organizer}</td><td style="font-size:10px;color:var(--t2)">${e.location}</td></tr>`).join("")}
+    <tbody>${slCalData.map(e=>`<tr><td><span class="tn" style="font-size:15px">${e.title}</span></td><td style="font-size:14px;color:var(--t3)">${e.start}</td><td style="font-size:14px;color:var(--t3)">${e.end||e.start}</td><td style="font-size:15px">${e.organizer}</td><td style="font-size:14px;color:var(--t2)">${e.location}</td></tr>`).join("")}
     </tbody></table>`;
 }
 
@@ -3111,9 +3127,9 @@ async function openSLSubfolderModal(actId) {
     const DEFAULT = ["제안서","교육","샘플test보고서"];
     const extras = existingFolders.filter(f=>!DEFAULT.includes(f.name));
     if(extras.length > 0) {
-      extraEl.innerHTML = `<div style="font-size:11px;color:var(--t3);margin-bottom:6px">기존 폴더</div>`+
+      extraEl.innerHTML = `<div style="font-size:15px;color:var(--t3);margin-bottom:6px">기존 폴더</div>`+
         extras.map(f=>`<button onclick="selectSLSubfolder('${f.name}')"
-          style="padding:8px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:12px;font-family:var(--s);display:flex;align-items:center;gap:8px;width:100%;margin-bottom:6px"
+          style="padding:8px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:16px;font-family:var(--s);display:flex;align-items:center;gap:8px;width:100%;margin-bottom:6px"
           onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
           onmouseout="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'">
           📁 ${f.name}
@@ -3207,6 +3223,40 @@ async function updateSLField(id, field, value) {
   });
   await saveSLToSP();
   renderRecentSLCard(); // 최근 카드만 갱신 (테이블 리렌더 X - 포커스 깨짐 방지)
+}
+
+
+// 전시회 이벤트인지 판별
+function isExhEvent(item) {
+  const company = item.company || "";
+  const note    = item.note || "";
+  const cats    = item.categories || [];
+
+  // 카테고리로 판별
+  if(cats.some(c=>["국내전시회","해외전시회","전시회"].includes(c))) return true;
+
+  // note에 원본 Teams 제목 포함 → [전시회] prefix 확인
+  if(note.includes("[전시회]")) return true;
+
+  // company명이 [전시회]로 시작 (혹시라도 남은 경우)
+  if(company.startsWith("[전시회]")) return true;
+
+  // Teams 자동생성 + 학회/전시회 키워드
+  if(note.startsWith("[Teams 자동생성]")) {
+    const rawTitle = note.replace("[Teams 자동생성] ","");
+    if(rawTitle.startsWith("[전시회]")) return true;
+    if(/학회|전시회|전시|expo|fair/i.test(rawTitle) && !rawTitle.startsWith("[영업]")) return true;
+  }
+
+  return false;
+}
+
+// 영업활동 판별
+function isSLEvent(item) {
+  const title = item.company || item.title || "";
+  // [전시회] prefix면 영업활동 아님
+  if(isExhEvent(item)) return false;
+  return true;
 }
 
 async function updateSLStatus(id, newStatus) {
@@ -3305,7 +3355,7 @@ function syncSLActivityFromEvent(evt, save) {
       id:"sl_teams_"+evt.id, company, pjcode:pjCode||"", status:"신규",
       custMgr:"", salesMgr:evt.organizer||"",
       start:today, end:evt.end||today, lastActivity:today,
-      note:"[Teams 자동생성] "+title, files:{},
+      note:"[Teams 자동생성] "+evt.originalTitle, files:{},
       teamsEventId:evt.id, createdAt:now, updatedAt:now,
       history:[{date:today, action:"🆕 Teams 자동생성: "+title, type:"create"}]
     };
@@ -3320,7 +3370,7 @@ function syncSLActivityFromEvent(evt, save) {
 function renderRecentSLCard() {
   const el = document.getElementById("recentSLCard");
   if(!el) return;
-  if(!slData.length) { el.innerHTML='<div class="empty"><div class="et" style="font-size:12px">영업활동 없음</div></div>'; return; }
+  if(!slData.length) { el.innerHTML='<div class="empty"><div class="et" style="font-size:16px">영업활동 없음</div></div>'; return; }
   const recent = [...slData]
     .sort((a,b)=>(b.lastActivity||b.updatedAt||"").localeCompare(a.lastActivity||a.updatedAt||""))
     .slice(0,5);
@@ -3329,11 +3379,11 @@ function renderRecentSLCard() {
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showSLHistory('${r.id}')">
       <div style="width:7px;height:7px;border-radius:50%;background:${SC[r.status]||"var(--t3)"};flex-shrink:0"></div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:11px;font-weight:700;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.company}</div>
-        <div style="font-size:9px;color:var(--t3)">${r.status} · ${(r.lastActivity||r.start||"").substring(0,10)}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.company}</div>
+        <div style="font-size:14px;color:var(--t3)">${r.status} · ${(r.lastActivity||r.start||"").substring(0,10)}</div>
       </div>
-      <span class="badge ${STATUS_BADGE_SL[r.status]||"gray"}" style="font-size:8px;flex-shrink:0">${r.status}</span>
-    </div>`).join("")+'<div style="font-size:10px;color:var(--t3);padding-top:6px;text-align:center;cursor:pointer" onclick="go(\'sales-log\',document.querySelector(\'.ni[onclick*=sales-log]\'))">전체보기 →</div>';
+      <span class="badge ${STATUS_BADGE_SL[r.status]||"gray"}" style="font-size:14px;flex-shrink:0">${r.status}</span>
+    </div>`).join("")+'<div style="font-size:14px;color:var(--t3);padding-top:6px;text-align:center;cursor:pointer" onclick="go(\'sales-log\',document.querySelector(\'.ni[onclick*=sales-log]\'))">전체보기 →</div>';
 }
 
 // ─── 활동 이력 모달 ───
@@ -3359,13 +3409,13 @@ function showSLHistory(id) {
         ${all.map(h=>`
           <div style="position:relative;margin-bottom:14px">
             <div style="position:absolute;left:-13px;top:4px;width:10px;height:10px;border-radius:50%;background:${TC[h.type]||TC.default};border:2px solid #fff;box-shadow:0 0 0 1px var(--border2)"></div>
-            <div style="font-size:9px;color:var(--t3);margin-bottom:2px">${h.date}</div>
-            <div style="font-size:11px;color:var(--t);font-weight:500">${TI[h.type]||"📌"} ${h.action}</div>
+            <div style="font-size:14px;color:var(--t3);margin-bottom:2px">${h.date}</div>
+            <div style="font-size:15px;color:var(--t);font-weight:500">${TI[h.type]||"📌"} ${h.action}</div>
           </div>`).join("")}
       </div>
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);text-align:right">
         <button onclick="addSLManualHistory('${id}')"
-          style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">
+          style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">
           + 활동 직접 입력
         </button>
       </div>`
@@ -3418,7 +3468,7 @@ function renderSLTable(data) {
   const body = document.getElementById("slBody");
   if(!body) return;
   if(!data.length){
-    body.innerHTML='<tr><td colspan="13"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
+    body.innerHTML='<tr><td colspan="13"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
     return;
   }
   // 최근활동일 기준 내림차순 정렬
@@ -3432,58 +3482,58 @@ function renderSLTable(data) {
     const prog=STATUS_PROGRESS[r.status]||0;
     // 프로젝트코드 표시 - 제안 상태면 발급요청 버튼
     const pjDisplay = r.pjcode
-      ? `<span class="tm" style="font-size:10px">${r.pjcode}</span>`
+      ? `<span class="tm" style="font-size:14px">${r.pjcode}</span>`
       : r.status==="제안"
-        ? `<button onclick="requestPJCode('${r.id}')" style="padding:2px 8px;border-radius:5px;border:1.5px solid var(--a);background:var(--ad);color:var(--a);font-size:9px;cursor:pointer;font-weight:700;animation:pulse 2s infinite">📋 발급요청</button>`
-        : `<span style="color:var(--t3);font-size:10px">미발급</span>`;
+        ? `<button onclick="requestPJCode('${r.id}')" style="padding:2px 8px;border-radius:5px;border:1.5px solid var(--a);background:var(--ad);color:var(--a);font-size:14px;cursor:pointer;font-weight:700;animation:pulse 2s infinite">📋 발급요청</button>`
+        : `<span style="color:var(--t3);font-size:14px">미발급</span>`;
     // 진행상태 인라인 드롭다운
     const statusSelect = `<select onchange="updateSLStatus('${r.id}',this.value)"
-      style="padding:2px 5px;border-radius:5px;border:1px solid var(--border2);font-size:9px;font-family:var(--s);background:transparent;cursor:pointer;color:var(--t)">
+      style="padding:2px 5px;border-radius:5px;border:1px solid var(--border2);font-size:14px;font-family:var(--s);background:transparent;cursor:pointer;color:var(--t)">
       ${ALL_STATUS.map(s=>`<option value="${s}" ${s===r.status?"selected":""}>${s}</option>`).join("")}
     </select>`;
     const fileCols=FILE_TYPES.map(ft=>{
       const cnt=(r.files?.[ft.key]||[]).length;
       return `<td style="text-align:center">
         ${cnt>0
-          ?`<button onclick="openSLFileModal('${r.id}','${ft.key}')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:9px;cursor:pointer;font-weight:700;white-space:nowrap">${ft.label} ${cnt}개</button>`
-          :`<button onclick="uploadSLFile('${r.id}','${ft.key}')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:9px;cursor:pointer;white-space:nowrap">⬆</button>`
+          ?`<button onclick="openSLFileModal('${r.id}','${ft.key}')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">${ft.label} ${cnt}개</button>`
+          :`<button onclick="uploadSLFile('${r.id}','${ft.key}')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer;white-space:nowrap">⬆</button>`
         }
       </td>`;
     }).join("");
     return `<tr>
       <td>
-        <div style="font-size:11px;font-weight:700;color:var(--t)">${r.company}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--t)">${r.company}</div>
         <div style="height:3px;background:var(--bg3);border-radius:2px;margin-top:3px;overflow:hidden">
           <div style="height:100%;width:${prog}%;background:var(--p);border-radius:2px;transition:width .5s"></div>
         </div>
       </td>
       <td>${pjDisplay}</td>
       <td>${statusSelect}</td>
-      <td style="font-size:10px;color:var(--p);cursor:pointer;text-decoration:underline;text-underline-offset:2px"
+      <td style="font-size:14px;color:var(--p);cursor:pointer;text-decoration:underline;text-underline-offset:2px"
           onclick="showSLHistory('${r.id}')"
           title="클릭하면 활동 이력 확인">
         ${(r.lastActivity||r.start||"").substring(0,10)||"-"}
-        ${(r.history||[]).length>1?`<span style="font-size:8px;color:var(--t3);display:block">${(r.history||[]).length}건 이력</span>`:""}
+        ${(r.history||[]).length>1?`<span style="font-size:14px;color:var(--t3);display:block">${(r.history||[]).length}건 이력</span>`:""}
       </td>
       <td>
         <input value="${(r.custMgr||"").replace(/"/g,"&quot;")}" placeholder="-"
           onblur="updateSLField('${r.id}','custMgr',this.value)"
           onkeydown="if(event.key==='Enter')this.blur()"
-          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:11px;font-family:var(--s);background:transparent;cursor:text"
+          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:15px;font-family:var(--s);background:transparent;cursor:text"
           onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
           onblur="this.style.borderColor='transparent';this.style.background='transparent';updateSLField('${r.id}','custMgr',this.value)">
       </td>
       <td>
         <input value="${(r.salesMgr||"").replace(/"/g,"&quot;")}" placeholder="-"
           onkeydown="if(event.key==='Enter')this.blur()"
-          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:11px;font-family:var(--s);background:transparent;cursor:text"
+          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:15px;font-family:var(--s);background:transparent;cursor:text"
           onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
           onblur="this.style.borderColor='transparent';this.style.background='transparent';updateSLField('${r.id}','salesMgr',this.value)">
       </td>
       ${fileCols}
       <td style="white-space:nowrap">
-        <span style="font-size:10px;color:var(--p);cursor:pointer" onclick="openSLModal(slData.find(x=>x.id==='${r.id}'))">✏️</span>
-        <span style="font-size:10px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteSLActivity('${r.id}')">🗑️</span>
+        <span style="font-size:14px;color:var(--p);cursor:pointer" onclick="openSLModal(slData.find(x=>x.id==='${r.id}'))">✏️</span>
+        <span style="font-size:14px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteSLActivity('${r.id}')">🗑️</span>
       </td>
     </tr>`;
   }).join("");
@@ -3734,22 +3784,22 @@ async function openSLFileModal(actId, fileType) {
     // 파일 목록 렌더링 (삭제/이름변경 포함)
     body.innerHTML=!files.length
       ?'<div class="empty"><div class="ei">📂</div><div class="et">파일 없음</div></div>'
-      :`<div style="margin-bottom:10px;text-align:right"><a href="${spWebUrl}" target="_blank" style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;text-decoration:none;font-weight:700">🔗 SP에서 열기</a></div>
+      :`<div style="margin-bottom:10px;text-align:right"><a href="${spWebUrl}" target="_blank" style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;text-decoration:none;font-weight:700">🔗 SP에서 열기</a></div>
       <table class="tbl"><thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th style="text-align:center">열기</th><th style="text-align:center">이름변경</th><th style="text-align:center">삭제</th></tr></thead>
       <tbody>${files.map(f=>`<tr>
-        <td><span class="tn" style="font-size:11px">📄 ${f.name}</span></td>
-        <td style="font-size:10px;color:var(--t3)">${Math.round(f.size/1024)}KB</td>
-        <td style="font-size:10px;color:var(--t3)">${(f.lastModifiedDateTime||"").substring(0,10)}</td>
-        <td style="text-align:center"><a href="${f.webUrl}" target="_blank" style="font-size:10px;color:var(--p)">열기→</a></td>
+        <td><span class="tn" style="font-size:15px">📄 ${f.name}</span></td>
+        <td style="font-size:14px;color:var(--t3)">${Math.round(f.size/1024)}KB</td>
+        <td style="font-size:14px;color:var(--t3)">${(f.lastModifiedDateTime||"").substring(0,10)}</td>
+        <td style="text-align:center"><a href="${f.webUrl}" target="_blank" style="font-size:14px;color:var(--p)">열기→</a></td>
         <td style="text-align:center">
           <button onclick="renameSLFileItem('${encodeURIComponent(f.id)}','${f.name.replace(/'/g,"\'").replace(/"/g,"&quot;")}','${encodeURIComponent(actId)}','${fileType}')"
-            style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;font-size:9px;cursor:pointer;font-family:var(--s)">
+            style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">
             ✏️ 이름변경
           </button>
         </td>
         <td style="text-align:center">
           <button onclick="deleteSLFileItem('${encodeURIComponent(f.id)}','${f.name.replace(/'/g,"\'").replace(/"/g,"&quot;")}','${encodeURIComponent(actId)}','${fileType}')"
-            style="padding:2px 8px;border-radius:5px;border:1px solid var(--rd);background:var(--rd);color:var(--r);font-size:9px;cursor:pointer;font-family:var(--s)">
+            style="padding:2px 8px;border-radius:5px;border:1px solid var(--rd);background:var(--rd);color:var(--r);font-size:14px;cursor:pointer;font-family:var(--s)">
             🗑️ 삭제
           </button>
         </td>
