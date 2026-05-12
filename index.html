@@ -491,37 +491,87 @@
 
       <!-- 추가/수정 모달 -->
       <div id="slModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-        <div style="background:#fff;border-radius:16px;padding:28px;width:600px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
+        <div style="background:#fff;border-radius:16px;padding:28px;width:620px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative">
           <button onclick="closeSLModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
           <div style="font-size:19px;font-weight:900;color:var(--t);margin-bottom:20px" id="slModalTitle">영업활동 추가</div>
+
+          <!-- 고객사명 -->
+          <div style="margin-bottom:12px">
+            <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">고객사명 *</label>
+            <input class="si" type="text" id="sl-f-company" placeholder="예: 삼성전자㈜" style="width:100%">
+          </div>
+
+          <!-- 프로젝트코드 + 진행상태 -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
             <div>
-              <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">일정 시작</label>
+              <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">프로젝트코드 <span style="font-weight:400;color:var(--t3)">(신규=차수 입력)</span></label>
+              <input class="si" type="text" id="sl-f-pjcode" placeholder="BM26003 또는 신규1차, 신규2차..." style="width:100%">
+              <div style="font-size:11px;color:var(--t3);margin-top:3px">Teams 제목: [영업] 고객사-코드</div>
+            </div>
+            <div>
+              <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">진행상태 *</label>
+              <select class="ss" id="sl-f-status" style="width:100%">
+                <option value="신규">🆕 신규</option><option value="제안">💡 제안</option>
+                <option value="견적">📋 견적</option><option value="발주">📦 발주</option>
+                <option value="진행">▶️ 진행</option><option value="납품완료">✅ 납품완료</option>
+                <option value="세금계산서미발행">🧾 세금계산서미발행</option>
+                <option value="세금계산서완료">✅ 세금계산서완료</option>
+                <option value="잔금">💰 잔금</option>
+                <option value="유지보수(무상)">🔧 유지보수(무상)</option>
+                <option value="종료">⛔ 종료</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 고객담당자 + 영업담당자 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div>
+              <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">고객담당자</label>
+              <input class="si" type="text" id="sl-f-custmgr" placeholder="홍길동 부장" style="width:100%">
+            </div>
+            <div>
+              <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">영업담당자</label>
+              <input class="si" type="text" id="sl-f-salesmgr" placeholder="성백훈" style="width:100%">
+            </div>
+          </div>
+
+          <!-- 일정 시작/종료 + 시간 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div>
+              <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">일정 시작</label>
               <div style="display:flex;gap:6px">
                 <input class="si" type="date" id="sl-f-start" style="flex:1.5">
                 <input class="si" type="time" id="sl-f-stime" value="09:00" style="flex:1">
               </div>
             </div>
             <div>
-              <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">일정 종료</label>
+              <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">일정 종료</label>
               <div style="display:flex;gap:6px">
                 <input class="si" type="date" id="sl-f-end" style="flex:1.5">
                 <input class="si" type="time" id="sl-f-etime" value="18:00" style="flex:1">
               </div>
             </div>
           </div>
+
+          <!-- 비고 -->
+          <div style="margin-bottom:14px">
+            <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">비고/메모</label>
+            <textarea class="si" id="sl-f-note" placeholder="제품, 수량, 특이사항 등" style="width:100%;height:70px;resize:vertical"></textarea>
           </div>
-          <div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px">
-            <div style="font-size:15px;font-weight:700;color:var(--t2);margin-bottom:8px">저장 시 자동 실행</div>
+
+          <!-- 자동 실행 옵션 -->
+          <div style="margin-bottom:14px;padding:12px;background:var(--bg3);border-radius:8px">
+            <div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:8px">저장 시 자동 실행</div>
             <div style="display:flex;gap:14px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;font-size:15px;cursor:pointer"><input type="checkbox" id="sl-opt-folder" checked> 📁 SP 폴더 생성</label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:15px;cursor:pointer"><input type="checkbox" id="sl-opt-teams" checked> 📅 Teams 캘린더 등록</label>
-              <label style="display:flex;align-items:center;gap:5px;font-size:15px;cursor:pointer"><input type="checkbox" id="sl-opt-msg" checked> 💬 Teams 채널 알림</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:14px;cursor:pointer"><input type="checkbox" id="sl-opt-folder" checked> 📁 SP 폴더 생성</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:14px;cursor:pointer"><input type="checkbox" id="sl-opt-teams" checked> 📅 Teams 캘린더 등록</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:14px;cursor:pointer"><input type="checkbox" id="sl-opt-msg" checked> 💬 Teams 채널 알림</label>
             </div>
           </div>
-          <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
-            <button onclick="closeSLModal()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:16px;cursor:pointer;font-family:var(--s)">취소</button>
-            <button onclick="saveSLActivity()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장 + 폴더생성</button>
+
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button onclick="closeSLModal()" style="padding:9px 22px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:15px;cursor:pointer;font-family:var(--s)">취소</button>
+            <button onclick="saveSLActivity()" style="padding:9px 22px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장 + 폴더생성</button>
           </div>
         </div>
       </div>
@@ -3939,6 +3989,32 @@ async function saveSLMtgResult() {
     saveMtgLogsToSP();
     renderMtgLogTable();
 
+    // Teams 채널에 회의록 알림 + 노트 탭 링크
+    try {
+      if(!teamsGroupId) await findTeamsGroup();
+      const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
+      if(gid) {
+        const t2 = await getToken();
+        const notesUrl = "https://teams.microsoft.com/l/entity/0d820ecd-def2-4297-adad-78056cde7c78/_djb2_msteams_prefix_3255923245?context=%7B%22channelId%22%3A%2219%3A15cae7e9dec84ce1ae4909e6f7c25634%40thread.tacv2%22%7D&tenantId=58b310e1-9278-47ab-8e49-792728818c9e";
+        const msgContent = `<p>📝 <b>회의록 저장됨</b></p>
+          <table>
+            <tr><td><b>고객사</b></td><td>${act.company}</td></tr>
+            <tr><td><b>일시</b></td><td>${today}</td></tr>
+            <tr><td><b>장소</b></td><td>${location||"-"}</td></tr>
+            <tr><td><b>참석자</b></td><td>${document.getElementById("slMtgAttendees")?.value||"-"}</td></tr>
+            <tr><td><b>파일</b></td><td><a href="https://enjetco.sharepoint.com/sites/06.BackOffice/Shared%20Documents/${encodeURIComponent(spPath+"/"+fileName).replace(/%2F/g,"/")}">📄 ${fileName}</a></td></tr>
+          </table>
+          <p><b>주요 내용 (요약)</b><br>${txt.substring(0,300).replace(/\n/g,"<br>")}${txt.length>300?"...":""}</p>
+          <p>📓 <a href="${notesUrl}">Teams 노트에서 전체 보기</a></p>`;
+        await fetch(
+          "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+SL_TEAMS_CHANNEL_ID+"/messages",
+          {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t2},
+           body:JSON.stringify({body:{contentType:"html", content:msgContent}})}
+        );
+        console.log("✅ Teams 채널 회의록 알림 발송");
+      }
+    } catch(ne){ console.warn("Teams 알림 실패:", ne.message); }
+
     alert("✅ 회의록 저장 완료!\n"+spPath+"/"+fileName);
     switchMtgTab(1);
     await loadSLMinutesFiles(_slMtgActId);
@@ -4415,6 +4491,8 @@ function openSLModal(act) {
     document.getElementById("sl-f-start").value=act.start||"";
     document.getElementById("sl-f-end").value=act.end||"";
     document.getElementById("sl-f-note").value=act.note||"";
+    const _st=document.getElementById("sl-f-stime"); if(_st) _st.value=act.startTime||"09:00";
+    const _et=document.getElementById("sl-f-etime"); if(_et) _et.value=act.endTime||"18:00";
   } else {
     slEditId=null;
     document.getElementById("slModalTitle").textContent="영업활동 추가";
