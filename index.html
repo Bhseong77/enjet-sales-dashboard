@@ -5442,12 +5442,29 @@ function renderSLTable(data) {
   const ALL_STATUS = ["신규","제안","견적","발주","진행","납품완료","세금계산서미발행","세금계산서완료","잔금","유지보수(무상)","종료"];
   body.innerHTML=sorted.map(r=>{
     const prog=STATUS_PROGRESS[r.status]||0;
-    // 프로젝트코드 표시 - 코드 있으면 클릭 가능, 없고 제안 상태면 깜빡거리는 입력 버튼
-    const pjDisplay = r.pjcode
-      ? `<span class="tm" style="font-size:14px;cursor:pointer;color:var(--p);text-decoration:underline;text-underline-offset:2px" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" title="클릭: 코드 변경/삭제">${r.pjcode}</span>`
-      : r.status==="제안"
-        ? `<button onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" style="padding:3px 10px;border-radius:5px;border:1.5px solid var(--a);background:var(--ad);color:var(--a);font-size:13px;cursor:pointer;font-weight:800;animation:pulse 1.2s infinite;white-space:nowrap;font-family:var(--s)" title="클릭: 검색 또는 신규 등록">📋 발급요청 / 입력</button>`
-        : `<button onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" style="padding:2px 8px;border-radius:5px;border:1px dashed var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer">+ 코드</button>`;
+    // 프로젝트코드 표시 - 임시코드(신규N차)는 정식 코드 아님 → 제안 상태면 깜빡!
+    const isTempCode = r.pjcode && /^신규\d*차?$/.test(r.pjcode);
+    const hasOfficialCode = r.pjcode && !isTempCode;
+    let pjDisplay;
+    if(hasOfficialCode) {
+      // 정식 코드(BM26003 등) → 클릭 가능한 표시
+      pjDisplay = `<span class="tm" style="font-size:14px;cursor:pointer;color:var(--p);text-decoration:underline;text-underline-offset:2px" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" title="클릭: 코드 변경/삭제">${r.pjcode}</span>`;
+    } else if(r.status==="제안" || r.status==="견적") {
+      // 제안/견적 상태 + 정식 코드 없음 → 깜빡!
+      // 임시코드가 있으면 작게 보여주고 깜빡 버튼은 옆에
+      pjDisplay = isTempCode
+        ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
+             <span style="font-size:13px;color:var(--t3);text-decoration:line-through" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" style="cursor:pointer" title="임시코드">${r.pjcode}</span>
+             <button onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" style="padding:2px 8px;border-radius:5px;border:1.5px solid var(--a);background:var(--ad);color:var(--a);font-size:12px;cursor:pointer;font-weight:800;animation:pulse 1.2s infinite;white-space:nowrap;font-family:var(--s)" title="클릭: 검색 또는 신규 등록">📋 발급요청 / 입력</button>
+           </div>`
+        : `<button onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" style="padding:3px 10px;border-radius:5px;border:1.5px solid var(--a);background:var(--ad);color:var(--a);font-size:13px;cursor:pointer;font-weight:800;animation:pulse 1.2s infinite;white-space:nowrap;font-family:var(--s)" title="클릭: 검색 또는 신규 등록">📋 발급요청 / 입력</button>`;
+    } else if(isTempCode) {
+      // 임시 코드 + 신규/기타 상태 → 임시 표시
+      pjDisplay = `<span style="font-size:14px;color:var(--t2);cursor:pointer;font-family:var(--m)" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" title="클릭: 코드 변경/삭제">${r.pjcode}</span>`;
+    } else {
+      // 코드 없음 + 신규/기타 → 조용한 + 버튼
+      pjDisplay = `<button onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" style="padding:2px 8px;border-radius:5px;border:1px dashed var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer">+ 코드</button>`;
+    }
     // 진행상태 인라인 드롭다운
     const statusSelect = `<select onchange="updateSLStatus('${r.id}',this.value)"
       style="padding:2px 5px;border-radius:5px;border:1px solid var(--border2);font-size:14px;font-family:var(--s);background:transparent;cursor:pointer;color:var(--t)">
