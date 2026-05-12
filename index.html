@@ -131,6 +131,155 @@
 .spr{width:30px;height:30px;border:3px solid var(--border2);border-top-color:var(--p);border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#e4e9f2;border-radius:2px}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   모바일 반응형 (768px 이하)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media(max-width:768px){
+  /* 레이아웃 */
+  .layout{flex-direction:column}
+  .sb{display:none !important} /* 사이드바 숨김 → 하단 탭바로 대체 */
+  .main{padding-bottom:68px} /* 하단 탭바 여백 */
+  .content{padding:10px 12px}
+  .topbar{padding:8px 12px}
+  .tb-t{font-size:15px}
+
+  /* KPI 카드: 2열 */
+  .kr{grid-template-columns:repeat(2,1fr);gap:7px}
+  .kpi{padding:10px 12px}
+  .kl{font-size:14px}
+  .kv{font-size:22px}
+
+  /* 카드 */
+  .card{border-radius:10px;margin-bottom:8px}
+  .ch{padding:8px 12px 6px;flex-wrap:wrap;gap:6px}
+  .ct{font-size:17px}
+  .cb{padding:8px 10px}
+
+  /* 2열 그리드 → 1열 */
+  .g2,.g2b{grid-template-columns:1fr;gap:7px}
+
+  /* 테이블 → 스크롤 */
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl th{font-size:13px;padding:0 6px 6px}
+  .tbl td{font-size:13px;padding:8px 6px}
+
+  /* 버튼 크기 */
+  .pp{font-size:13px;padding:3px 8px}
+  .bsm{font-size:14px;padding:6px 10px}
+
+  /* 헤더 버튼들 작게 */
+  .topbar button{font-size:13px;padding:5px 10px}
+
+  /* 영업활동 목록 - 모바일용 카드 뷰로 전환 */
+  #slBody td{white-space:normal}
+  .tbl .mob-hide{display:none} /* 모바일 숨김 컬럼 */
+
+  /* 모달 풀스크린 */
+  .modal-inner{width:100vw !important;max-width:100vw !important;height:100dvh !important;max-height:100dvh !important;border-radius:0 !important;overflow-y:auto}
+
+  /* 검색 입력 */
+  .si{font-size:16px !important} /* iOS 줌 방지 */
+  input,select,textarea{font-size:16px !important}
+
+  /* FAB (+추가 버튼) - 모바일 고정 */
+  .mob-fab{display:flex !important}
+
+  /* 페이지 상단 마진 줄이기 */
+  .page{padding-bottom:4px}
+}
+
+/* 하단 탭 네비게이션 (모바일 전용) */
+.mob-nav{
+  display:none;
+  position:fixed;
+  bottom:0;left:0;right:0;
+  height:60px;
+  background:#fff;
+  border-top:1px solid var(--border);
+  z-index:1000;
+  padding:0;
+  align-items:stretch;
+  box-shadow:0 -2px 12px rgba(0,0,0,0.08);
+}
+.mob-nav-item{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  cursor:pointer;
+  color:var(--t3);
+  font-size:10px;
+  font-weight:600;
+  font-family:var(--s);
+  padding:6px 2px 4px;
+  border:none;
+  background:transparent;
+  transition:color .15s;
+  position:relative;
+}
+.mob-nav-item.on{color:var(--p)}
+.mob-nav-item .mob-icon{font-size:20px;line-height:1}
+.mob-nav-item .mob-label{font-size:10px;line-height:1}
+.mob-nav-badge{
+  position:absolute;top:4px;right:calc(50% - 14px);
+  background:var(--r);color:#fff;
+  font-size:10px;font-weight:800;
+  padding:1px 4px;border-radius:6px;
+  font-family:var(--m);min-width:14px;text-align:center;
+}
+.mob-nav-more{
+  position:fixed;bottom:60px;left:0;right:0;
+  background:#fff;border-top:1px solid var(--border);
+  display:none;padding:12px;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.1);
+  z-index:999;
+}
+.mob-nav-more.open{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mob-more-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 6px;border-radius:10px;cursor:pointer;
+  font-size:12px;color:var(--t2);font-weight:600;
+  background:var(--bg3);border:1px solid transparent;
+}
+.mob-more-item.on,.mob-more-item:hover{background:var(--pd);color:var(--p);border-color:var(--p)}
+.mob-more-item .mob-icon{font-size:22px}
+
+@media(max-width:768px){
+  .mob-nav{display:flex}
+}
+
+/* FAB - 모바일 플로팅 추가 버튼 */
+.mob-fab{
+  display:none;
+  position:fixed;
+  bottom:72px;right:14px;
+  width:50px;height:50px;
+  border-radius:50%;
+  background:var(--p);
+  color:#fff;
+  font-size:26px;
+  border:none;
+  cursor:pointer;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 4px 16px rgba(26,111,212,0.4);
+  z-index:998;
+  font-family:var(--s);
+}
+
+/* 모바일 영업활동 카드 뷰 */
+@media(max-width:768px){
+  /* 영업활동 테이블 → 카드 스타일 */
+  #slBody tr{display:flex;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--border);gap:6px;position:relative}
+  #slBody td{border:none;padding:2px 0;white-space:normal}
+  #slBody td:first-child{font-size:15px;font-weight:700;width:100%;padding-bottom:4px;border-bottom:1px solid var(--border)}
+  #slBody td.mob-hide{display:none}
+  /* 파일 버튼들 가로 스크롤 */
+  .mob-file-row{display:flex;gap:4px;overflow-x:auto;padding:4px 0;width:100%;-webkit-overflow-scrolling:touch}
+}
 </style>
 </head>
 <body>
@@ -492,7 +641,7 @@
 
       <!-- 추가/수정 모달 -->
       <div id="slModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-        <div style="background:#fff;border-radius:16px;padding:28px;width:620px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative">
+        <div class="modal-inner" style="background:#fff;border-radius:16px;padding:28px;width:620px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative">
           <button onclick="closeSLModal()" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
           <div style="font-size:19px;font-weight:900;color:var(--t);margin-bottom:20px" id="slModalTitle">영업활동 추가</div>
 
@@ -844,7 +993,7 @@
 
       <!-- 고객담당자 검색 + 신규등록 모달 -->
       <div id="custMgrPickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-        <div style="background:#fff;border-radius:16px;padding:24px;width:680px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
+        <div class="modal-inner" style="background:#fff;border-radius:16px;padding:24px;width:680px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
           <button onclick="closeCustMgrPicker()"
             style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
           <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:6px">👤 고객담당자 선택</div>
@@ -929,7 +1078,7 @@
 
       <!-- 프로젝트코드 검색 + 신규등록 모달 -->
       <div id="pjCodePickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-        <div style="background:#fff;border-radius:16px;padding:24px;width:760px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
+        <div class="modal-inner" style="background:#fff;border-radius:16px;padding:24px;width:760px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
           <button onclick="closePjCodePicker()"
             style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
           <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:6px">📋 프로젝트코드 발급요청 / 입력</div>
@@ -1294,6 +1443,43 @@
     </div>
   </div>
 </div>
+
+<!-- 모바일 하단 탭 네비게이션 -->
+<nav class="mob-nav" id="mobNav">
+  <button class="mob-nav-item" id="mni-sales-log" onclick="go('sales-log',this);closeMobMore()">
+    <span class="mob-icon">📋</span>
+    <span class="mob-label">영업활동</span>
+    <span class="mob-nav-badge" id="mob-badge-sl" style="display:none"></span>
+  </button>
+  <button class="mob-nav-item" id="mni-customer" onclick="go('customer',this);closeMobMore()">
+    <span class="mob-icon">🏭</span>
+    <span class="mob-label">고객사</span>
+  </button>
+  <button class="mob-nav-item" id="mni-pipeline" onclick="go('pipeline',this);closeMobMore()">
+    <span class="mob-icon">🔄</span>
+    <span class="mob-label">파이프라인</span>
+  </button>
+  <button class="mob-nav-item" id="mni-sales" onclick="go('sales',this);closeMobMore()">
+    <span class="mob-icon">📊</span>
+    <span class="mob-label">매출</span>
+  </button>
+  <button class="mob-nav-item" id="mni-more" onclick="toggleMobMore()">
+    <span class="mob-icon">⋯</span>
+    <span class="mob-label">더보기</span>
+  </button>
+</nav>
+
+<!-- 모바일 더보기 패널 -->
+<div class="mob-nav-more" id="mobMore">
+  <div class="mob-more-item" onclick="go('sales-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>미팅 로그</div>
+  <div class="mob-more-item" onclick="go('marketing',this);closeMobMore()"><span class="mob-icon">📣</span>마케팅</div>
+  <div class="mob-more-item" onclick="go('cashflow',this);closeMobMore()"><span class="mob-icon">💰</span>현금흐름</div>
+  <div class="mob-more-item" onclick="go('mkt-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>마케팅미팅</div>
+  <div class="mob-more-item" onclick="go('exhibition',this);closeMobMore()"><span class="mob-icon">🎪</span>전시회</div>
+</div>
+
+<!-- 모바일 플로팅 추가 버튼 (영업활동 탭에서만 표시) -->
+<button class="mob-fab" id="mobFab" onclick="openSLModal(null)" title="영업활동 추가">+</button>
 
 <script>
 // ━━ 설정 ━━
@@ -4057,6 +4243,7 @@ function renderSLAll() {
   updateSLKPI(slData);
   $("badge-sl", slData.length);
   if(typeof renderRecentSLCard === "function") renderRecentSLCard();
+  if(typeof updateMobBadges === "function") updateMobBadges();
 }
 
 
@@ -6959,6 +7146,16 @@ function go(id, el) {
   if(el) el.classList.add("on");
   $("ptitle", TITLES[id]||id);
 
+  // ─ 모바일 탭바 상태 동기화 ─
+  document.querySelectorAll(".mob-nav-item").forEach(b=>b.classList.remove("on"));
+  const mobItem = document.getElementById("mni-"+id);
+  if(mobItem) mobItem.classList.add("on");
+  // FAB: 영업활동 탭에서만 표시
+  const fab = document.getElementById("mobFab");
+  if(fab) fab.style.display = (id==="sales-log") ? "flex" : "none";
+  // 더보기 패널 닫기
+  closeMobMore();
+
   if(!acct) return; // 로그인 전에는 자동로드 안함
 
   // 미팅 탭
@@ -7009,6 +7206,39 @@ function go(id, el) {
     if(exhData.length === 0) loadCustContactsFromSP();
   }
 }
+// ─── 모바일 탭바 헬퍼 ───
+function toggleMobMore() {
+  const m = document.getElementById("mobMore");
+  if(!m) return;
+  m.classList.toggle("open");
+  const mni = document.getElementById("mni-more");
+  if(mni) mni.classList.toggle("on");
+}
+function closeMobMore() {
+  const m = document.getElementById("mobMore");
+  if(m) m.classList.remove("open");
+  const mni = document.getElementById("mni-more");
+  if(mni) mni.classList.remove("on");
+}
+// 배지 갱신 (영업활동 개수)
+function updateMobBadges() {
+  const slBadge = document.getElementById("mob-badge-sl");
+  if(slBadge && typeof slData !== "undefined" && slData.length > 0) {
+    slBadge.textContent = slData.length;
+    slBadge.style.display = "";
+  } else if(slBadge) {
+    slBadge.style.display = "none";
+  }
+}
+// 더보기 패널 닫기 (배경 클릭 시)
+document.addEventListener("click", (e)=>{
+  const m = document.getElementById("mobMore");
+  const btn = document.getElementById("mni-more");
+  if(m && m.classList.contains("open") && !m.contains(e.target) && !btn?.contains(e.target)) {
+    closeMobMore();
+  }
+});
+
 function setSS(t,txt) {
   const d=document.getElementById("sd"); d.className="dot"+(t==="live"?" live":t==="spin"?" spin":""); $("ss",txt);
 }
