@@ -1371,10 +1371,7 @@ function saveOaiKey() {
 function getOaiKey() { return sessionStorage.getItem("oai_key") || document.getElementById("oaiKey").value.trim(); }
 
 // 날짜 기본값 오늘로
-document.addEventListener("DOMContentLoaded", () => {
-  const d = document.getElementById("mtg-date");
-  if(d) d.value = new Date().toISOString().split("T")[0];
-});
+// 날짜 기본값: 통합 초기화에서 처리
 
 // 파일 드롭/선택
 function handleDrop(e) {
@@ -1755,12 +1752,7 @@ function openMtg(idx) {
 }
 function closeMtgModal() { document.getElementById("mtgModal").style.display = "none"; }
 
-// 미팅 탭 진입 시 자동 로드
-const _origGo = go;
-window.go = function(id, el) {
-  _origGo(id, el);
-  if((id === "sales-meeting" || id === "mkt-meeting") && acct) loadMeetings(id);
-};
+// 미팅 탭 자동로드 → 통합 go 함수에서 처리
 
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2755,28 +2747,7 @@ async function deleteExh(id) {
   }
 }
 
-// 마케팅 탭 진입 시 자동 로드
-const _origGo2 = window.go;
-window.go = function(id, el) {
-  _origGo2(id, el);
-  if(id==="marketing" && acct) {
-    if(exhSchedule.length===0) {
-      // 최초: SP 로드 먼저 (빠름), 그 다음 Teams 동기화
-      loadExhFromSP().then(()=>{
-        setTimeout(()=>syncExhFromTeams(), 1000); // 1초 후 Teams 동기화
-      }).catch(()=>syncExhFromTeams());
-    }
-    // 3분마다 자동 동기화 (탭 떠나면 클리어)
-    if(window._exhSyncInterval) clearInterval(window._exhSyncInterval);
-    window._exhSyncInterval = setInterval(()=>{
-      if(document.getElementById("tab-marketing").classList.contains("on")) {
-        syncExhFromTeams();
-      } else {
-        clearInterval(window._exhSyncInterval);
-      }
-    }, 3*60*1000);
-  }
-};
+// 마케팅 탭 자동로드 → 통합 go 함수에서 처리
 
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -3271,27 +3242,46 @@ function deleteSLActivity(id) {
   saveSLToSP();
 }
 
-// 탭 진입 시 자동 로드
-const _origGo3=window.go;
-window.go=function(id,el){
-  _origGo3(id,el);
-  if(id==="sales-log"&&acct){
+// 영업활동 탭 자동로드 → 통합 go 함수에서 처리
+
+// ━━ 탭/유틸 ━━
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 관리","sales-log":"📋 영업활동 Log","sales-meeting":"📝 미팅 로그 (영업)",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)",exhibition:"🎪 전시회 Contact"};
+
+// ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
+function go(id, el) {
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  document.querySelectorAll(".ni").forEach(n=>n.classList.remove("on"));
+  const tabEl = document.getElementById("tab-"+id);
+  if(tabEl) tabEl.classList.add("on");
+  if(el) el.classList.add("on");
+  $("ptitle", TITLES[id]||id);
+
+  if(!acct) return; // 로그인 전에는 자동로드 안함
+
+  // 미팅 탭
+  if(id==="sales-meeting"||id==="mkt-meeting") {
+    loadMeetings(id);
+  }
+  // 마케팅 탭 (전시회 일정)
+  if(id==="marketing") {
+    if(exhSchedule.length===0) {
+      loadExhFromSP().then(()=>setTimeout(()=>syncExhFromTeams(),1000)).catch(()=>syncExhFromTeams());
+    }
+    if(window._exhSyncInterval) clearInterval(window._exhSyncInterval);
+    window._exhSyncInterval=setInterval(()=>{
+      if(document.getElementById("tab-marketing")?.classList.contains("on")) syncExhFromTeams();
+      else clearInterval(window._exhSyncInterval);
+    },3*60*1000);
+  }
+  // 영업활동 Log 탭
+  if(id==="sales-log") {
     loadSLFromSP().then(()=>syncSLFromTeams());
-    // 3분마다 자동 동기화
     if(window._slSyncInterval) clearInterval(window._slSyncInterval);
     window._slSyncInterval=setInterval(()=>{
       if(document.getElementById("tab-sales-log")?.classList.contains("on")) syncSLFromTeams();
       else clearInterval(window._slSyncInterval);
     },3*60*1000);
   }
-};
-
-// ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 관리","sales-log":"📋 영업활동 Log","sales-meeting":"📝 미팅 로그 (영업)",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)",exhibition:"🎪 전시회 Contact"};
-function go(id,el) {
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
-  document.querySelectorAll(".ni").forEach(n=>n.classList.remove("on"));
-  document.getElementById("tab-"+id).classList.add("on"); el.classList.add("on"); $("ptitle",TITLES[id]);
 }
 function setSS(t,txt) {
   const d=document.getElementById("sd"); d.className="dot"+(t==="live"?" live":t==="spin"?" spin":""); $("ss",txt);
@@ -3299,8 +3289,12 @@ function setSS(t,txt) {
 setInterval(()=>{const n=new Date();$("clock",[n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,"0")).join(":"));},1000);
 
 window.addEventListener("DOMContentLoaded",()=>{
-  document.getElementById("btnLogin").addEventListener("click",login);
-  document.getElementById("btnLogout").addEventListener("click",logout);
+  // 날짜 기본값
+  const d=document.getElementById("mtg-date");
+  if(d) d.value=new Date().toISOString().split("T")[0];
+  // 버튼 이벤트
+  document.getElementById("btnLogin")?.addEventListener("click",login);
+  document.getElementById("btnLogout")?.addEventListener("click",logout);
   initApp();
 });
 </script>
