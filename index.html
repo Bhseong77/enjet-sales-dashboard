@@ -546,6 +546,16 @@
         </div>
       </div>
 
+      <!-- 활동 이력 모달 -->
+      <div id="slHistoryModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div style="background:#fff;border-radius:16px;padding:24px;width:500px;max-width:95vw;max-height:75vh;overflow-y:auto;position:relative">
+          <button onclick="document.getElementById('slHistoryModal').style.display='none'"
+            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:14px;font-weight:900;color:var(--t);margin-bottom:16px" id="slHistoryTitle">활동 이력</div>
+          <div id="slHistoryBody"></div>
+        </div>
+      </div>
+
       <!-- 파일 모달 -->
       <div id="slFileModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
         <div style="background:#fff;border-radius:16px;padding:24px;width:680px;max-width:95vw;max-height:80vh;overflow-y:auto;position:relative">
@@ -2323,7 +2333,15 @@ async function saveExhEvent() {
     note:     document.getElementById("exh-f-note").value,
     updatedAt: new Date().toISOString(),
     lastActivity: document.getElementById("sl-f-start").value || new Date().toISOString().split("T")[0],
+    history: slEditId ? (slData.find(x=>x.id===slEditId)?.history||[]) : [],
   };
+  // 히스토리에 생성/수정 기록
+  const histAction = slEditId ? "정보 수정" : "신규 생성";
+  const histDate = act.start || new Date().toISOString().split("T")[0];
+  if(!act.history) act.history = [];
+  if(!slEditId || act.history.length===0) {
+    act.history.unshift({ date: histDate, action: histAction, type: slEditId?"edit":"create" });
+  }
 
   closeExhModal();
 
@@ -2950,7 +2968,7 @@ function renderSLAll() {
   filterSL();
   updateSLKPI(slData);
   $("badge-sl", slData.length);
-  renderRecentSLCard();
+  if(typeof renderRecentSLCard === "function") renderRecentSLCard();
 }
 
 function updateSLKPI(data) {
@@ -3023,7 +3041,12 @@ function renderSLTable(data) {
       </td>
       <td>${pjDisplay}</td>
       <td>${statusSelect}</td>
-      <td style="font-size:10px;color:var(--t3)">${(r.lastActivity||r.start||"").substring(0,10)||"-"}</td>
+      <td style="font-size:10px;color:var(--p);cursor:pointer;text-decoration:underline;text-underline-offset:2px"
+          onclick="showSLHistory('${r.id}')"
+          title="클릭하면 활동 이력 확인">
+        ${(r.lastActivity||r.start||"").substring(0,10)||"-"}
+        ${(r.history||[]).length>1?`<span style="font-size:8px;color:var(--t3);display:block">${(r.history||[]).length}건 이력</span>`:""}
+      </td>
       <td style="font-size:11px">${r.custMgr||"-"}</td>
       <td style="font-size:11px">${r.salesMgr||"-"}</td>
       ${fileCols}
