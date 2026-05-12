@@ -3070,9 +3070,7 @@ async function saveSLActivity() {
   }
 
   $("slUpd","저장 완료: "+new Date().toLocaleTimeString("ko-KR"));
-  alert("✅ 저장 완료!
-"+results.join("
-"));
+  alert("✅ 저장 완료!\n"+results.join("\n"));
 }
 
 // ─── SP 폴더 구조 생성 ───
@@ -3186,8 +3184,7 @@ async function uploadSLFile(actId, fileType) {
       // 모달 열려있으면 새로고침
       const modal=document.getElementById("slFileModal");
       if(modal&&modal.style.display==="flex") await openSLFileModal(actId,fileType);
-      else alert("✅ "+uploaded.length+"개 파일 업로드 완료!
-"+spPath);
+      else alert("✅ "+uploaded.length+"개 파일 업로드 완료!\n"+spPath);
     } catch(e){ alert("업로드 실패: "+e.message); $("slUpd","-"); }
   };
   input.click();
