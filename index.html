@@ -2308,6 +2308,7 @@ async function saveExhEvent() {
     status:   document.getElementById("exh-f-status").value,
     note:     document.getElementById("exh-f-note").value,
     updatedAt: new Date().toISOString(),
+    lastActivity: document.getElementById("sl-f-start").value || new Date().toISOString().split("T")[0],
   };
 
   closeExhModal();
@@ -2832,6 +2833,16 @@ async function syncSLFromTeams() {
       location: e.location?.displayName||"",
     }));
 
+    // Teams 이벤트 → 영업활동 목록 자동 연동
+    let updated = 0, created = 0;
+    for(const evt of slCalData) {
+      syncSLActivityFromEvent(evt, false) === "created" ? created++ : updated++;
+    }
+    if(created > 0 || updated > 0) {
+      await saveSLToSP();
+      console.log(`Teams→영업활동: 신규 ${created}건, 업데이트 ${updated}건`);
+    }
+
     renderSLCalendar();
     if(badge){badge.textContent="✅ "+new Date().toLocaleTimeString("ko-KR");badge.style.background="var(--gd)";badge.style.color="var(--g)";}
     $("slUpd","동기화: "+new Date().toLocaleTimeString("ko-KR")+" ("+slCalData.length+"건)");
@@ -2953,10 +2964,16 @@ function renderSLTable(data) {
   const body = document.getElementById("slBody");
   if(!body) return;
   if(!data.length){
-    body.innerHTML='<tr><td colspan="11"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
+    body.innerHTML='<tr><td colspan="12"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
     return;
   }
-  body.innerHTML=data.map(r=>{
+  // 최근활동일 기준 내림차순 정렬
+  const sorted = [...data].sort((a,b)=>{
+    const da = a.lastActivity||a.start||a.updatedAt||"";
+    const db = b.lastActivity||b.start||b.updatedAt||"";
+    return db.localeCompare(da);
+  });
+  body.innerHTML=sorted.map(r=>{
     const prog=STATUS_PROGRESS[r.status]||0;
     const fileCols=FILE_TYPES.map(ft=>{
       const cnt=(r.files?.[ft.key]||[]).length;
@@ -2976,6 +2993,7 @@ function renderSLTable(data) {
       </td>
       <td><span class="tm" style="font-size:10px">${r.pjcode||"<span style=\'color:var(--t3)\'>미발급</span>"}</span></td>
       <td><span class="badge ${STATUS_BADGE_SL[r.status]||"gray"}" style="font-size:9px;white-space:nowrap">${r.status}</span></td>
+      <td style="font-size:10px;color:var(--t3)">${(r.lastActivity||r.start||"").substring(0,10)||"-"}</td>
       <td style="font-size:11px">${r.custMgr||"-"}</td>
       <td style="font-size:11px">${r.salesMgr||"-"}</td>
       ${fileCols}
