@@ -361,7 +361,9 @@
       <div class="sb-sec">마케팅</div>
       <div class="ni" onclick="go('marketing',this)">📣 마케팅 활동</div>
       <div class="ni" onclick="go('mkt-meeting',this)">📝 미팅 로그 (마케팅)</div>
-      <div class="ni" onclick="go('exhibition',this)">🎪 전시회 고객연락처 <span class="nb nbg" id="badge-exh">-</span></div>
+      <div class="ni" onclick="go('exh-prep-db',this)">📁 자료 DB <span class="nb nbg" id="badge-exhprep">0</span></div>
+      <div class="ni" onclick="go('exh-result-db',this)">📊 전시회결과 DB <span class="nb nbg" id="badge-exhresult">0</span></div>
+      <div class="ni" onclick="go('exhibition',this)">🎪 전시회고객 DB <span class="nb nbg" id="badge-exh">-</span></div>
     </nav>
     <div class="sb-foot">
       <div style="font-size:14px;color:var(--t3);font-family:var(--m)" id="clock">--:--:--</div>
@@ -1763,6 +1765,7 @@
               <th>담당자</th><th>진행상태</th>
               <th style="text-align:center">📁 준비파일</th>
               <th style="text-align:center">📁 결과파일</th>
+              <th style="text-align:center">🎪 고객파일</th>
               <th></th>
             </tr></thead>
             <tbody id="exhSchedBody">
@@ -1993,6 +1996,98 @@
       </div>
 
 
+    <!-- 📁 자료 DB 탭 (전시회 준비파일 통합 관리) -->
+    <div class="page" id="tab-exh-prep-db">
+      <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
+        <div class="kpi"><div class="kl">📁 총 자료</div><div class="kv" id="prepdb-tot">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">⚠️ 미연결</div><div class="kv" id="prepdb-unlinked" style="color:var(--r)">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">🔗 연결됨</div><div class="kv" id="prepdb-linked" style="color:var(--g)">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">📅 이번 달</div><div class="kv" id="prepdb-month">0</div><div class="ks">건</div></div>
+      </div>
+      <div class="card">
+        <div class="ch">
+          <div class="ct"><div class="ci c1">📁</div>자료 DB</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input class="si" type="text" id="prepdbSrch" placeholder="🔍 전시회 / 파일명 / 담당자..." oninput="filterExhFileDB('prep')" style="width:200px">
+            <select class="ss" id="prepdbExhFilter" onchange="filterExhFileDB('prep')" style="min-width:130px">
+              <option value="">전체 전시회</option>
+            </select>
+            <select class="ss" id="prepdbLinkFilter" onchange="filterExhFileDB('prep')" style="min-width:100px">
+              <option value="">전체</option>
+              <option value="unlinked">⚠️ 미연결</option>
+              <option value="linked">🔗 연결됨</option>
+            </select>
+            <span style="font-size:13px;color:var(--t3)" id="prepdb-upd">-</span>
+            <button onclick="openExhFileDBUpload('prep')" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 파일 등록</button>
+          </div>
+        </div>
+        <div class="cb" style="padding:10px 14px">
+          <div style="overflow-x:auto">
+            <table class="tbl" style="min-width:750px">
+              <thead><tr>
+                <th style="min-width:140px">파일명</th>
+                <th style="min-width:120px">전시회</th>
+                <th style="min-width:90px">등록일</th>
+                <th style="min-width:70px">담당자</th>
+                <th style="min-width:80px">연결상태</th>
+                <th style="min-width:70px;text-align:center">파일</th>
+                <th style="min-width:50px"></th>
+              </tr></thead>
+              <tbody id="prepdbBody">
+                <tr><td colspan="7"><div class="empty"><div class="ei">📁</div><div class="et">자료 없음</div><div style="font-size:13px;color:var(--t3);margin-top:6px">전시회 목록에서 준비파일 업로드 또는 [+ 파일 등록]으로 독립 등록</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📊 전시회결과 DB 탭 -->
+    <div class="page" id="tab-exh-result-db">
+      <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
+        <div class="kpi"><div class="kl">📊 총 결과</div><div class="kv" id="resultdb-tot">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">⚠️ 미연결</div><div class="kv" id="resultdb-unlinked" style="color:var(--r)">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">🔗 연결됨</div><div class="kv" id="resultdb-linked" style="color:var(--g)">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">📅 이번 달</div><div class="kv" id="resultdb-month">0</div><div class="ks">건</div></div>
+      </div>
+      <div class="card">
+        <div class="ch">
+          <div class="ct"><div class="ci c3">📊</div>전시회결과 DB</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input class="si" type="text" id="resultdbSrch" placeholder="🔍 전시회 / 파일명 / 담당자..." oninput="filterExhFileDB('result')" style="width:200px">
+            <select class="ss" id="resultdbExhFilter" onchange="filterExhFileDB('result')" style="min-width:130px">
+              <option value="">전체 전시회</option>
+            </select>
+            <select class="ss" id="resultdbLinkFilter" onchange="filterExhFileDB('result')" style="min-width:100px">
+              <option value="">전체</option>
+              <option value="unlinked">⚠️ 미연결</option>
+              <option value="linked">🔗 연결됨</option>
+            </select>
+            <span style="font-size:13px;color:var(--t3)" id="resultdb-upd">-</span>
+            <button onclick="openExhFileDBUpload('result')" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 결과 등록</button>
+          </div>
+        </div>
+        <div class="cb" style="padding:10px 14px">
+          <div style="overflow-x:auto">
+            <table class="tbl" style="min-width:750px">
+              <thead><tr>
+                <th style="min-width:140px">파일명</th>
+                <th style="min-width:120px">전시회</th>
+                <th style="min-width:90px">등록일</th>
+                <th style="min-width:70px">담당자</th>
+                <th style="min-width:80px">연결상태</th>
+                <th style="min-width:70px;text-align:center">파일</th>
+                <th style="min-width:50px"></th>
+              </tr></thead>
+              <tbody id="resultdbBody">
+                <tr><td colspan="7"><div class="empty"><div class="ei">📊</div><div class="et">결과 없음</div><div style="font-size:13px;color:var(--t3);margin-top:6px">전시회 목록에서 결과파일 업로드 또는 [+ 결과 등록]으로 독립 등록</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="tab-mkt-meeting">
       <div class="card">
         <div class="ch"><div class="ct"><div class="ci c2">📝</div>미팅 로그 (마케팅)</div><span style="font-size:14px;color:var(--t3)" id="mkt-mtg-upd">-</span></div>
@@ -2018,7 +2113,7 @@
 
       <div class="card">
         <div class="ch">
-          <div class="ct"><div class="ci c1">🎪</div>전시회별 Contact 현황</div>
+          <div class="ct"><div class="ci c1">🎪</div>전시회고객 DB</div>
           <span style="font-size:14px;color:var(--t3)" id="exh-upd">데이터 업로드 대기</span>
         </div>
         <div class="cb" style="padding:10px 14px">
@@ -2097,7 +2192,9 @@
   <div class="mob-more-item" onclick="go('marketing',this);closeMobMore()"><span class="mob-icon">📣</span>마케팅</div>
   <div class="mob-more-item" onclick="go('cashflow',this);closeMobMore()"><span class="mob-icon">💰</span>현금흐름</div>
   <div class="mob-more-item" onclick="go('mkt-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>마케팅미팅</div>
-  <div class="mob-more-item" onclick="go('exhibition',this);closeMobMore()"><span class="mob-icon">🎪</span>전시회</div>
+  <div class="mob-more-item" onclick="go('exh-prep-db',this);closeMobMore()"><span class="mob-icon">📁</span>자료 DB</div>
+  <div class="mob-more-item" onclick="go('exh-result-db',this);closeMobMore()"><span class="mob-icon">📊</span>전시회결과 DB</div>
+  <div class="mob-more-item" onclick="go('exhibition',this);closeMobMore()"><span class="mob-icon">🎪</span>전시회고객 DB</div>
 </div>
 
 <!-- 모바일 플로팅 추가 버튼 (영업활동 탭에서만 표시) -->
@@ -4026,18 +4123,40 @@ async function syncExhFromTeams() {
     });
     console.log("Teams 캘린더 이벤트:", teamsEvts.length, "개:", teamsEvts.map(e=>e.name));
 
-    // 병합: Teams 이벤트 기준, 로컬 상세정보(담당자/국가/비고 등) 보존
-    // 로컬에만 있는 것(teamsEventId 없는 것) 유지
+    // ✅ 병합: Teams 이벤트 + 로컬 파일정보 보존 (핵심 버그 수정)
+    const teamsEvtsMerged = teamsEvts.map(te=>{
+      // 기존 로컬 저장 데이터 찾기 (파일정보, 담당자 상세 등 보존)
+      const local = exhSchedule.find(x=>x.teamsEventId===te.id || x.name===te.name);
+      return {
+        ...te,
+        // 로컬에만 있는 상세정보 보존 (파일, 담당자, 국가, 비고 등)
+        region:      local?.region     || te.region,
+        type:        local?.type       || te.type,
+        country:     local?.country    || te.country,
+        city:        local?.city       || te.city,
+        venue:       local?.venue      || te.venue,
+        manager:     local?.manager    || te.manager,
+        managerEmail:local?.managerEmail||te.managerEmail,
+        status:      local?.status     || te.status,
+        note:        local?.note       || te.note,
+        history:     local?.history    || [],
+        // ✅ 파일 정보 보존 (덮어쓰기 방지)
+        prepFiles:     local?.prepFiles     || [],
+        resultFiles:   local?.resultFiles   || [],
+        customerFiles: local?.customerFiles || [],
+      };
+    });
+
     const localOnly = exhSchedule.filter(e=>e.source==="local"&&!e.teamsEventId&&
-      !teamsEvts.some(t=>t.name===e.name));
-    exhSchedule = [...teamsEvts, ...localOnly];
+      !teamsEvtsMerged.some(t=>t.name===e.name));
+    exhSchedule = [...teamsEvtsMerged, ...localOnly];
     exhSchedule.sort((a,b)=>(a.start||"").localeCompare(b.start||""));
-    console.log("병합 결과:", exhSchedule.length, "개 (Teams:", teamsEvts.length, "/ 로컬전용:", localOnly.length, ")");
+    console.log("병합 결과:", exhSchedule.length, "개 (Teams:", teamsEvtsMerged.length, "/ 로컬전용:", localOnly.length, ")");
+    await saveExhToSP(); // 병합 결과 즉시 저장
     renderExhSched();
-    $("exhSchedUpd", "Teams 동기화: "+new Date().toLocaleTimeString("ko-KR")+" ("+teamsEvts.length+"개)");
-    document.getElementById("exhSyncBadge").textContent = "✅ Teams 연동";
-    document.getElementById("exhSyncBadge").style.background = "var(--gd)";
-    document.getElementById("exhSyncBadge").style.color = "var(--g)";
+    $("exhSchedUpd", `✅ 동기화 완료: ${new Date().toLocaleTimeString("ko-KR")} (Teams ${teamsEvtsMerged.length}개 + 로컬 ${localOnly.length}개)`);
+    const badge2 = document.getElementById("exhSyncBadge");
+    if(badge2){ badge2.textContent="✅ Teams 연동"; badge2.style.background="var(--gd)"; badge2.style.color="var(--g)"; }
   } catch(e) {
     console.error("Teams 동기화 실패:", e.message);
     $("exhSchedUpd", "Teams 동기화 실패 → 로컬 데이터 사용: "+e.message.substring(0,50));
@@ -4235,13 +4354,31 @@ function renderExhTable(data) {
               }
             </div>
           </td>
+          <td style="text-align:center">
+            <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+              ${(e.customerFiles||[]).length>0
+                ? `<button onclick="openExhFolder('${e.id}','customer')"
+                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
+                    🎪 ${(e.customerFiles||[]).length}개
+                  </button>
+                  <button onclick="uploadExhFile('${e.id}','customer')"
+                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer;white-space:nowrap">
+                    ⬆ 추가
+                  </button>`
+                : `<button onclick="uploadExhFile('${e.id}','customer')"
+                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--pu);background:var(--pud,#f5f3ff);color:var(--pu);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
+                    ⬆ 업로드
+                  </button>`
+              }
+            </div>
+          </td>
           <td>
             <span style="font-size:14px;color:var(--p);cursor:pointer" onclick="openExhModal(exhSchedule.find(x=>x.id==='${e.id}'))">✏️</span>
             <span style="font-size:14px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteExh('${e.id}')">🗑️</span>
           </td>
         </tr>`;
       }).join("")
-    : `<tr><td colspan="12"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div></td></tr>`;
+    : `<tr><td colspan="13"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div></td></tr>`;
 }
 
 // 모달 열기/닫기
@@ -4372,25 +4509,23 @@ async function createTeamsCalEvent(evt) {
   if(!gid) throw new Error("Teams 그룹 없음");
   const t = await getToken();
 
-  // 기존 이벤트가 있으면 수정, 없으면 신규
   const url = evt.teamsEventId
     ? "https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+evt.teamsEventId
     : "https://graph.microsoft.com/v1.0/groups/"+gid+"/events";
   const method = evt.teamsEventId ? "PATCH" : "POST";
 
-  // allDay 이벤트: date 형식 사용 (dateTime + timeZone 쓰면 Bad Request)
   const endDate = evt.end||evt.start;
-  // allDay end는 다음날로 설정해야 Teams가 올바르게 표시
   const endDatePlusOne = (()=>{
     const d=new Date(endDate+"T00:00:00"); d.setDate(d.getDate()+1);
     return d.toISOString().split("T")[0];
   })();
+
+  // ✅ allDay 이벤트: date 형식 + timeZone 없이 (Graph API 요구사항)
   const body = {
     subject: evt.name.startsWith("[마케팅]")||evt.name.startsWith("[전시회]")
-              ? evt.name
-              : "[마케팅] "+evt.name,
-    start: { date: evt.start },
-    end:   { date: endDatePlusOne },
+              ? evt.name : "[마케팅] "+evt.name,
+    start: { date: evt.start, timeZone: "Asia/Seoul" },
+    end:   { date: endDatePlusOne, timeZone: "Asia/Seoul" },
     isAllDay: true,
     location: { displayName: [evt.venue, evt.city, evt.country].filter(Boolean).join(", ") },
     body: {
@@ -4406,7 +4541,6 @@ async function createTeamsCalEvent(evt) {
     categories: [evt.region==="국내" ? "국내전시회" : "해외전시회"],
   };
 
-  // 담당자 이메일 있으면 참석자 추가
   if(evt.managerEmail) {
     body.attendees = [{
       emailAddress: { address: evt.managerEmail, name: evt.manager||evt.managerEmail },
@@ -4421,11 +4555,12 @@ async function createTeamsCalEvent(evt) {
   if(!r.ok) {
     const e=await r.json();
     const msg = e.error?.message||r.status;
-    if(r.status===403) throw new Error("권한 부족 (403): Azure AD에서 Calendars.ReadWrite + Group.ReadWrite.All 관리자 동의 확인");
+    if(r.status===403) throw new Error("권한 부족 (403): Calendars.ReadWrite + Group.ReadWrite.All 관리자 동의 필요");
+    if(r.status===400) throw new Error("잘못된 요청 (400): "+msg);
     throw new Error(msg);
   }
   const data = await r.json();
-  console.log("✅ Teams 캘린더 이벤트:", method==="POST"?"생성":"수정", data.id);
+  console.log("✅ Teams 캘린더:", method==="POST"?"생성":"수정", data.id);
   return data.id;
 }
 
@@ -9638,7 +9773,7 @@ async function deleteSLActivity(id) {
 // 영업활동 탭 자동로드 → 통합 go 함수에서 처리
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB","sales-log":"📋 영업활동","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)",exhibition:"🎪 전시회 고객연락처"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB","sales-log":"📋 영업활동","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
 
 // ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -10403,6 +10538,196 @@ async function deleteMtgEntry(mtgId) {
   renderMtgLog(window._mtgLogs);
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📁 자료 DB / 📊 전시회결과 DB
+// 전시회 준비/결과 파일을 독립적으로 관리
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// exhSchedule에서 파일 목록 집계 → DB 형태로 렌더
+function renderExhFileDB(type) {
+  // type: 'prep' | 'result'
+  const idPfx = type === 'prep' ? 'prepdb' : 'resultdb';
+  const fileKey = type === 'prep' ? 'prepFiles' : 'resultFiles';
+  const bodyId = type === 'prep' ? 'prepdbBody' : 'resultdbBody';
+  const exhFilterId = type === 'prep' ? 'prepdbExhFilter' : 'resultdbExhFilter';
+  const srchId = type === 'prep' ? 'prepdbSrch' : 'resultdbSrch';
+  const linkId = type === 'prep' ? 'prepdbLinkFilter' : 'resultdbLinkFilter';
+
+  // 모든 파일을 flat 배열로
+  const allFiles = [];
+  (exhSchedule||[]).forEach(exh=>{
+    (exh[fileKey]||[]).forEach(f=>{
+      allFiles.push({
+        ...f,
+        exhId: exh.id,
+        exhName: exh.name,
+        linked: true, // 전시회에 연결됨
+      });
+    });
+  });
+  // 독립 등록된 파일 (exhSchedule에 없는 것)
+  const indepKey = type === 'prep' ? '_prepDBFiles' : '_resultDBFiles';
+  (window[indepKey]||[]).forEach(f=>{
+    allFiles.push({...f, linked: !!f.exhId});
+  });
+
+  // KPI
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  $(idPfx+"-tot", allFiles.length);
+  $(idPfx+"-unlinked", allFiles.filter(x=>!x.linked).length);
+  $(idPfx+"-linked", allFiles.filter(x=>x.linked).length);
+  $(idPfx+"-month", allFiles.filter(x=>(x.uploadedAt||"").startsWith(thisMonth)).length);
+
+  // 전시회 필터 갱신
+  const exhSel = document.getElementById(exhFilterId);
+  if(exhSel) {
+    const exhs = [...new Set(allFiles.map(f=>f.exhName||"").filter(Boolean))].sort();
+    const cur = exhSel.value;
+    exhSel.innerHTML = `<option value="">전체 전시회</option>` +
+      exhs.map(n=>`<option value="${n}"${n===cur?" selected":""}>${n}</option>`).join("");
+  }
+
+  // 필터 적용
+  const q = (document.getElementById(srchId)?.value||"").toLowerCase();
+  const exhF = document.getElementById(exhFilterId)?.value||"";
+  const lkF = document.getElementById(linkId)?.value||"";
+  let filtered = allFiles.filter(f=>{
+    if(exhF && f.exhName!==exhF) return false;
+    if(lkF==="unlinked" && f.linked) return false;
+    if(lkF==="linked" && !f.linked) return false;
+    if(q) return [f.name,f.exhName,f.uploader].some(v=>String(v||"").toLowerCase().includes(q));
+    return true;
+  });
+
+  const body = document.getElementById(bodyId);
+  if(!body) return;
+  if(!filtered.length) {
+    body.innerHTML=`<tr><td colspan="7"><div class="empty">
+      <div class="ei">${type==="prep"?"📁":"📊"}</div>
+      <div class="et">${type==="prep"?"자료":"결과"} 없음</div>
+      <div style="font-size:13px;color:var(--t3);margin-top:6px">전시회 목록에서 파일 업로드 또는 [+ ${type==="prep"?"파일":"결과"} 등록]</div>
+    </div></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = filtered.map(f=>{
+    const ext = (f.name||"").split(".").pop().toLowerCase();
+    const icons = {pdf:"📄",xlsx:"📊",xls:"📊",ppt:"📑",pptx:"📑",doc:"📝",docx:"📝",jpg:"🖼️",jpeg:"🖼️",png:"🖼️",zip:"📦"};
+    const icon = icons[ext]||"📎";
+    const linkBadge = f.linked
+      ? `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#166534;font-weight:600">🔗 ${f.exhName||"연결됨"}</span>`
+      : `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#fef9c3;color:#854d0e;font-weight:600;cursor:pointer" onclick="linkExhFile('${type}','${f.id||""}')">⚠️ 미연결</span>`;
+    return `<tr>
+      <td style="font-size:13px;font-weight:600">${icon} ${f.name||"-"}</td>
+      <td style="font-size:13px;color:var(--p)">${f.exhName||`<span style="color:var(--t3);font-style:italic">미연결</span>`}</td>
+      <td style="font-size:12px;color:var(--t3)">${(f.uploadedAt||"").substring(0,10)}</td>
+      <td style="font-size:13px">${f.uploader||"-"}</td>
+      <td>${linkBadge}</td>
+      <td style="text-align:center">
+        ${f.url?`<a href="${f.url}" target="_blank" style="color:var(--p);font-size:13px;text-decoration:underline">📄 열기</a>`:"<span style='color:var(--t3);font-size:12px'>-</span>"}
+      </td>
+      <td style="white-space:nowrap">
+        ${!f.linked?`<span style="cursor:pointer;font-size:14px" onclick="linkExhFile('${type}','${f.id||""}')" title="전시회 연결">🔗</span>`:""}
+      </td>
+    </tr>`;
+  }).join("");
+
+  $(idPfx+"-upd", "갱신: "+new Date().toLocaleTimeString("ko-KR"));
+}
+
+function filterExhFileDB(type) {
+  renderExhFileDB(type);
+}
+
+// 독립 파일 등록 (전시회 미선택 가능)
+function openExhFileDBUpload(type) {
+  const input = document.createElement("input");
+  input.type = "file"; input.multiple = true;
+  input.accept = "application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.ppt,.pptx,.doc,.docx,.xlsx,.zip,.hwp,*/*";
+  input.onchange = async()=>{
+    const files = Array.from(input.files);
+    if(!files.length) return;
+    // 연결할 전시회 선택 (선택사항)
+    const exhNames = (exhSchedule||[]).map(e=>e.name);
+    const exhChoice = exhNames.length
+      ? prompt(`연결할 전시회를 선택하세요 (선택사항, 취소 시 미연결로 저장):\n\n${exhNames.map((n,i)=>`${i+1}. ${n}`).join("\n")}\n\n번호 입력:`)
+      : null;
+    const selectedExh = exhChoice ? exhSchedule[parseInt(exhChoice)-1] : null;
+    try {
+      if(selectedExh) {
+        // 선택한 전시회에 직접 업로드 (기존 uploadExhFile 로직 활용)
+        const folderName = getExhFolderName(selectedExh);
+        const subFolder = type==="prep" ? "준비" : "결과";
+        const spPath = EXH_FOLDER_BASE+"/"+folderName+"/"+subFolder;
+        await getIds();
+        const t = await getToken();
+        await ensureSPFolder(spPath);
+        const uploaded = [];
+        for(const f of files) {
+          const enc = spPath.split("/").map(encodeURIComponent).join("/");
+          const r = await fetch(
+            `https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(f.name)}:/content`,
+            {method:"PUT", headers:{"Content-Type":f.type||"application/octet-stream","Authorization":"Bearer "+t}, body:f}
+          );
+          if(r.ok) {
+            const d = await r.json();
+            uploaded.push({name:f.name, url:d.webUrl, size:f.size, uploader:acct?.name||"", uploadedAt:new Date().toISOString()});
+          }
+        }
+        const fileKey = type==="prep" ? "prepFiles" : "resultFiles";
+        if(!selectedExh[fileKey]) selectedExh[fileKey] = [];
+        selectedExh[fileKey].push(...uploaded);
+        await saveExhToSP();
+        renderExhSched();
+      } else {
+        // 독립 등록
+        await getIds();
+        const t = await getToken();
+        const folder = `📦영업/99.Dashboard(real-time)/exh-${type}-db`;
+        await ensureSPFolder(folder);
+        const indepKey = type === 'prep' ? '_prepDBFiles' : '_resultDBFiles';
+        if(!window[indepKey]) window[indepKey] = [];
+        for(const f of files) {
+          const enc = folder.split("/").map(encodeURIComponent).join("/");
+          const r = await fetch(
+            `https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(f.name)}:/content`,
+            {method:"PUT", headers:{"Content-Type":f.type||"application/octet-stream","Authorization":"Bearer "+t}, body:f}
+          );
+          if(r.ok) {
+            const d = await r.json();
+            window[indepKey].push({
+              id: "exhf_"+Date.now()+"_"+Math.random().toString(36).slice(2),
+              name: f.name, url: d.webUrl, size: f.size,
+              uploader: acct?.name||"",
+              uploadedAt: new Date().toISOString(),
+              exhId: null, exhName: null, linked: false,
+            });
+          }
+        }
+      }
+      renderExhFileDB(type);
+      alert(`✅ ${files.length}개 파일 등록 완료!${selectedExh?` (${selectedExh.name}에 연결)`:" (미연결 — DB에서 나중에 연결 가능)"}`);
+    } catch(e) { alert("업로드 실패: "+e.message); }
+  };
+  document.body.appendChild(input); input.click();
+  setTimeout(()=>input.remove(),5000);
+}
+
+// 전시회 연결
+function linkExhFile(type, fileId) {
+  const exhNames = (exhSchedule||[]).map((e,i)=>`${i+1}. ${e.name}`).join("\n");
+  const choice = prompt(`연결할 전시회 번호:\n\n${exhNames}`);
+  if(!choice) return;
+  const exh = exhSchedule[parseInt(choice)-1];
+  if(!exh) return;
+  const indepKey = type === 'prep' ? '_prepDBFiles' : '_resultDBFiles';
+  const f = (window[indepKey]||[]).find(x=>x.id===fileId);
+  if(f) { f.exhId = exh.id; f.exhName = exh.name; f.linked = true; }
+  renderExhFileDB(type);
+  alert(`✅ "${exh.name}"에 연결됐습니다.`);
+}
+
 function go(id, el) {
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
   document.querySelectorAll(".ni").forEach(n=>n.classList.remove("on"));
@@ -10445,6 +10770,12 @@ function go(id, el) {
   // 견적서 DB 탭
   if(id==="quote-db") {
     loadQuoteDB();
+  }
+  if(id==="exh-prep-db") {
+    renderExhFileDB("prep");
+  }
+  if(id==="exh-result-db") {
+    renderExhFileDB("result");
   }
   if(id==="sales-log") {
     loadSLFromSP().then(()=>syncSLFromTeams());
