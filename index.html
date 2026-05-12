@@ -422,7 +422,7 @@
       <div class="card">
         <div class="ch">
           <div class="ct"><div class="ci c1">📅</div>영업활동 일정
-            <span id="slSyncBadge" style="font-size:14px;padding:1px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Teams 연동</span>
+            <span id="slSyncBadge" style="font-size:14px;padding:1px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Outlook 그룹</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <div style="display:flex;gap:3px">
@@ -438,7 +438,7 @@
         <div class="cb" style="padding:12px 16px;min-height:120px" id="slCalendar">
           <div class="sw"><div class="spr"></div></div>
         </div>
-        <div class="cn">※ Teams 채널 일정 연동 · + 추가 시 SP 폴더 자동 생성</div>
+        <div class="cn">※ Outlook 그룹 캘린더 동기화 · 채널엔 메시지 알림 · + 추가 시 SP 폴더 자동 생성</div>
       </div>
 
       <!-- 영업활동 목록 -->
@@ -884,7 +884,7 @@
           <!-- 타임라인 뷰 -->
           <div id="exhTimeline" style="padding:12px 16px"></div>
         </div>
-        <div class="cn">※ Teams 채널 일정 앱과 실시간 연동 · 직접 추가/수정도 가능 · SharePoint 저장</div>
+        <div class="cn">※ Outlook 그룹 캘린더 실시간 연동 · 직접 추가/수정도 가능 · SharePoint 저장</div>
       </div>
 
       <!-- 전시회 상세 테이블 -->
@@ -2162,16 +2162,25 @@ let _findingGroup = false;
 // sessionStorage에 팀 ID 캐싱 → 재로그인 전까지 재탐색 불필요
 async function findTeamsGroup() {
   if(teamsGroupId) return teamsGroupId;
-  // 세션 캐시 확인
+  // 세션 캐시 확인 (단, 이전 버전의 Back Office 그룹 캐시는 무시하고 재탐색)
   const cached = sessionStorage.getItem("enjet_teams_group_id");
-  if(cached) { teamsGroupId=cached; return cached; }
+  const cachedName = sessionStorage.getItem("enjet_teams_group_name") || "";
+  if(cached && (cachedName.includes("미래성장") || cachedName.includes("FutureST") || cachedName.includes("영업"))) {
+    teamsGroupId=cached; return cached;
+  }
+  if(cached) {
+    console.log("⚠️ 캐시된 그룹이 영업부 아님 - 재탐색 시작:", cachedName);
+    sessionStorage.removeItem("enjet_teams_group_id");
+    sessionStorage.removeItem("enjet_teams_group_name");
+  }
   if(_findingGroup) return null;
   _findingGroup = true;
   try {
     const teams = await gGet("/me/joinedTeams");
     const teamList = teams.value||[];
-    // "06.Back Office" 우선 탐색
-    const priority = ["Back Office","06.Back","06 Back","영업","ENJET"];
+    // "50 영업부" 우선 탐색 (영업 대시보드 전용 그룹)
+    // "미래성장전략팀(FutureST)" = 영업 담당 부서 1순위 탐색
+    const priority = ["미래성장전략","FutureST","Future ST","미래성장","50 영업부","영업부 All","영업부","영업","ENJET"];
     const sorted = [...teamList].sort((a,b)=>{
       const aP = priority.some(p=>a.displayName.includes(p))?0:1;
       const bP = priority.some(p=>b.displayName.includes(p))?0:1;
@@ -2190,6 +2199,7 @@ async function findTeamsGroup() {
       if(found) {
         teamsGroupId=team.id;
         sessionStorage.setItem("enjet_teams_group_id", team.id);
+        sessionStorage.setItem("enjet_teams_group_name", team.displayName);
         console.log("✅ Teams 그룹:", team.displayName, team.id);
         _findingGroup=false; return team.id;
       }
@@ -2207,16 +2217,18 @@ async function findTeamsGroup() {
       if(found) {
         teamsGroupId=team.id;
         sessionStorage.setItem("enjet_teams_group_id", team.id);
+        sessionStorage.setItem("enjet_teams_group_name", team.displayName);
         console.log("✅ Teams 그룹:", team.displayName, team.id);
         _findingGroup=false; return team.id;
       }
     }
-    // 최후: Back Office 팀 직접 사용
-    const bo = sorted.find(t=>t.displayName.includes("Back Office")||t.displayName.includes("06"));
+    // 최후: 미래성장전략팀 직접 사용 (영업 담당 부서)
+    const bo = sorted.find(t=>t.displayName.includes("미래성장전략")||t.displayName.includes("FutureST")||t.displayName.includes("미래성장")||t.displayName.includes("영업"));
     if(bo) {
       teamsGroupId=bo.id;
       sessionStorage.setItem("enjet_teams_group_id", bo.id);
-      console.log("✅ Back Office 폴백:", bo.displayName);
+      sessionStorage.setItem("enjet_teams_group_name", bo.displayName);
+      console.log("✅ 미래성장전략팀 그룹 폴백:", bo.displayName);
       _findingGroup=false; return bo.id;
     }
   } catch(e) { console.error("Teams 탐색 실패:", e.message); }
@@ -3076,7 +3088,42 @@ async function deleteExh(id) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 영업활동 Log 시스템
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const SL_TEAMS_CHANNEL_ID = "19:15cae7e9dec84ce1ae4909e6f7c25634@thread.tacv2";
+let SL_TEAMS_CHANNEL_ID = "19:15cae7e9dec84ce1ae4909e6f7c25634@thread.tacv2";
+
+// 채널 ID 자동 검증/재탐색 - 현재 그룹에 해당 채널이 없으면 일반 채널로 자동 전환
+async function ensureSLChannelId() {
+  if(!teamsGroupId) await findTeamsGroup();
+  const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
+  if(!gid) return SL_TEAMS_CHANNEL_ID;
+  // 세션 캐시 확인
+  const cached = sessionStorage.getItem("enjet_sl_channel_id");
+  const cachedGid = sessionStorage.getItem("enjet_sl_channel_gid");
+  if(cached && cachedGid === gid) {
+    SL_TEAMS_CHANNEL_ID = cached;
+    return cached;
+  }
+  try {
+    const ch = await gGet("/teams/"+gid+"/channels");
+    const list = ch.value||[];
+    // 1) 기존 채널 ID가 이 팀에 존재하면 그대로 사용
+    if(list.some(c=>c.id===SL_TEAMS_CHANNEL_ID)) {
+      sessionStorage.setItem("enjet_sl_channel_id", SL_TEAMS_CHANNEL_ID);
+      sessionStorage.setItem("enjet_sl_channel_gid", gid);
+      return SL_TEAMS_CHANNEL_ID;
+    }
+    // 2) 영업 관련 채널 찾기
+    const target = list.find(c=>c.displayName&&(c.displayName.includes("영업")||c.displayName.includes("Sales")))
+                || list.find(c=>c.displayName==="일반"||c.displayName==="General"||c.membershipType==="standard");
+    if(target) {
+      SL_TEAMS_CHANNEL_ID = target.id;
+      sessionStorage.setItem("enjet_sl_channel_id", target.id);
+      sessionStorage.setItem("enjet_sl_channel_gid", gid);
+      console.log("✅ 영업 채널 자동 탐색:", target.displayName, target.id);
+      return target.id;
+    }
+  } catch(e) { console.warn("채널 자동 탐색 실패:", e.message); }
+  return SL_TEAMS_CHANNEL_ID;
+}
 const SL_SP_BASE   = "📦영업/7.영업활동";
 const SL_SP_JSON   = "📦영업/99.Dashboard(real-time)/sales-activities.json";
 const MTG_LOG_SP_PATH = "📦영업/99.Dashboard(real-time)/mtg-logs.json";
@@ -3154,10 +3201,43 @@ function openTeamsEvent(teamsEventId) {
   }
 }
 
-// Teams 채널 일정 탭 딥링크
+// 그룹 캘린더 딥링크 (Outlook 우선, Teams 채널은 폴백)
 function openTeamsChannelCalendar() {
-  const channelLink = "https://teams.microsoft.com/l/channel/19%3A15cae7e9dec84ce1ae4909e6f7c25634%40thread.tacv2/tab%3A%3Ad6fa8984-35e5-4468-9ed4-df4b7dee6da6?context=%7B%22channelId%22%3A%2219%3A15cae7e9dec84ce1ae4909e6f7c25634%40thread.tacv2%22%7D&tenantId=58b310e1-9278-47ab-8e49-792728818c9e";
+  // Outlook 웹의 그룹 캘린더로 직접 이동 (대시보드에서 만든 일정이 여기서 보임)
+  // 채널 캘린더 앱 대신 이걸 메인 보기로 사용.
+  window.open("https://outlook.office.com/calendar/view/Month", "_blank");
+}
+
+// 참고용: Teams 채널로 직접 이동하려면 이 함수 사용 (메시지 알림 확인 등)
+function openTeamsChannel() {
+  const channelLink = "https://teams.microsoft.com/l/channel/19%3A15cae7e9dec84ce1ae4909e6f7c25634%40thread.tacv2/?tenantId=58b310e1-9278-47ab-8e49-792728818c9e";
   window.open(channelLink, "_blank");
+}
+
+// 디버그: 사용 가능한 캘린더 목록 콘솔 출력 (🔍 버튼)
+async function debugShowCalendars() {
+  try {
+    if(!teamsGroupId) await findTeamsGroup();
+    const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
+    console.log("=== 캘린더 디버그 ===");
+    console.log("Teams 그룹 ID:", gid || "(없음)");
+    if(gid) {
+      try {
+        const grp = await gGet("/groups/"+gid);
+        console.log("그룹명:", grp.displayName);
+        const cal = await gGet("/groups/"+gid+"/calendar");
+        console.log("그룹 캘린더 ID:", cal.id, "/ 소유자:", cal.owner?.name);
+      } catch(e){ console.warn("그룹 정보 조회 실패:", e.message); }
+    }
+    try {
+      const myCals = await gGet("/me/calendars?$top=20");
+      console.log("내 캘린더 목록:", (myCals.value||[]).map(c=>c.name));
+    } catch(e){ console.warn("내 캘린더 조회 실패:", e.message); }
+    alert("✅ 캘린더 정보를 콘솔(F12)에 출력했습니다.");
+  } catch(e) {
+    console.error("디버그 실패:", e);
+    alert("⚠️ 캘린더 조회 실패: "+e.message);
+  }
 }
 
 async function syncSLFromTeams() {
@@ -3184,23 +3264,14 @@ async function syncSLFromTeams() {
     }
     $("sl-period",from+" ~ "+to);
 
-    // 그룹 캘린더 + 채널 캘린더 둘 다 가져오기
+    // 그룹 캘린더에서 영업 일정 가져오기
+    // (Channel Calendar 앱과의 직접 동기화는 Graph API 미지원이라 그룹 캘린더만 사용.
+    //  Outlook 그룹 캘린더에 표시되고, 채널에는 메시지 알림으로 노출됨.)
     let allEvents = [];
-
-    // 1. 그룹 캘린더
     try {
       const ge = await gGet("/groups/"+gid+"/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100&$orderby=start/dateTime");
       allEvents.push(...(ge.value||[]));
     } catch(e){ console.warn("그룹 캘린더 조회 실패:", e.message); }
-
-    // 2. 채널 캘린더 (채널 일정 탭)
-    try {
-      const chId = decodeURIComponent(SL_TEAMS_CHANNEL_ID);
-      const ce = await gGet("/teams/"+gid+"/channels/"+chId+"/calendar/calendarView?startDateTime="+from+"T00:00:00Z&endDateTime="+to+"T23:59:59Z&$top=100");
-      const chEvts = (ce.value||[]).filter(e=>!allEvents.some(g=>g.id===e.id));
-      allEvents.push(...chEvts);
-      console.log("채널 캘린더 이벤트:", chEvts.length+"개");
-    } catch(e){ console.warn("채널 캘린더 조회 실패:", e.message); }
 
     const events = {value: allEvents};
     // 필터: [영업] prefix OR 영업활동 카테고리 → 영업활동
@@ -4196,6 +4267,7 @@ async function saveSLMtgResult() {
       const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
       if(gid) {
         const t2 = await getToken();
+        const chId = await ensureSLChannelId();
         const notesUrl = "https://teams.microsoft.com/l/entity/0d820ecd-def2-4297-adad-78056cde7c78/_djb2_msteams_prefix_3255923245?context=%7B%22channelId%22%3A%2219%3A15cae7e9dec84ce1ae4909e6f7c25634%40thread.tacv2%22%7D&tenantId=58b310e1-9278-47ab-8e49-792728818c9e";
         const msgContent = `<p>📝 <b>회의록 저장됨</b></p>
           <table>
@@ -4208,7 +4280,7 @@ async function saveSLMtgResult() {
           <p><b>주요 내용 (요약)</b><br>${txt.substring(0,300).replace(/\n/g,"<br>")}${txt.length>300?"...":""}</p>
           <p>📓 <a href="${notesUrl}">Teams 노트에서 전체 보기</a></p>`;
         await fetch(
-          "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+SL_TEAMS_CHANNEL_ID+"/messages",
+          "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(chId)+"/messages",
           {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t2},
            body:JSON.stringify({body:{contentType:"html", content:msgContent}})}
         );
@@ -4396,7 +4468,8 @@ async function requestPJCode(id) {
     const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
     if(gid) {
       const t = await getToken();
-      await fetch("https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(SL_TEAMS_CHANNEL_ID)+"/messages",{
+      const chId = await ensureSLChannelId();
+      await fetch("https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(chId)+"/messages",{
         method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
         body:JSON.stringify({body:{contentType:"html",content:"<p><b>📋 프로젝트코드 발급 요청</b></p><table><tr><td><b>고객사</b></td><td>"+act.company+"</td></tr><tr><td><b>상태</b></td><td>제안 → 코드 발급 필요</td></tr><tr><td><b>영업담당</b></td><td>"+(act.salesMgr||"-")+"</td></tr></table>"}})
       });
@@ -4853,69 +4926,27 @@ async function createSLTeamsEvent(act) {
 
   let eventId = null;
 
-  // ── 채널 캘린더에 직접 등록 ──
-  // 채널 일정 탭 = /teams/{gid}/channels/{channelId}/calendar/events
-  const chId = encodeURIComponent(decodeURIComponent(SL_TEAMS_CHANNEL_ID));
-  const chCalUrl = act.teamsEventId
-    ? "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+chId+"/calendar/events/"+act.teamsEventId
-    : "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+chId+"/calendar/events";
-
-  try {
-    const cr = await fetch(chCalUrl, {
-      method: act.teamsEventId ? "PATCH" : "POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-      body: JSON.stringify(eventBody)
-    });
-    if(cr.ok) {
-      const cd = await cr.json();
-      eventId = cd.id;
-      console.log("✅ 채널 캘린더 등록 성공:", eventId);
-    } else {
-      const ce = await cr.json();
-      console.warn("채널 캘린더 실패:", ce.error?.message||cr.status);
-      // Beta API 시도
-      const betaUrl = act.teamsEventId
-        ? "https://graph.microsoft.com/beta/teams/"+gid+"/channels/"+chId+"/events/"+act.teamsEventId
-        : "https://graph.microsoft.com/beta/teams/"+gid+"/channels/"+chId+"/events";
-      const br = await fetch(betaUrl, {
-        method: act.teamsEventId ? "PATCH" : "POST",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-        body: JSON.stringify(eventBody)
-      });
-      if(br.ok) {
-        const bd = await br.json();
-        eventId = bd.id;
-        console.log("✅ Beta 채널 등록 성공:", eventId);
-      } else {
-        const be = await br.json();
-        console.warn("Beta 채널도 실패:", be.error?.message);
-      }
-    }
-  } catch(e) {
-    console.warn("채널 등록 오류:", e.message);
-  }
-
-  // ── 폴백: 그룹 캘린더 ──
-  if(!eventId) {
-    const url = act.teamsEventId
-      ? "https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+act.teamsEventId
-      : "https://graph.microsoft.com/v1.0/groups/"+gid+"/events";
-    const r = await fetch(url, {
-      method: act.teamsEventId ? "PATCH" : "POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-      body: JSON.stringify(eventBody)
-    });
-    if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status); }
-    const data = await r.json();
-    eventId = data.id;
-    console.log("⚠️ 그룹 캘린더 등록 (채널 탭 미반영):", eventId);
-  }
+  // ── 그룹 캘린더에 등록 (Outlook 그룹 캘린더와 동기화) ──
+  // Microsoft Graph는 Teams Channel Calendar 앱에 직접 등록할 수 없음.
+  // 그룹 메일박스 캘린더에 등록 → Outlook 그룹 캘린더에 자동 반영 + 채널 메시지로 알림.
+  const url = act.teamsEventId
+    ? "https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+act.teamsEventId
+    : "https://graph.microsoft.com/v1.0/groups/"+gid+"/events";
+  const r = await fetch(url, {
+    method: act.teamsEventId ? "PATCH" : "POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+    body: JSON.stringify(eventBody)
+  });
+  if(!r.ok){ const e=await r.json(); throw new Error(e.error?.message||r.status); }
+  const data = await r.json();
+  eventId = data.id;
+  console.log("✅ 그룹 캘린더 등록:", eventId, "→ Outlook 그룹 캘린더에 표시됨");
 
   // ── 채널에 알림 메시지도 전송 ──
   try {
-    const chIdDec = decodeURIComponent(SL_TEAMS_CHANNEL_ID);
+    const chId = await ensureSLChannelId();
     await fetch(
-      "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+chIdDec+"/messages",
+      "https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(chId)+"/messages",
       {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
        body:JSON.stringify({body:{contentType:"html",
          content:"<p>📅 <b>영업 일정 등록</b>: "+eventTitle+"</p><p>"+startDate+" "+sTime+" ~ "+eTime+"</p>"
@@ -4933,7 +4964,8 @@ async function postSLTeamsMsg(act, action) {
   const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
   if(!gid) return;
   const t = await getToken();
-  const r = await fetch("https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(SL_TEAMS_CHANNEL_ID)+"/messages",{
+  const chId = await ensureSLChannelId();
+  const r = await fetch("https://graph.microsoft.com/v1.0/teams/"+gid+"/channels/"+encodeURIComponent(chId)+"/messages",{
     method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
     body:JSON.stringify({body:{contentType:"html",content:`<p><b>[영업활동 ${action}]</b></p><table><tr><td><b>고객사</b></td><td>${act.company}</td></tr><tr><td><b>프로젝트</b></td><td>${act.pjcode||"신규(미발급)"}</td></tr><tr><td><b>진행상태</b></td><td>${act.status}</td></tr><tr><td><b>영업담당</b></td><td>${act.salesMgr||"-"}</td></tr></table><i>ENJET 영업 대시보드 자동 알림</i>`}})
   });
