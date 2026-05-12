@@ -630,7 +630,7 @@
 
       <!-- 파일 모달 -->
       <div id="slFileModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-        <div style="background:#fff;border-radius:16px;padding:24px;width:680px;max-width:95vw;max-height:80vh;overflow-y:auto;position:relative">
+        <div style="background:#fff;border-radius:16px;padding:24px;width:900px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative">
           <button onclick="document.getElementById('slFileModal').style.display='none'" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
           <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:16px" id="slFileModalTitle">파일 목록</div>
           <div id="slFileModalBody"></div>
@@ -2303,7 +2303,7 @@ function getExhFolderName(e) {
 }
 
 function renderExhTable(data) {
-  const STATUS_BADGE = {준비중:"info",진행중:"warn",완료:"up",취소:"dn"};
+  const STATUS_BADGE = {준비중:"info",진행중:"warn",완료:"up",취소:"dn",결과파일요청:"dn"};
   const TYPE_ICON = {부스참가:"🏪",방문참관:"👀",온라인:"💻"};
   document.getElementById("exhSchedBody").innerHTML = data.length
     ? data.map((e,i)=>{
@@ -2318,8 +2318,22 @@ function renderExhTable(data) {
           <td style="font-size:14px;color:var(--t3)">${e.end||"-"}</td>
           <td style="font-size:15px">${[e.country,e.city].filter(Boolean).join(" / ")||"-"}</td>
           <td style="font-size:14px;color:var(--t2)">${e.venue||"-"}</td>
-          <td style="font-size:15px">${e.manager||"-"}</td>
-          <td><span class="badge ${STATUS_BADGE[e.status]||"gray"}">${e.status||"-"}</span></td>
+          <td>
+            <input value="${(e.manager||"").replace(/"/g,"&quot;")}" placeholder="담당자"
+              onkeydown="if(event.key==='Enter')this.blur()"
+              style="width:100%;padding:3px 6px;border:1px solid transparent;border-radius:4px;font-size:15px;font-family:var(--s);background:transparent;cursor:text;min-width:80px"
+              onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
+              onblur="this.style.borderColor='transparent';this.style.background='transparent';updateExhField('${e.id}','manager',this.value)">
+          </td>
+          <td>${(()=>{
+            const today = new Date().toISOString().split("T")[0];
+            const overdue = e.end && e.end < today;
+            const noResult = !(e.resultFiles||[]).length;
+            const dispStatus = (overdue && noResult && e.status!=="완료" && e.status!=="취소")
+              ? "결과파일요청" : (e.status||"준비중");
+            const badgeCls = dispStatus==="결과파일요청" ? "dn" : (STATUS_BADGE[dispStatus]||"gray");
+            return `<span class="badge ${badgeCls}" style="${dispStatus==="결과파일요청"?"animation:pulse 2s infinite":""}">${dispStatus}</span>`;
+          })()}</td>
           <td style="text-align:center">
             <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
               ${prepFiles.length>0
@@ -2749,6 +2763,47 @@ async function uploadExhFile(exhId, fileType) {
 }
 
 // SP 파일 목록 실시간 조회 + 파일 관리 모달
+
+async function deleteExhFile(fileId, fileName, exhId, fileType) {
+  if(!confirm('"'+fileName+'" 파일을 삭제할까요?\nSharePoint에서도 삭제됩니다.')) return;
+  try {
+    await getIds();
+    const t = await getToken();
+    const r = await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
+      {method:"DELETE", headers:{"Authorization":"Bearer "+t}});
+    if(!r.ok && r.status!==204) throw new Error(r.status);
+    await openExhFolder(exhId, fileType);
+  } catch(e) { alert("삭제 실패: "+e.message); }
+}
+
+async function renameExhFile(fileId, oldName, exhId, fileType) {
+  const dotIdx = oldName.lastIndexOf(".");
+  const ext = dotIdx>=0 ? oldName.substring(dotIdx) : "";
+  const base = dotIdx>=0 ? oldName.substring(0,dotIdx) : oldName;
+  const newBase = prompt("새 파일명 (확장자 제외):", base);
+  if(!newBase || newBase.trim()===base) return;
+  if(/[\/:*?"<>|]/.test(newBase)) { alert("사용할 수 없는 문자가 포함됐어요"); return; }
+  try {
+    await getIds();
+    const t = await getToken();
+    const r = await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
+      {method:"PATCH", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+       body:JSON.stringify({name:newBase.trim()+ext})});
+    if(!r.ok) throw new Error(r.status);
+    await openExhFolder(exhId, fileType);
+  } catch(e) { alert("이름 변경 실패: "+e.message); }
+}
+
+
+async function updateExhField(id, field, value) {
+  const evt = exhSchedule.find(e=>e.id===id);
+  if(!evt || evt[field]===value) return;
+  evt[field] = value;
+  evt.updatedAt = new Date().toISOString();
+  await saveExhToSP();
+  renderExhSched();
+}
+
 async function openExhFolder(exhId, fileType) {
   const evt = exhSchedule.find(e=>e.id===exhId);
   if(!evt) return;
@@ -2794,30 +2849,28 @@ async function openExhFolder(exhId, fileType) {
     const spWebUrl = "https://enjetco.sharepoint.com/sites/06.BackOffice/_layouts/15/onedrive.aspx?id="+
       encodeURIComponent("/sites/06.BackOffice/Shared Documents/"+spPath);
 
-    modalBody.innerHTML = `
-      <div style="margin-bottom:10px;display:flex;justify-content:flex-end">
-        <a href="${spWebUrl}" target="_blank"
-          style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;text-decoration:none;font-weight:700">
-          🔗 SharePoint에서 열기
-        </a>
+    // DOM 방식으로 파일 목록 렌더링
+    modalBody.innerHTML = `<div style="margin-bottom:12px;text-align:right">
+        <a href="${spWebUrl}" target="_blank" style="padding:7px 14px;border-radius:8px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;text-decoration:none;font-weight:700">🔗 SP에서 열기</a>
       </div>
-      <table class="tbl">
-        <thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th style="text-align:center">열기</th></tr></thead>
-        <tbody>
-          ${files.map(f=>`<tr>
-            <td><span class="tn" style="font-size:15px">📄 ${f.name}</span></td>
-            <td style="font-size:14px;color:var(--t3)">${Math.round(f.size/1024)}KB</td>
-            <td style="font-size:14px;color:var(--t3)">${f.lastModifiedDateTime?.substring(0,10)||"-"}</td>
-            <td style="text-align:center">
-              <a href="${f.webUrl}" target="_blank"
-                style="font-size:14px;color:var(--p);cursor:pointer;text-decoration:none">열기 →</a>
-            </td>
-          </tr>`).join("")}
-        </tbody>
-      </table>
-      <div style="margin-top:10px;font-size:14px;color:var(--t3)">
-        파일 삭제는 SharePoint에서 직접 해주세요 (🔗 SharePoint에서 열기)
-      </div>`;
+      <table class="tbl"><thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th>열기</th><th>이름변경</th><th>삭제</th></tr></thead>
+      <tbody id="exhFileListBody"></tbody></table>`;
+    const tbody = document.getElementById("exhFileListBody");
+    files.forEach(f=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>📄 ${f.name}</td><td style="color:var(--t3)">${Math.round(f.size/1024)}KB</td><td style="color:var(--t3)">${(f.lastModifiedDateTime||"").substring(0,10)}</td><td><a href="${f.webUrl}" target="_blank" style="color:var(--p)">열기→</a></td><td></td><td></td>`;
+      const renBtn = document.createElement("button");
+      renBtn.textContent = "✏️ 이름변경";
+      renBtn.style.cssText = "padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;cursor:pointer;font-size:14px;font-family:var(--s)";
+      renBtn.addEventListener("click", ()=>renameExhFile(f.id, f.name, exhId, fileType));
+      tr.cells[4].appendChild(renBtn);
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "🗑️ 삭제";
+      delBtn.style.cssText = "padding:5px 10px;border-radius:6px;border:1px solid var(--rd);background:var(--rd);color:var(--r);cursor:pointer;font-size:14px;font-family:var(--s)";
+      delBtn.addEventListener("click", ()=>deleteExhFile(f.id, f.name, exhId, fileType));
+      tr.cells[5].appendChild(delBtn);
+      tbody.appendChild(tr);
+    });
 
   } catch(e) {
     console.error("파일 목록 조회 실패:", e.message);
@@ -3782,28 +3835,32 @@ async function openSLFileModal(actId, fileType) {
 
     const spWebUrl="https://enjetco.sharepoint.com/sites/06.BackOffice/_layouts/15/onedrive.aspx?id="+encodeURIComponent("/sites/06.BackOffice/Shared Documents/"+spPath);
     // 파일 목록 렌더링 (삭제/이름변경 포함)
-    body.innerHTML=!files.length
-      ?'<div class="empty"><div class="ei">📂</div><div class="et">파일 없음</div></div>'
-      :`<div style="margin-bottom:10px;text-align:right"><a href="${spWebUrl}" target="_blank" style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;text-decoration:none;font-weight:700">🔗 SP에서 열기</a></div>
-      <table class="tbl"><thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th style="text-align:center">열기</th><th style="text-align:center">이름변경</th><th style="text-align:center">삭제</th></tr></thead>
-      <tbody>${files.map(f=>`<tr>
-        <td><span class="tn" style="font-size:15px">📄 ${f.name}</span></td>
-        <td style="font-size:14px;color:var(--t3)">${Math.round(f.size/1024)}KB</td>
-        <td style="font-size:14px;color:var(--t3)">${(f.lastModifiedDateTime||"").substring(0,10)}</td>
-        <td style="text-align:center"><a href="${f.webUrl}" target="_blank" style="font-size:14px;color:var(--p)">열기→</a></td>
-        <td style="text-align:center">
-          <button onclick="renameSLFileItem('${encodeURIComponent(f.id)}','${f.name.replace(/'/g,"\'").replace(/"/g,"&quot;")}','${encodeURIComponent(actId)}','${fileType}')"
-            style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">
-            ✏️ 이름변경
-          </button>
-        </td>
-        <td style="text-align:center">
-          <button onclick="deleteSLFileItem('${encodeURIComponent(f.id)}','${f.name.replace(/'/g,"\'").replace(/"/g,"&quot;")}','${encodeURIComponent(actId)}','${fileType}')"
-            style="padding:2px 8px;border-radius:5px;border:1px solid var(--rd);background:var(--rd);color:var(--r);font-size:14px;cursor:pointer;font-family:var(--s)">
-            🗑️ 삭제
-          </button>
-        </td>
-      </tr>`).join("")}</tbody></table>`;
+    window._slFileCtx = {actId, fileType, files};
+    if(!files.length) {
+      body.innerHTML = '<div class="empty"><div class="ei">📂</div><div class="et">파일 없음</div></div>';
+    } else {
+      body.innerHTML = `<div style="margin-bottom:12px;text-align:right"><a href="${spWebUrl}" target="_blank" style="padding:7px 14px;border-radius:8px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;text-decoration:none;font-weight:700">🔗 SP에서 열기</a></div>
+        <table class="tbl"><thead><tr><th>파일명</th><th>크기</th><th>수정일</th><th>열기</th><th>이름변경</th><th>삭제</th></tr></thead>
+        <tbody id="slFileListBody"></tbody></table>`;
+      const tbody = document.getElementById("slFileListBody");
+      files.forEach((f,fi)=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>📄 ${f.name}</td><td style="color:var(--t3)">${Math.round(f.size/1024)}KB</td><td style="color:var(--t3)">${(f.lastModifiedDateTime||"").substring(0,10)}</td><td><a href="${f.webUrl}" target="_blank" style="color:var(--p)">열기→</a></td><td></td><td></td>`;
+        // 이름변경 버튼
+        const renBtn = document.createElement("button");
+        renBtn.textContent = "✏️ 이름변경";
+        renBtn.style.cssText = "padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;cursor:pointer;font-family:var(--s);font-size:14px";
+        renBtn.addEventListener("click", ()=>_renameSLFile(f.id, f.name, actId, fileType));
+        tr.cells[4].appendChild(renBtn);
+        // 삭제 버튼
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "🗑️ 삭제";
+        delBtn.style.cssText = "padding:5px 10px;border-radius:6px;border:1px solid var(--rd);background:var(--rd);color:var(--r);cursor:pointer;font-family:var(--s);font-size:14px";
+        delBtn.addEventListener("click", ()=>_deleteSLFile(f.id, f.name, actId, fileType));
+        tr.cells[5].appendChild(delBtn);
+        tbody.appendChild(tr);
+      });
+    }
   } catch(e){
     if(!act.files) act.files={}; act.files[fileType]=[];
     await saveSLToSP(); renderSLAll();
