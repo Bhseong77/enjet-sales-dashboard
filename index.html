@@ -464,21 +464,24 @@
           </div>
         </div>
         <div class="cb" style="padding:10px 14px">
-          <div class="tw"><table class="tbl">
+          <div style="overflow-x:auto"><table class="tbl" style="min-width:900px">
             <thead><tr>
-              <th>고객사</th><th>프로젝트코드</th><th>진행상태</th>
-              <th>최근활동일</th>
-              <th>고객담당자</th><th>영업담당자</th>
-              <th style="text-align:center">📝 회의록</th>
-              <th style="text-align:center">💡 제안자료</th>
-              <th style="text-align:center">📄 견적서</th>
-              <th style="text-align:center">📦 발주서</th>
-              <th style="text-align:center">📑 계약서</th>
-              <th style="text-align:center">🧾 세금계산서</th>
-              <th></th>
+              <th style="min-width:130px">고객사</th>
+              <th style="min-width:110px">진행상태</th>
+              <th style="min-width:90px">최근활동일</th>
+              <th style="min-width:110px">프로젝트코드</th>
+              <th style="min-width:110px">고객담당자</th>
+              <th style="min-width:110px">영업담당자</th>
+              <th style="text-align:center;min-width:60px">📝</th>
+              <th style="text-align:center;min-width:60px">📁 자료</th>
+              <th style="text-align:center;min-width:60px">📄</th>
+              <th style="text-align:center;min-width:60px">📦</th>
+              <th style="text-align:center;min-width:60px">📑</th>
+              <th style="text-align:center;min-width:60px">🧾</th>
+              <th style="min-width:50px"></th>
             </tr></thead>
             <tbody id="slBody">
-              <tr><td colspan="12"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
+              <tr><td colspan="13"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
             </tbody>
           </table></div>
           <div style="font-size:10px;color:var(--t3);margin-top:6px;text-align:right" id="slCnt"></div>
@@ -542,6 +545,75 @@
           <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
             <button onclick="closeSLModal()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:12px;cursor:pointer;font-family:var(--s)">취소</button>
             <button onclick="saveSLActivity()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장 + 폴더생성</button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- 자료 서브폴더 선택 모달 -->
+      <div id="proposalPickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div style="background:#fff;border-radius:16px;padding:24px;width:420px;max-width:95vw;position:relative">
+          <button onclick="document.getElementById('proposalPickerModal').style.display='none'"
+            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:14px;font-weight:900;color:var(--t);margin-bottom:6px">📁 자료 폴더 선택</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:16px" id="proposalPickerCompany">고객사</div>
+          <!-- 기본 폴더 목록 -->
+          <div id="proposalSubList" style="display:flex;flex-direction:column;gap:7px;margin-bottom:16px"></div>
+          <!-- 신규 폴더 생성 -->
+          <div style="border-top:1px solid var(--border);padding-top:14px">
+            <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:6px">+ 신규 폴더 생성</div>
+            <div style="display:flex;gap:6px">
+              <input class="si" type="text" id="proposalNewFolder" placeholder="폴더명 입력..." style="flex:1">
+              <button onclick="createProposalSubFolder()"
+                style="padding:6px 14px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">생성</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 자료 서브폴더 선택 모달 -->
+      <div id="slSubfolderModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div style="background:#fff;border-radius:16px;padding:24px;width:400px;max-width:95vw;position:relative">
+          <button onclick="document.getElementById('slSubfolderModal').style.display='none'"
+            style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:14px;font-weight:900;color:var(--t);margin-bottom:6px">📂 자료 폴더 선택</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:16px" id="slSubfolderActName"></div>
+
+          <!-- 기본 폴더 목록 -->
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="slSubfolderList">
+            <button onclick="selectSLSubfolder('제안서')"
+              style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:12px;font-family:var(--s);display:flex;align-items:center;gap:8px;transition:all .15s"
+              onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
+              onmouseout="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'">
+              📄 제안서
+            </button>
+            <button onclick="selectSLSubfolder('교육')"
+              style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:12px;font-family:var(--s);display:flex;align-items:center;gap:8px;transition:all .15s"
+              onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
+              onmouseout="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'">
+              📚 교육
+            </button>
+            <button onclick="selectSLSubfolder('샘플test보고서')"
+              style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:12px;font-family:var(--s);display:flex;align-items:center;gap:8px;transition:all .15s"
+              onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
+              onmouseout="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'">
+              🧪 샘플test보고서
+            </button>
+          </div>
+
+          <!-- SP에서 기존 폴더 동적 로드 -->
+          <div id="slSubfolderExtra" style="margin-bottom:16px"></div>
+
+          <!-- 새 폴더 만들기 -->
+          <div style="border-top:1px solid var(--border);padding-top:14px">
+            <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">+ 새 폴더 만들기</div>
+            <div style="display:flex;gap:8px">
+              <input class="si" type="text" id="slNewSubfolder" placeholder="폴더명 입력..."
+                style="flex:1" onkeydown="if(event.key==='Enter') createAndSelectSLSubfolder()">
+              <button onclick="createAndSelectSLSubfolder()"
+                style="padding:6px 14px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:11px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                생성
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -2791,7 +2863,7 @@ const SL_SP_BASE   = "📦영업/7.영업활동";
 const SL_SP_JSON   = "📦영업/99.Dashboard(real-time)/sales-activities.json";
 const SL_ADMIN_EMAIL = "baekhoon@enjet.co.kr";
 const SL_ADMIN_NAME  = "성백훈";
-const SL_SUB_FOLDERS = ["회의록","제안자료","견적서","발주서","계약서","세금계산서"];
+const SL_SUB_FOLDERS = ["회의록","자료","견적서","발주서","계약서","세금계산서"];
 const STATUS_BADGE_SL = {
   "신규":"gray","제안":"info","견적":"info","발주":"warn","진행":"info",
   "납품완료":"up","세금계산서미발행":"warn","세금계산서완료":"up",
@@ -2877,9 +2949,18 @@ async function syncSLFromTeams() {
       console.log(`Teams→영업활동: 신규 ${created}건, 업데이트 ${updated}건`);
     }
 
+    // Teams 이벤트 → 영업활동 목록 자동 연동
+    let slCntC=0, slCntU=0;
+    for(const evt of slCalData) {
+      const rv = syncSLActivityFromEvent(evt, false);
+      if(rv==="created") slCntC++; else if(rv==="updated") slCntU++;
+    }
+    if(slCntC>0||slCntU>0) { await saveSLToSP(); }
+    renderSLAll();
     renderSLCalendar();
-    if(badge){badge.textContent="✅ "+new Date().toLocaleTimeString("ko-KR");badge.style.background="var(--gd)";badge.style.color="var(--g)";}
-    $("slUpd","동기화: "+new Date().toLocaleTimeString("ko-KR")+" ("+slCalData.length+"건)");
+    const syncTime = new Date().toLocaleTimeString("ko-KR");
+    if(badge){badge.textContent="✅ "+syncTime;badge.style.background="var(--gd)";badge.style.color="var(--g)";}
+    $("slUpd","동기화: "+syncTime+" | "+slCalData.length+"건 신규:"+slCntC+" 업데이트:"+slCntU);
   } catch(e) {
     console.error("영업활동 Teams 동기화 실패:", e.message);
     if(badge){badge.textContent="동기화 실패";badge.style.background="var(--rd)";badge.style.color="var(--r)";}
@@ -2973,6 +3054,133 @@ function renderSLAll() {
 
 
 // ─── 진행상태 인라인 업데이트 ───
+
+// ─── 필드 인라인 업데이트 ───
+
+// ─── 자료 서브폴더 선택 ───
+let _slSubActId = null;
+
+async function openSLSubfolderModal(actId) {
+  _slSubActId = actId;
+  const act = slData.find(x=>x.id===actId);
+  if(!act) return;
+  document.getElementById("slSubfolderActName").textContent = act.company + (act.pjcode ? " · "+act.pjcode : "");
+  document.getElementById("slNewSubfolder").value = "";
+  document.getElementById("slSubfolderModal").style.display = "flex";
+
+  // SP에서 기존 폴더 목록 로드
+  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+  const pjFolder = act.pjcode || "신규";
+  const basePath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/자료";
+  const extraEl = document.getElementById("slSubfolderExtra");
+  extraEl.innerHTML = "";
+
+  try {
+    await getIds();
+    const enc = basePath.split("/").map(encodeURIComponent).join("/");
+    const fd = await gGet("/drives/"+spDrive+"/root:/"+enc+":/children");
+    const existingFolders = (fd.value||[]).filter(f=>f.folder);
+    const DEFAULT = ["제안서","교육","샘플test보고서"];
+    const extras = existingFolders.filter(f=>!DEFAULT.includes(f.name));
+    if(extras.length > 0) {
+      extraEl.innerHTML = `<div style="font-size:11px;color:var(--t3);margin-bottom:6px">기존 폴더</div>`+
+        extras.map(f=>`<button onclick="selectSLSubfolder('${f.name}')"
+          style="padding:8px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);text-align:left;cursor:pointer;font-size:12px;font-family:var(--s);display:flex;align-items:center;gap:8px;width:100%;margin-bottom:6px"
+          onmouseover="this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
+          onmouseout="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'">
+          📁 ${f.name}
+        </button>`).join("");
+    }
+  } catch(e) {
+    // 폴더 없으면 기본 폴더만 표시 (정상)
+  }
+}
+
+async function selectSLSubfolder(folderName) {
+  document.getElementById("slSubfolderModal").style.display = "none";
+  if(!_slSubActId) return;
+  await uploadSLFileToSubfolder(_slSubActId, folderName);
+}
+
+async function createAndSelectSLSubfolder() {
+  const name = document.getElementById("slNewSubfolder").value.trim();
+  if(!name) { alert("폴더명을 입력해주세요."); return; }
+  const invalid = /[\/:*?"<>|]/.test(name);
+  if(invalid) { alert("폴더명에 사용할 수 없는 문자가 포함됐어요 (\/:*?\"<>|)"); return; }
+  document.getElementById("slSubfolderModal").style.display = "none";
+  if(!_slSubActId) return;
+  await uploadSLFileToSubfolder(_slSubActId, name);
+}
+
+async function uploadSLFileToSubfolder(actId, subfolderName) {
+  const act = slData.find(x=>x.id===actId);
+  if(!act) return;
+
+  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
+  const pjFolder = act.pjcode || "신규";
+  const spPath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/자료/"+subfolderName;
+
+  const input = document.createElement("input");
+  input.type = "file"; input.multiple = true;
+  input.onchange = async()=>{
+    const files = Array.from(input.files);
+    if(!files.length) return;
+    $("slUpd","업로드 중: "+subfolderName+"...");
+    try {
+      await ensureSPFolder(spPath);
+      const t = await getToken();
+      const uploaded = [];
+      for(const file of files) {
+        const enc = spPath.split("/").map(encodeURIComponent).join("/");
+        const r = await fetch(
+          "https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+"/"+encodeURIComponent(file.name)+":/content",
+          { method:"PUT", headers:{"Authorization":"Bearer "+t,"Content-Type":file.type||"application/octet-stream"}, body:file }
+        );
+        if(r.ok) {
+          const d = await r.json();
+          uploaded.push({name:file.name, url:d.webUrl, size:file.size, subfolder:subfolderName, uploadedAt:new Date().toISOString()});
+        }
+      }
+      // proposal 파일 목록에 추가 (서브폴더 정보 포함)
+      if(!act.files) act.files = {};
+      if(!act.files.proposal) act.files.proposal = [];
+      act.files.proposal.push(...uploaded);
+      act.updatedAt = new Date().toISOString();
+      if(!act.history) act.history = [];
+      act.history.unshift({
+        date: new Date().toISOString().split("T")[0],
+        action: "📁 자료/"+subfolderName+"에 "+uploaded.length+"개 파일 업로드",
+        type: "file"
+      });
+      await saveSLToSP();
+      renderSLAll();
+      $("slUpd","✅ "+uploaded.length+"개 업로드 완료 → 자료/"+subfolderName);
+      alert("✅ "+uploaded.length+"개 파일 업로드 완료!\n폴더: "+spPath);
+    } catch(e) {
+      alert("업로드 실패: "+e.message);
+      $("slUpd","-");
+    }
+  };
+  input.click();
+}
+
+async function updateSLField(id, field, value) {
+  const act = slData.find(x=>x.id===id);
+  if(!act || act[field]===value) return;
+  act[field] = value;
+  act.updatedAt = new Date().toISOString();
+  act.lastActivity = new Date().toISOString().split("T")[0];
+  if(!act.history) act.history=[];
+  const labels = {custMgr:"고객담당자", salesMgr:"영업담당자", pjcode:"프로젝트코드"};
+  act.history.unshift({
+    date: new Date().toISOString().split("T")[0],
+    action: (labels[field]||field)+" 변경: "+value,
+    type: "edit"
+  });
+  await saveSLToSP();
+  renderRecentSLCard(); // 최근 카드만 갱신 (테이블 리렌더 X - 포커스 깨짐 방지)
+}
+
 async function updateSLStatus(id, newStatus) {
   const act = slData.find(x=>x.id===id);
   if(!act) return;
@@ -3167,16 +3375,17 @@ function filterSL() {
 function renderSLTable(data) {
   const FILE_TYPES = [
     {key:"minutes",  label:"📝",  col:"회의록"},
-    {key:"proposal", label:"💡",  col:"제안자료"},
+    {key:"proposal", label:"📁",  col:"자료"},
     {key:"estimate", label:"📄",  col:"견적서"},
     {key:"order",    label:"📦",  col:"발주서"},
     {key:"contract", label:"📑",  col:"계약서"},
     {key:"tax",      label:"🧾",  col:"세금계산서"},
   ];
+  const PROPOSAL_DEFAULT_SUBS = ["제안서","교육","샘플test보고서"];
   const body = document.getElementById("slBody");
   if(!body) return;
   if(!data.length){
-    body.innerHTML='<tr><td colspan="12"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
+    body.innerHTML='<tr><td colspan="13"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
     return;
   }
   // 최근활동일 기준 내림차순 정렬
@@ -3223,8 +3432,21 @@ function renderSLTable(data) {
         ${(r.lastActivity||r.start||"").substring(0,10)||"-"}
         ${(r.history||[]).length>1?`<span style="font-size:8px;color:var(--t3);display:block">${(r.history||[]).length}건 이력</span>`:""}
       </td>
-      <td style="font-size:11px">${r.custMgr||"-"}</td>
-      <td style="font-size:11px">${r.salesMgr||"-"}</td>
+      <td>
+        <input value="${(r.custMgr||"").replace(/"/g,"&quot;")}" placeholder="-"
+          onblur="updateSLField('${r.id}','custMgr',this.value)"
+          onkeydown="if(event.key==='Enter')this.blur()"
+          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:11px;font-family:var(--s);background:transparent;cursor:text"
+          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent';updateSLField('${r.id}','custMgr',this.value)">
+      </td>
+      <td>
+        <input value="${(r.salesMgr||"").replace(/"/g,"&quot;")}" placeholder="-"
+          onkeydown="if(event.key==='Enter')this.blur()"
+          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:11px;font-family:var(--s);background:transparent;cursor:text"
+          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent';updateSLField('${r.id}','salesMgr',this.value)">
+      </td>
       ${fileCols}
       <td style="white-space:nowrap">
         <span style="font-size:10px;color:var(--p);cursor:pointer" onclick="openSLModal(slData.find(x=>x.id==='${r.id}'))">✏️</span>
@@ -3399,13 +3621,21 @@ async function postSLTeamsMsg(act, action) {
 }
 
 // ─── 파일 업로드 ───
-async function uploadSLFile(actId, fileType) {
+async function uploadSLFile(actId, fileType, subFolderOverride) {
   const act = slData.find(x=>x.id===actId);
   if(!act) return;
-  const FOLDER_MAP = {minutes:"회의록",proposal:"제안자료",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
-  const LABEL_MAP  = {minutes:"회의록",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
-  const subFolder = FOLDER_MAP[fileType];
-  const coFolder  = act.company.replace(/[\\/:*?"<>|]/g,"").trim();
+  const FOLDER_MAP = {minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
+
+  // 자료(proposal)이면 서브폴더 선택 팝업
+  if(fileType==="proposal" && !subFolderOverride) {
+    openSLSubfolderModal(actId);
+    return;
+  }
+  const subFolder = fileType==="proposal"
+    ? "자료/"+subFolderOverride
+    : FOLDER_MAP[fileType];
+
+  const coFolder  = act.company.replace(/[\/:*?"<>|]/g,"").trim();
   const pjFolder  = act.pjcode||"신규";
   const spPath    = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/"+subFolder;
 
@@ -3430,22 +3660,20 @@ async function uploadSLFile(actId, fileType) {
       act.files[fileType].push(...uploaded);
       await saveSLToSP();
       renderSLAll();
-      $("slUpd","✅ "+uploaded.length+"개 업로드 완료");
-      // 모달 열려있으면 새로고침
-      const modal=document.getElementById("slFileModal");
-      if(modal&&modal.style.display==="flex") await openSLFileModal(actId,fileType);
-      else alert("✅ "+uploaded.length+"개 파일 업로드 완료!\n"+spPath);
+      $("slUpd","✅ "+uploaded.length+"개 업로드 완료 ("+subFolder+")");
+      alert("✅ "+uploaded.length+"개 파일 업로드 완료!\n폴더: "+spPath);
     } catch(e){ alert("업로드 실패: "+e.message); $("slUpd","-"); }
   };
   input.click();
 }
 
-// 파일 목록 모달
 async function openSLFileModal(actId, fileType) {
+  // 자료(proposal)는 서브폴더 선택 팝업으로
+  if(fileType==="proposal") { openSLSubfolderModal(actId); return; }
   const act=slData.find(x=>x.id===actId);
   if(!act) return;
-  const FOLDER_MAP={minutes:"회의록",proposal:"제안자료",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
-  const LABEL_MAP ={minutes:"📝 회의록",proposal:"💡 제안자료",estimate:"📄 견적서",order:"📦 발주서",contract:"📑 계약서",tax:"🧾 세금계산서"};
+  const FOLDER_MAP={minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
+  const LABEL_MAP ={minutes:"📝 회의록",proposal:"📁 자료",estimate:"📄 견적서",order:"📦 발주서",contract:"📑 계약서",tax:"🧾 세금계산서"};
   const modal=document.getElementById("slFileModal");
   const title=document.getElementById("slFileModalTitle");
   const body=document.getElementById("slFileModalBody");
@@ -3456,7 +3684,9 @@ async function openSLFileModal(actId, fileType) {
 
   const coFolder=act.company.replace(/[\\/:*?"<>|]/g,"").trim();
   const pjFolder=act.pjcode||"신규";
-  const spPath=SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/"+FOLDER_MAP[fileType];
+  // 자료 타입은 서브폴더 포함 경로
+  const folderBase = FOLDER_MAP[fileType];
+  const spPath=SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/"+folderBase;
   try {
     await getIds();
     const enc=spPath.split("/").map(encodeURIComponent).join("/");
