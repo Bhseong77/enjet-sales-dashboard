@@ -3261,6 +3261,43 @@ async function uploadSLFileToSubfolder(actId, subfolderName) {
   input.click();
 }
 
+
+// ─── SP 파일 삭제/이름변경 (영업활동) ───
+async function _deleteSLFile(fileId, fileName, actId, fileType) {
+  if(!confirm('"'+fileName+'" 파일을 삭제할까요?\nSharePoint에서도 삭제됩니다.')) return;
+  try {
+    await getIds();
+    const t = await getToken();
+    const r = await fetch(
+      "https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
+      {method:"DELETE", headers:{"Authorization":"Bearer "+t}}
+    );
+    if(!r.ok && r.status!==204) { const e=await r.json(); throw new Error(e.error?.message||r.status); }
+    await openSLFileModal(actId, fileType);
+  } catch(e) { alert("삭제 실패: "+e.message); }
+}
+
+async function _renameSLFile(fileId, oldName, actId, fileType) {
+  const dotIdx = oldName.lastIndexOf(".");
+  const ext  = dotIdx>=0 ? oldName.substring(dotIdx) : "";
+  const base = dotIdx>=0 ? oldName.substring(0,dotIdx) : oldName;
+  const newBase = prompt("새 파일명 (확장자 제외):", base);
+  if(!newBase || newBase.trim()===base) return;
+  if(/[\/:*?"<>|]/.test(newBase)) { alert("사용할 수 없는 문자가 포함됐어요 (\\/:*?\"<>|)"); return; }
+  try {
+    await getIds();
+    const t = await getToken();
+    const r = await fetch(
+      "https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
+      {method:"PATCH",
+       headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+       body:JSON.stringify({name:newBase.trim()+ext})}
+    );
+    if(!r.ok) { const e=await r.json(); throw new Error(e.error?.message||r.status); }
+    await openSLFileModal(actId, fileType);
+  } catch(e) { alert("이름 변경 실패: "+e.message); }
+}
+
 async function updateSLField(id, field, value) {
   const act = slData.find(x=>x.id===id);
   if(!act || act[field]===value) return;
