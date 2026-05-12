@@ -932,7 +932,7 @@
         <div style="background:#fff;border-radius:16px;padding:24px;width:760px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
           <button onclick="closePjCodePicker()"
             style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
-          <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:6px">📋 프로젝트코드 선택</div>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin-bottom:6px">📋 프로젝트코드 발급요청 / 입력</div>
           <div style="font-size:14px;color:var(--t3);margin-bottom:10px" id="pjCodePickerSubtitle">활동 정보</div>
 
           <!-- 현재 코드 + 삭제 (있을 때만 표시) -->
@@ -947,8 +947,9 @@
 
           <!-- 검색 영역 -->
           <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:14px">
+            <div style="font-size:15px;font-weight:800;color:var(--p);margin-bottom:8px">🔍 ① ERP에서 발급된 코드 검색</div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-              <input id="pjCodeSearchInput" type="text" placeholder="🔍 코드·프로젝트명·거래처로 검색"
+              <input id="pjCodeSearchInput" type="text" placeholder="코드·프로젝트명·거래처로 검색"
                 oninput="renderPjCodeSearchResults()"
                 onkeydown="if(event.key==='Enter')renderPjCodeSearchResults()"
                 style="flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:8px;font-size:15px;font-family:var(--s)">
@@ -962,9 +963,9 @@
           </div>
 
           <!-- 신규 등록 (제안 단계용 임시 코드 또는 신규N차) -->
-          <div id="pjCodeNewSection" style="border:2px dashed var(--border2);border-radius:10px;padding:16px;background:#fdfdfd">
+          <div id="pjCodeNewSection" style="border:2px dashed var(--g);border-radius:10px;padding:16px;background:#f0fdf4">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div style="font-size:15px;font-weight:800;color:var(--g)">➕ 신규 코드 직접 입력</div>
+              <div style="font-size:15px;font-weight:800;color:var(--g)">➕ ② ERP 코드 아직 없음 - 직접 입력 (신규N차)</div>
               <button type="button" onclick="togglePjCodeNewSection()"
                 style="padding:3px 10px;border-radius:6px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)" id="pjCodeNewToggle">접기 ▲</button>
             </div>
@@ -1653,6 +1654,16 @@ async function loadProject() {
     if(ms){while(ms.options.length>1)ms.remove(1); mg.forEach(m=>{const o=new Option(m,m);ms.add(o);});}
     $("pl-upd","동기화: "+new Date().toLocaleTimeString("ko-KR")); $("pl-lbl",name);
     console.log("✅ 프로젝트:", PD.length, "건 ←", name);
+    // 대시보드 자체등록 프로젝트도 머지 (ERP에 아직 없는 신규N차 등)
+    if(dashProjects.length === 0) {
+      loadDashProjectsFromSP().then(()=>{
+        // 머지 후 렌더 재실행
+        try { renderPL(PD.filter(r=>r&&["확정","작성"].includes(r.진행구분))); } catch(_){}
+      });
+    } else {
+      mergeDashProjectsIntoPD();
+      try { renderPL(PD.filter(r=>r&&["확정","작성"].includes(r.진행구분))); } catch(_){}
+    }
   } catch(e) {
     console.error("❌ 프로젝트 실패:", e.message, e.stack);
     const tb = document.getElementById("plTb");
@@ -2327,6 +2338,10 @@ let exhFiltered = [];
 // SharePoint에 저장되는 컨택 파일 경로
 const CUST_CONTACT_SP_FILE = "📦영업/99.Dashboard(real-time)/customer-contacts.json";
 
+// 대시보드에서 자체 등록한 프로젝트 (ERP에 아직 없는 신규N차 등) 저장 파일
+const DASH_PROJECTS_SP_FILE = "📦영업/99.Dashboard(real-time)/dashboard-projects.json";
+let dashProjects = []; // 메모리 캐시 (대시보드 자체등록 프로젝트들)
+
 // 컨택을 SharePoint에 저장
 async function saveCustContactsToSP() {
   try {
@@ -2362,6 +2377,56 @@ async function loadCustContactsFromSP() {
     // 파일이 없으면 무시 (처음 사용 시)
     console.log("ℹ️ 고객사 컨택 파일 없음 (처음 사용 또는 엑셀 업로드 전)");
   }
+}
+
+// ━━ 대시보드 자체등록 프로젝트 SP 저장 ━━
+async function saveDashProjectsToSP() {
+  try {
+    await getIds();
+    const t = await getToken();
+    const enc = DASH_PROJECTS_SP_FILE.split("/").map(encodeURIComponent).join("/");
+    await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+":/content",{
+      method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+      body: JSON.stringify(dashProjects,null,2)
+    });
+    console.log("✅ 대시보드 프로젝트 SP 저장:", dashProjects.length+"건");
+    return true;
+  } catch(e) {
+    console.warn("대시보드 프로젝트 SP 저장 실패:", e.message);
+    return false;
+  }
+}
+
+// ━━ SharePoint에서 대시보드 프로젝트 로드 ━━
+async function loadDashProjectsFromSP() {
+  try {
+    await getIds();
+    const enc = DASH_PROJECTS_SP_FILE.split("/").map(encodeURIComponent).join("/");
+    const fd = await gGet("/drives/"+spDrive+"/root:/"+enc);
+    const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
+    const data = await res.json();
+    if(Array.isArray(data)) {
+      dashProjects = data;
+      console.log("✅ 대시보드 프로젝트 SP 로드:", dashProjects.length+"건");
+      // PD에 머지 (ERP 코드 중복 체크)
+      mergeDashProjectsIntoPD();
+    }
+  } catch(e) {
+    console.log("ℹ️ 대시보드 프로젝트 파일 없음 (첫 등록 전)");
+    dashProjects = [];
+  }
+}
+
+// 대시보드 프로젝트를 PD에 머지 (중복 체크: 같은 프로젝트번호는 ERP 우선)
+function mergeDashProjectsIntoPD() {
+  if(typeof PD === "undefined" || !Array.isArray(PD)) return;
+  for(const dp of dashProjects) {
+    // ERP에 같은 프로젝트번호 이미 있으면 스킵 (ERP 데이터 우선)
+    const exists = PD.find(p => p.프로젝트번호 === dp.프로젝트번호);
+    if(exists) continue;
+    PD.push(dp);
+  }
+  if(typeof updPlKPI === "function") updPlKPI();
 }
 
 function loadExhFile(file) {
@@ -4094,10 +4159,19 @@ async function uploadSLFileToSubfolder(actId, subfolderName) {
         action: "📁 자료/"+subfolderName+"에 "+uploaded.length+"개 파일 업로드",
         type: "file"
       });
+      // 🔄 자료 업로드 시 진행상태 자동 전환 (신규 → 제안)
+      const advancedSub = autoAdvanceStatusByFile(act, "proposal");
       await saveSLToSP();
       renderSLAll();
       $("slUpd","✅ "+uploaded.length+"개 업로드 완료 → 자료/"+subfolderName);
-      alert("✅ "+uploaded.length+"개 파일 업로드 완료!\n폴더: "+spPath);
+      let alertMsg = "✅ "+uploaded.length+"개 파일 업로드 완료!\n폴더: "+spPath;
+      if(advancedSub) {
+        alertMsg += `\n\n🔄 진행상태 자동 변경: ${advancedSub.oldStatus} → ${advancedSub.newStatus}`;
+        if(advancedSub.newStatus === "제안") {
+          alertMsg += "\n💡 프로젝트코드 컬럼에서 [발급요청 / 입력] 버튼을 확인하세요!";
+        }
+      }
+      alert(alertMsg);
     } catch(e) {
       alert("업로드 실패: "+e.message);
       $("slUpd","-");
@@ -5000,6 +5074,67 @@ async function updateSLStatus(id, newStatus) {
   await saveSLToSP();
 }
 
+// ━━ 파일 업로드 시 자동 상태 전환 ━━
+// 자료(proposal) 또는 견적서(estimate) 업로드 + 상태가 "신규"면 → "제안"으로 자동 변경
+// 견적서(estimate) 업로드 + 상태가 "제안"이면 → "견적"으로 자동 변경
+function autoAdvanceStatusByFile(act, fileType) {
+  if(!act) return null;
+  const oldStatus = act.status || "신규";
+  let newStatus = null;
+  let reason = "";
+
+  if(fileType === "proposal") {
+    // 자료(제안서) 업로드 → 신규/(빈상태)에서 제안으로
+    if(oldStatus === "신규" || !oldStatus) {
+      newStatus = "제안";
+      reason = "자료(제안서) 업로드";
+    }
+  } else if(fileType === "estimate") {
+    // 견적서 업로드 → 제안에서 견적으로 / 신규에서도 제안으로
+    if(oldStatus === "신규" || !oldStatus) {
+      newStatus = "제안";
+      reason = "견적서 업로드";
+    } else if(oldStatus === "제안") {
+      newStatus = "견적";
+      reason = "견적서 업로드";
+    }
+  } else if(fileType === "order") {
+    // 발주서 업로드 → 발주로
+    if(["신규","제안","견적"].includes(oldStatus)) {
+      newStatus = "발주";
+      reason = "발주서 업로드";
+    }
+  } else if(fileType === "contract") {
+    // 계약서 업로드 → 진행으로
+    if(["신규","제안","견적","발주"].includes(oldStatus)) {
+      newStatus = "진행";
+      reason = "계약서 업로드";
+    }
+  } else if(fileType === "tax") {
+    // 세금계산서 업로드 → 세금계산서완료
+    if(!["세금계산서완료","잔금","유지보수(무상)","종료"].includes(oldStatus)) {
+      newStatus = "세금계산서완료";
+      reason = "세금계산서 업로드";
+    }
+  }
+
+  if(newStatus && newStatus !== oldStatus) {
+    act.status = newStatus;
+    const today = new Date().toISOString().split("T")[0];
+    act.updatedAt = new Date().toISOString();
+    act.lastActivity = today;
+    if(!act.history) act.history = [];
+    act.history.unshift({
+      date: today,
+      action: `🔄 자동 상태 변경: ${oldStatus} → ${newStatus} (${reason})`,
+      type: "status"
+    });
+    console.log(`✅ 자동 상태 전환 [${act.company}]: ${oldStatus} → ${newStatus} (${reason})`);
+    return { oldStatus, newStatus, reason };
+  }
+  return null;
+}
+
 // ─── 프로젝트코드 발급요청 ───
 async function requestPJCode(id) {
   const act = slData.find(x=>x.id===id);
@@ -5076,18 +5211,24 @@ function syncSLActivityFromEvent(evt, save) {
   const now   = new Date().toISOString();
   const today = (evt.start||"").substring(0,10);
 
-  // ── 매칭: 프로젝트코드 우선, 없으면 고객사명 ──
-  // ⚠️ 프로젝트코드(또는 신규N차)가 다르면 별도 활동으로 처리 (매칭 X)
+  // ── 매칭: teamsEventId 우선, 그 다음 프로젝트코드, 마지막으로 고객사명 ──
+  // ⚠️ teamsEventId가 같으면 코드가 달라져도 같은 활동 (사용자가 코드 변경한 경우)
   let existing = null;
-  if(pjcode) {
-    // pjcode가 있으면: 같은 고객사 + 같은 pjcode 만 매칭
-    existing = slData.find(x=>x.company===company && x.pjcode===pjcode);
-    // pjcode 길이가 4자 이상이고 정확히 같은 정식 코드면 회사명 무관하게 매칭
-    if(!existing && pjcode.length>3 && !pjcode.startsWith("신규"))
-      existing = slData.find(x=>x.pjcode===pjcode);
-  } else {
-    // pjcode 없으면: 같은 고객사 + pjcode도 없는 활동만 매칭
-    existing = slData.find(x=>x.company===company && !x.pjcode);
+  if(evt.id) {
+    existing = slData.find(x=>x.teamsEventId === evt.id);
+  }
+  if(!existing) {
+    // ⚠️ 프로젝트코드(또는 신규N차)가 다르면 별도 활동으로 처리 (매칭 X)
+    if(pjcode) {
+      // pjcode가 있으면: 같은 고객사 + 같은 pjcode 만 매칭
+      existing = slData.find(x=>x.company===company && x.pjcode===pjcode);
+      // pjcode 길이가 4자 이상이고 정확히 같은 정식 코드면 회사명 무관하게 매칭
+      if(!existing && pjcode.length>3 && !pjcode.startsWith("신규"))
+        existing = slData.find(x=>x.pjcode===pjcode);
+    } else {
+      // pjcode 없으면: 같은 고객사 + pjcode도 없는 활동만 매칭
+      existing = slData.find(x=>x.company===company && !x.pjcode);
+    }
   }
   // ⚠️ 회사명 부분일치(includes) 매칭은 제거 - 다른 차수가 합쳐지는 문제 방지
 
@@ -5305,7 +5446,7 @@ function renderSLTable(data) {
     const pjDisplay = r.pjcode
       ? `<span class="tm" style="font-size:14px;cursor:pointer;color:var(--p);text-decoration:underline;text-underline-offset:2px" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" title="클릭: 코드 변경/삭제">${r.pjcode}</span>`
       : r.status==="제안"
-        ? `<button onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" style="padding:2px 10px;border-radius:5px;border:1.5px solid var(--a);background:var(--ad);color:var(--a);font-size:14px;cursor:pointer;font-weight:700;animation:pulse 1.5s infinite;white-space:nowrap">📋 코드 입력</button>`
+        ? `<button onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" style="padding:3px 10px;border-radius:5px;border:1.5px solid var(--a);background:var(--ad);color:var(--a);font-size:13px;cursor:pointer;font-weight:800;animation:pulse 1.2s infinite;white-space:nowrap;font-family:var(--s)" title="클릭: 검색 또는 신규 등록">📋 발급요청 / 입력</button>`
         : `<button onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" style="padding:2px 8px;border-radius:5px;border:1px dashed var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer">+ 코드</button>`;
     // 진행상태 인라인 드롭다운
     const statusSelect = `<select onchange="updateSLStatus('${r.id}',this.value)"
@@ -5435,6 +5576,76 @@ async function cleanupAllSLHistory() {
     return changed;
   }
   console.log("ℹ️ 정리할 중복 이력 없음");
+  return 0;
+}
+
+// ━━ 중복 활동 정리: 같은 teamsEventId 가진 활동 또는 같은 회사+코드 활동 합치기 ━━
+// 프로젝트코드 변경 후 동기화로 분리된 활동 정리
+async function cleanupDuplicateSLActivities() {
+  let merged = 0;
+  const toRemove = new Set();
+
+  // 1) teamsEventId 기반 그룹핑
+  const byTeamsId = {};
+  for(const act of slData) {
+    if(toRemove.has(act.id)) continue;
+    if(!act.teamsEventId) continue;
+    if(!byTeamsId[act.teamsEventId]) byTeamsId[act.teamsEventId] = [];
+    byTeamsId[act.teamsEventId].push(act);
+  }
+  for(const tid in byTeamsId) {
+    const group = byTeamsId[tid];
+    if(group.length <= 1) continue;
+    // 가장 많은 이력/파일 있는 것을 keeper로
+    group.sort((a,b)=>{
+      const aScore = (a.history?.length||0)*10 + Object.values(a.files||{}).reduce((s,arr)=>s+(arr?.length||0),0);
+      const bScore = (b.history?.length||0)*10 + Object.values(b.files||{}).reduce((s,arr)=>s+(arr?.length||0),0);
+      return bScore - aScore;
+    });
+    const keeper = group[0];
+    for(let i=1; i<group.length; i++) {
+      const dup = group[i];
+      // 이력 합치기
+      if(dup.history?.length) {
+        keeper.history = (keeper.history||[]).concat(dup.history);
+      }
+      // 파일 합치기
+      if(dup.files) {
+        if(!keeper.files) keeper.files = {};
+        for(const ft in dup.files) {
+          keeper.files[ft] = (keeper.files[ft]||[]).concat(dup.files[ft]||[]);
+        }
+      }
+      // 더 진행된 상태 유지
+      const STATUS_ORDER = ["신규","제안","견적","발주","진행","납품완료","세금계산서미발행","세금계산서완료","잔금","유지보수(무상)","종료"];
+      if(STATUS_ORDER.indexOf(dup.status) > STATUS_ORDER.indexOf(keeper.status)) {
+        keeper.status = dup.status;
+      }
+      // pjcode가 더 정식인 것으로 (BM... > 신규N차)
+      if(dup.pjcode && (!keeper.pjcode || keeper.pjcode.startsWith("신규"))) {
+        if(!dup.pjcode.startsWith("신규")) {
+          keeper.pjcode = dup.pjcode;
+        }
+      }
+      // 담당자/메모 보존
+      if(!keeper.custMgr && dup.custMgr) keeper.custMgr = dup.custMgr;
+      if(!keeper.salesMgr && dup.salesMgr) keeper.salesMgr = dup.salesMgr;
+      toRemove.add(dup.id);
+      merged++;
+      console.log("🔗 중복 활동 합침:", dup.company, dup.pjcode||"(코드없음)", "→", keeper.company, keeper.pjcode||"(코드없음)");
+    }
+    // 이력 중복 제거
+    dedupSLHistory(keeper);
+  }
+
+  if(merged > 0) {
+    slData = slData.filter(a=>!toRemove.has(a.id));
+    await saveSLToSP();
+    renderSLAll();
+    console.log(`✅ 중복 활동 ${merged}개 정리 완료`);
+    return merged;
+  }
+  console.log("ℹ️ 정리할 중복 활동 없음");
   return 0;
 }
 
@@ -5829,14 +6040,20 @@ function renderPjCodeSearchResults() {
     const amt = (p.원화금액||0) > 0 ? ((p.원화금액||0)/1e8).toFixed(2)+"억" : "";
     const dt = p.계약일 ? String(p.계약일).substring(0,10) : "";
     const nm = (p.프로젝트명||"").replace(/\(.*?\)/g,"").trim();
+    // 출처 뱃지: 대시보드 자체등록 vs ERP
+    const isDashOrigin = p._source === "dashboard";
+    const srcBadge = isDashOrigin
+      ? '<span style="font-size:11px;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:4px;font-weight:600">➕ 대시보드</span>'
+      : '<span style="font-size:11px;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:4px;font-weight:600">📊 ERP</span>';
     return `<div onclick="selectPjCode('${(p.프로젝트번호||'').replace(/'/g,"\\'")}','${(p.프로젝트명||'').replace(/'/g,"\\'")}')"
       style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:6px;cursor:pointer;border:1px solid transparent;transition:all .15s;margin-bottom:3px"
       onmouseover="this.style.background='var(--pd)';this.style.borderColor='var(--p)'"
       onmouseout="this.style.background='transparent';this.style.borderColor='transparent'">
       <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap">
           <span class="tm" style="font-size:14px;font-weight:800;color:var(--p)">${p.프로젝트번호}</span>
           <span style="font-size:11px;background:${sb.bg};color:${sb.color};padding:1px 7px;border-radius:4px;font-weight:600">${p.진행구분||"-"}</span>
+          ${srcBadge}
           ${amt?`<span style="font-size:12px;color:var(--t3);font-weight:600">${amt}</span>`:""}
         </div>
         <div style="font-size:14px;color:var(--t);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nm||"-"}</div>
@@ -5869,13 +6086,55 @@ function selectPjCode(code, name) {
   });
   saveSLToSP().then(()=>{
     renderSLAll();
-    // 폴더 이름도 변경 시도 (있으면) - act.pjcode가 이미 새 코드로 바뀐 상태로 호출
+    // 1) 폴더 이름 변경 (있으면)
     if(oldCode && oldCode !== code && typeof renameSLFolder === "function") {
       renameSLFolder(act, oldCode).catch(e=>console.warn("폴더 변경 실패:", e.message));
+    }
+    // 2) ⚠️ 그룹 캘린더 일정 제목도 동시 변경 (안 하면 자동 동기화 시 일정이 분리됨!)
+    if(act.teamsEventId && oldCode !== code) {
+      updateTeamsEventTitle(act).catch(e=>console.warn("그룹 캘린더 제목 변경 실패:", e.message));
     }
   });
   closePjCodePicker();
   console.log("✅ 프로젝트코드 적용:", code);
+}
+
+// ━━ 그룹 캘린더 일정 제목 업데이트 ━━
+// 프로젝트코드 변경 시 그룹 캘린더의 일정 제목도 같이 변경
+// (안 하면 자동 동기화에서 옛 제목 발견 → 새 활동 생성하는 버그 발생)
+async function updateTeamsEventTitle(act) {
+  if(!act || !act.teamsEventId) return;
+  try {
+    const gid = await findTeamsGroup();
+    if(!gid) return;
+    const t = await getToken();
+    const newTitle = "[영업] " + act.company + "-" + (act.pjcode || "신규");
+    const r = await fetch(
+      "https://graph.microsoft.com/v1.0/groups/"+gid+"/events/"+act.teamsEventId,
+      {
+        method: "PATCH",
+        headers: {"Content-Type":"application/json", "Authorization":"Bearer "+t},
+        body: JSON.stringify({subject: newTitle})
+      }
+    );
+    if(!r.ok) {
+      const e = await r.json();
+      throw new Error(e.error?.message || r.status);
+    }
+    console.log("✅ 그룹 캘린더 일정 제목 변경:", newTitle);
+    // slCalData에도 반영 (메모리 캐시)
+    if(typeof slCalData !== "undefined" && Array.isArray(slCalData)) {
+      const cal = slCalData.find(e=>e.id===act.teamsEventId);
+      if(cal) {
+        cal.title = act.company + "-" + (act.pjcode || "신규");
+        cal.originalTitle = newTitle;
+      }
+    }
+    if(typeof renderSLCalendar === "function") renderSLCalendar();
+  } catch(e) {
+    console.warn("그룹 캘린더 제목 변경 실패:", e.message);
+    throw e;
+  }
 }
 
 // 현재 활동의 코드 지우기
@@ -5919,11 +6178,52 @@ function setPjCodeAutoNext() {
   document.getElementById("pjCodeNew-code").value = "신규" + (maxN+1) + "차";
 }
 
-// 신규 코드 직접 저장
-function savePjCodeManual() {
+// 신규 코드 직접 저장 - PD(파이프라인)에도 자동 등록 + SP에 영구 저장
+async function savePjCodeManual() {
   const code = document.getElementById("pjCodeNew-code").value.trim();
   if(!code) { alert("프로젝트코드를 입력해주세요."); return; }
   const name = document.getElementById("pjCodeNew-name").value.trim();
+  const company = _pjCodePickerCtx.company || "";
+
+  // 1) 영업활동의 현재 활동 정보 (있으면 거기서 거래처 가져옴)
+  const act = slData.find(x=>x.id===_pjCodePickerCtx.actId);
+
+  // 2) PD에 이미 있는지 체크 - 있으면 머지 활동만, 없으면 신규 추가
+  let existsInPD = false;
+  if(typeof PD !== "undefined" && Array.isArray(PD)) {
+    existsInPD = PD.some(p => p.프로젝트번호 === code);
+  }
+
+  if(!existsInPD) {
+    // 새 프로젝트로 PD + dashProjects에 추가
+    const isTemp = /^신규\d+차$/.test(code); // 신규N차는 임시 코드
+    const newProject = {
+      진행구분: isTemp ? "작성" : "확정", // 신규N차는 작성, 정식코드는 확정
+      프로젝트명: name || (company ? company + " 신규 영업" : "신규 영업"),
+      프로젝트번호: code,
+      계약일: new Date().toISOString().split("T")[0],
+      유형: "영업진행",
+      거래처: company || (act?.company || ""),
+      책임자: act?.salesMgr || "",
+      PM: "",
+      원화금액: 0,
+      _source: "dashboard", // 대시보드 자체등록 표시
+      _createdAt: new Date().toISOString(),
+    };
+    if(typeof PD !== "undefined") PD.push(newProject);
+    dashProjects.push(newProject);
+    // SP에 영구 저장 (다른 활동에서 검색 가능)
+    try {
+      await saveDashProjectsToSP();
+      console.log("✅ 신규 프로젝트 PD/SP 등록:", code);
+      // 파이프라인 KPI도 갱신
+      if(typeof updPlKPI === "function") updPlKPI();
+    } catch(e) {
+      console.warn("대시보드 프로젝트 SP 저장 실패:", e.message);
+    }
+  }
+
+  // 3) 영업활동에 코드 적용 (selectPjCode와 동일 로직)
   selectPjCode(code, name);
 }
 
@@ -6435,10 +6735,19 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
       if(!act.files) act.files={};
       if(!act.files[fileType]) act.files[fileType]=[];
       act.files[fileType].push(...uploaded);
+      // 🔄 파일 종류에 따라 진행상태 자동 전환
+      const advancedFile = autoAdvanceStatusByFile(act, fileType);
       await saveSLToSP();
       renderSLAll();
       $("slUpd","✅ "+uploaded.length+"개 업로드 완료 ("+subFolder+")");
-      alert("✅ "+uploaded.length+"개 파일 업로드 완료!\n폴더: "+spPath);
+      let alertMsg = "✅ "+uploaded.length+"개 파일 업로드 완료!\n폴더: "+spPath;
+      if(advancedFile) {
+        alertMsg += `\n\n🔄 진행상태 자동 변경: ${advancedFile.oldStatus} → ${advancedFile.newStatus}`;
+        if(advancedFile.newStatus === "제안") {
+          alertMsg += "\n💡 프로젝트코드 컬럼에서 [발급요청 / 입력] 버튼을 확인하세요!";
+        }
+      }
+      alert(alertMsg);
     } catch(e){ alert("업로드 실패: "+e.message); $("slUpd","-"); }
   };
   input.click();
@@ -6662,11 +6971,21 @@ function go(id, el) {
     if(typeof PD !== "undefined" && PD.length === 0 && typeof loadProject === "function") {
       loadProject().catch(e=>console.warn("PD 로드 실패:", e.message));
     }
+    // 대시보드 자체등록 프로젝트도 로드 (PD가 로드 실패해도 별도로 작동)
+    if(dashProjects.length === 0) {
+      loadDashProjectsFromSP().catch(e=>console.warn("Dash 프로젝트 로드 실패:", e.message));
+    }
     if(window._slSyncInterval) clearInterval(window._slSyncInterval);
     window._slSyncInterval=setInterval(()=>{
       if(document.getElementById("tab-sales-log")?.classList.contains("on")) syncSLFromTeams();
       else clearInterval(window._slSyncInterval);
     },3*60*1000);
+  }
+  // 파이프라인 탭 진입 시 - 대시보드 프로젝트도 머지
+  if(id==="pipeline") {
+    if(dashProjects.length === 0) {
+      loadDashProjectsFromSP().catch(e=>console.warn("Dash 프로젝트 로드 실패:", e.message));
+    }
   }
   // 고객사 관리 탭
   if(id==="customer") {
