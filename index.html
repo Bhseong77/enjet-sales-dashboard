@@ -654,19 +654,58 @@
           <div id="slMtgPane2" style="display:none">
             <!-- AI 요약 안내 -->
             <div style="margin-bottom:14px;padding:14px;background:var(--pd);border-radius:10px;border:1.5px solid var(--p)">
-              <div style="font-size:15px;font-weight:700;color:var(--p);margin-bottom:6px">🤖 OpenAI GPT-4o-mini로 회의록 자동 요약</div>
-              <div style="font-size:13px;color:var(--t2);line-height:1.6">
-                텍스트/오디오 → GPT-4o-mini가 한국어 회의록 자동 생성<br>
-                <span style="color:var(--g)">💰 비용: 회의록 1건 ≈ 0.8원 (gpt-4o-mini 기준)</span>
+              <div style="font-size:15px;font-weight:700;color:var(--p);margin-bottom:10px">🤖 AI 요약 엔진 선택</div>
+              <!-- 엔진 선택 -->
+              <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:10px 16px;border-radius:8px;border:2px solid var(--g);background:var(--gd)">
+                  <input type="radio" name="slMtgEngine" value="ollama" checked style="accent-color:var(--g)">
+                  <div>
+                    <div style="font-size:14px;font-weight:700;color:var(--g)">🦙 Ollama <span style="font-size:11px;background:var(--g);color:#fff;padding:1px 6px;border-radius:4px">무료</span></div>
+                    <div style="font-size:11px;color:var(--t3)">로컬 실행 · 데이터 외부 전송 없음</div>
+                  </div>
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:10px 16px;border-radius:8px;border:2px solid var(--border2)">
+                  <input type="radio" name="slMtgEngine" value="openai" style="accent-color:var(--p)">
+                  <div>
+                    <div style="font-size:14px;font-weight:700;color:var(--t)">🤖 OpenAI GPT-4o-mini</div>
+                    <div style="font-size:11px;color:var(--t3)">1건 ≈ 0.8원 · 빠르고 정확</div>
+                  </div>
+                </label>
               </div>
-              <!-- OpenAI 키 (오디오 STT용) -->
-              <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-                <span style="font-size:13px;color:var(--t2);white-space:nowrap">🔑 OpenAI API Key</span>
-                <span style="font-size:12px;color:var(--t3)">(텍스트 요약 + 오디오 STT 모두 필요)</span>
-                <input class="si" type="password" id="slMtgOpenAIKey" placeholder="sk-..."
-                  style="flex:1;font-size:13px" value="">
-                <button onclick="localStorage.setItem('oai_key',document.getElementById('slMtgOpenAIKey').value);alert('저장됨')"
-                  style="padding:6px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-family:var(--s)">저장</button>
+              <!-- Ollama 모델 선택 -->
+              <div id="ollamaModelRow" style="display:flex;gap:8px;align-items:center;margin-bottom:10px;padding:10px;background:var(--bg3);border-radius:8px">
+                <span style="font-size:13px;color:var(--t2);white-space:nowrap">🦙 모델</span>
+                <select class="ss" id="slMtgOllamaModel" style="flex:1;font-size:13px">
+                  <option value="llama3.2">llama3.2 (권장 · 설치됨)</option>
+                  <option value="llama3.1">llama3.1</option>
+                  <option value="mistral">mistral</option>
+                  <option value="gemma3">gemma3</option>
+                  <option value="qwen2.5">qwen2.5 (한국어 우수)</option>
+                </select>
+                <span style="font-size:12px;color:var(--g)">✅ localhost:11434</span>
+              </div>
+              <!-- OpenAI 키 -->
+              <div id="openaiKeyRow" style="display:none;padding:10px;background:var(--bg3);border-radius:8px;margin-bottom:10px">
+                <div style="display:flex;gap:8px;align-items:center">
+                  <span style="font-size:13px;color:var(--t2);white-space:nowrap">🔑 OpenAI Key</span>
+                  <input class="si" type="password" id="slMtgOpenAIKey" placeholder="sk-..."
+                    style="flex:1;font-size:13px" value="">
+                  <button onclick="localStorage.setItem('oai_key',document.getElementById('slMtgOpenAIKey').value);alert('저장됨')"
+                    style="padding:6px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-family:var(--s)">저장</button>
+                </div>
+              </div>
+              <script>
+                document.querySelectorAll('input[name="slMtgEngine"]').forEach(r=>{
+                  r.addEventListener("change",()=>{
+                    const isOllama = document.querySelector('input[name="slMtgEngine"]:checked')?.value==="ollama";
+                    document.getElementById("ollamaModelRow").style.display = isOllama?"flex":"none";
+                    document.getElementById("openaiKeyRow").style.display = isOllama?"none":"flex";
+                  });
+                });
+              </script>
+              <!-- 오디오 STT는 항상 OpenAI Whisper 필요 -->
+              <div style="font-size:12px;color:var(--t3);padding:6px 10px;background:var(--yd);border-radius:6px">
+                ⚠️ 오디오 파일(mp3 등) STT 변환은 OpenAI Whisper API 필요 (텍스트/직접입력은 Ollama만으로 가능)
               </div>
             </div>
 
@@ -3512,17 +3551,60 @@ let _slMtgActId = null;
 
 // 회의록 모달 열기
 
-// ─── AI 요약 (OpenAI API) ───
+// ─── AI 요약 엔진 선택 ───
 async function autoSummarize(transcript, meta) {
-  return await openAISummarize(transcript, meta);
+  const engine = document.querySelector('input[name="slMtgEngine"]:checked')?.value || "ollama";
+  if(engine === "openai") return await openAISummarize(transcript, meta);
+  return await ollamaSummarize(transcript, meta);
 }
 
+// ─── Ollama (로컬 무료) ───
+async function ollamaSummarize(transcript, meta) {
+  const model = document.getElementById("slMtgOllamaModel")?.value || "llama3.2";
+  const prompt = buildMtgPrompt(transcript, meta);
+  slMtgShowProgress(30, "🦙 Ollama "+model+" 요약 중... (로컬 실행)");
+  const r = await fetch("http://localhost:11434/api/generate", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      model, prompt, stream: false,
+      options: { temperature: 0.3, num_predict: 2000 }
+    })
+  });
+  if(!r.ok) {
+    const txt = await r.text();
+    throw new Error("Ollama 오류 ("+r.status+"): "+txt.substring(0,100)+"\n\nOllama가 실행 중인지 확인하세요: http://localhost:11434");
+  }
+  const data = await r.json();
+  return data.response || "요약 실패";
+}
+
+// ─── OpenAI API ───
 async function openAISummarize(transcript, meta) {
   const apiKey = document.getElementById("slMtgOpenAIKey")?.value.trim()
     || localStorage.getItem("oai_key") || "";
   if(!apiKey) throw new Error("OpenAI API Key를 입력해주세요.");
+  const prompt = buildMtgPrompt(transcript, meta);
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        {role:"system", content:"당신은 ENJET 영업팀의 전문 회의록 작성 AI입니다. 회의 내용을 체계적이고 명확한 한국어 회의록으로 작성해주세요."},
+        {role:"user", content:prompt}
+      ],
+      max_tokens: 2000, temperature: 0.3
+    })
+  });
+  if(!r.ok) { const e=await r.json(); throw new Error("OpenAI 오류: "+(e.error?.message||r.status)); }
+  const data = await r.json();
+  return data.choices?.[0]?.message?.content || "요약 실패";
+}
 
-  const prompt = `다음은 "${meta.company||""}" 관련 영업 회의/미팅 내용입니다.
+// ─── 공통 프롬프트 ───
+function buildMtgPrompt(transcript, meta) {
+  return `다음은 "${meta.company||""}" 관련 영업 회의/미팅 내용입니다.
 아래 형식으로 한국어 회의록을 작성해주세요:
 
 # 회의록
@@ -3531,7 +3613,7 @@ async function openAISummarize(transcript, meta) {
 - 참석자: ${meta.attendees||""}
 
 ## 주요 안건
-(회의에서 다룬 주요 내용을 요약)
+(회의에서 다룬 주요 내용 요약)
 
 ## 논의 내용
 (세부 논의 사항)
@@ -3543,35 +3625,11 @@ async function openAISummarize(transcript, meta) {
 - [ ] (담당자: 기한)
 
 ## 다음 일정
-(다음 미팅 일정 또는 후속 계획)
+(다음 미팅 또는 후속 계획)
 
 ---
 [회의/미팅 내용]
-${transcript.substring(0, 12000)}`;
-
-  const r = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer "+apiKey
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "당신은 ENJET 영업팀의 전문 회의록 작성 AI입니다. 회의 내용을 체계적이고 명확한 한국어 회의록으로 작성해주세요." },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 2000,
-      temperature: 0.3
-    })
-  });
-
-  if(!r.ok) {
-    const e = await r.json();
-    throw new Error("OpenAI 오류: "+(e.error?.message||r.status));
-  }
-  const data = await r.json();
-  return data.choices?.[0]?.message?.content || "요약 실패";
+${transcript.substring(0, 10000)}`;
 }
 
 // ─── Teams 회의 AI 인사이트 가져오기 (Meeting Insights API - GA) ───
