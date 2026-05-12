@@ -166,7 +166,23 @@
   .cn{font-size:12px;padding:4px 10px}
 
   /* ── 2열 그리드 → 1열 ── */
-  .g2,.g2b{grid-template-columns:1fr;gap:6px}
+  .g2,.g2b,.g3-sales{grid-template-columns:1fr;gap:6px}
+
+  /* ── 모달 내부 2열 폼 → 1열 ── */
+  .modal-inner [style*="grid-template-columns:1fr 1fr"],
+  .modal-inner [style*="grid-template-columns: 1fr 1fr"],
+  .modal-inner [style*="grid-template-columns:1fr 1fr 1fr"]{
+    grid-template-columns:1fr !important;
+  }
+
+  /* ── 영업활동 일정 캘린더 주간뷰 → 3열 ── */
+  #slCalendar [style*="grid-template-columns:repeat(7,1fr)"]{
+    grid-template-columns:repeat(3,1fr) !important;
+  }
+  /* ── 영업활동 일정 캘린더 월간뷰 → 그대로 (작게) ── */
+  #slCalendar [style*="grid-template-columns:repeat(7,1fr)"] > div{
+    min-height:50px !important;font-size:11px
+  }
 
   /* ── 테이블 → 가로 스크롤 (테이블 있는 탭들) ── */
   .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -184,9 +200,6 @@
     border-radius:0 !important;overflow-y:auto;
     padding:16px 14px !important;
   }
-
-  /* ── FAB 표시 ── */
-  .mob-fab{display:flex !important}
 }
 
 /* ━━ 영업활동 목록: 모바일 카드 뷰 ━━
@@ -276,8 +289,8 @@
   box-shadow:0 4px 16px rgba(26,111,212,0.4);z-index:998;font-family:var(--s);
   line-height:1;
 }
-@media(max-width:768px){.mob-nav{display:flex}.mob-fab{display:flex !important}
-  /* 모바일 상단 아이콘 버튼 표시 */
+@media(max-width:768px){.mob-nav{display:flex}
+  /* FAB은 JS에서 탭에 따라 flex/none 제어 - CSS에서 강제 display:flex 제거 */
   #btnRefreshMob{display:flex !important;padding:6px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);font-size:18px;cursor:pointer}
 }
 </style>
@@ -384,7 +397,7 @@
         <div class="kpi c3"><div class="kl">잔금 (미수금)</div><div class="kv"><span id="k-unp">-</span><span style="font-size:15px;color:var(--t2)">억</span></div><div class="ks"><span class="badge warn">수금 필요</span></div></div>
         <div class="kpi c4"><div class="kl">진행중 프로젝트</div><div class="kv"><span id="k-proj">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span id="k-proj-amt">-억</span></div></div>
       </div>
-      <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px;margin-bottom:9px">
+      <div class="g3-sales" style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px;margin-bottom:9px">
         <div class="card">
           <div class="ch"><div class="ct"><div class="ci c1">📈</div>연도별 매출 (감사보고서 기준)</div></div>
           <div class="cb"><div style="height:200px"><canvas id="yrC"></canvas></div></div>
