@@ -1834,6 +1834,18 @@
           <div style="display:grid;grid-template-columns:320px 1fr;min-height:600px">
             <!-- 왼쪽: 입력 폼 -->
             <div style="border-right:1px solid var(--border);padding:16px;overflow-y:auto;max-height:80vh;background:var(--bg3)">
+
+              <!-- 언어 선택 -->
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;padding:8px 12px;background:#fff;border-radius:8px;border:1.5px solid var(--border2)">
+                <span style="font-size:12px;font-weight:700;color:var(--t2)">🌐 템플릿</span>
+                <div style="display:flex;gap:4px;margin-left:auto">
+                  <button id="q-lang-kr" onclick="setQuoteLang('KR')"
+                    style="padding:4px 14px;border-radius:6px;border:1.5px solid var(--p);background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--s)">🇰🇷 한국어</button>
+                  <button id="q-lang-en" onclick="setQuoteLang('EN')"
+                    style="padding:4px 14px;border-radius:6px;border:1.5px solid var(--border2);background:transparent;color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--s)">🇺🇸 English</button>
+                </div>
+              </div>
+
               <div style="font-size:14px;font-weight:800;color:var(--t);margin-bottom:12px">📋 기본 정보</div>
 
               <div style="display:flex;flex-direction:column;gap:8px">
@@ -9158,9 +9170,9 @@ async function generateQuoteExcel() {
 
   // ── SEQ / REV 자동 계산 ──
   const act = slData.find(x=>x.id===_quoteActId);
-  // 같은 고객사+프로젝트의 견적서 횟수 = SEQ (01, 02, 03...)
+  // 같은 고객사+프로젝트의 견적서 횟수 = SEQ (01, 02, 03...) - 한글+영문 통합
   const quoteHistory = (act?.history||[]).filter(h=>
-    h.action && (h.action.includes("견적서 엑셀") || h.action.includes("견적서 작성"))
+    h.action && (h.action.includes("견적서 엑셀") || h.action.includes("견적서 작성") || h.action.includes("견적서 생성") || h.action.includes("Quotation generated"))
   );
   const seq = String(quoteHistory.length + 1).padStart(2, "0");
   // REV: 같은 SEQ에서 수정 횟수 (일단 00으로 시작, 나중에 수동 조정)
@@ -9168,20 +9180,36 @@ async function generateQuoteExcel() {
   // 문서번호: ENJET-QUO-{SEQ} REV({REV})
   const docNo = `ENJET-QUO-${seq} REV(${rev})`;
 
-  // 날짜 변환
+  // ── 언어 분기: 한글(KR) / 영문(EN) ──
+  const isEN = (_quoteLang === 'EN');
+  const docNoEN = `ENJET-QUO-ENG-${seq} REV(${rev})`;  // 영문은 ENG 접미사
+  const docNoFinal = isEN ? docNoEN : docNo;
+
+  // 날짜 변환 (언어별)
   let dateStr = "";
   if(dateVal) {
     const d = new Date(dateVal);
-    dateStr = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+    if(isEN) {
+      // 영문: 2026.03.30 (이미지 형식)
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      dateStr = `${yyyy}.${mm}.${dd}`;
+    } else {
+      dateStr = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+    }
   }
 
   // ── 템플릿 로드 (SharePoint에서) ──
-  // Teams에서 직접 수정 가능한 위치: 📦영업/99.Dashboard(real-time)/enjet_quote_template_1.xlsx
+  // KR: enjet_quote_template_1.xlsx (시트명: 견적서(갑지))
+  // EN: enjet_quote_template_en.xlsx (시트명: Quotation)
+  const TEMPLATE_FILE = isEN ? "enjet_quote_template_en.xlsx" : "enjet_quote_template_1.xlsx";
+  const TEMPLATE_SHEET = isEN ? "Quotation" : "견적서(갑지)";
   let templateBytes;
   try {
     await getIds();
     const t = await getToken();
-    const spFilePath = "📦영업/99.Dashboard(real-time)/enjet_quote_template_1.xlsx";
+    const spFilePath = `📦영업/99.Dashboard(real-time)/${TEMPLATE_FILE}`;
     const enc = spFilePath.split("/").map(encodeURIComponent).join("/");
     const fileInfo = await gGet(`/drives/${spDrive}/root:/${enc}`);
     const dlUrl = fileInfo["@microsoft.graph.downloadUrl"];
@@ -9189,9 +9217,9 @@ async function generateQuoteExcel() {
     const r = await fetch(dlUrl);
     if(!r.ok) throw new Error(`다운로드 실패: ${r.status}`);
     templateBytes = await r.arrayBuffer();
-    console.log("✅ 템플릿 로드:", spFilePath);
+    console.log(`✅ 템플릿 로드 [${_quoteLang}]:`, spFilePath);
   } catch(e) {
-    alert(`❌ 견적서 템플릿 로드 실패\n\n오류: ${e.message}\n\nSharePoint에 파일이 있는지 확인해주세요:\n📦영업/99.Dashboard(real-time)/enjet_quote_template_1.xlsx\n\n임시로 PDF 저장을 이용해주세요.`);
+    alert(`❌ 견적서 템플릿 로드 실패 [${_quoteLang}]\n\n오류: ${e.message}\n\nSharePoint에 파일이 있는지 확인해주세요:\n📦영업/99.Dashboard(real-time)/${TEMPLATE_FILE}\n\n임시로 PDF 저장을 이용해주세요.`);
     return;
   }
 
@@ -9206,7 +9234,11 @@ async function generateQuoteExcel() {
   }
 
   const wb = XLSX.read(templateBytes, {type:"array", cellStyles:true, cellDates:true});
-  const ws = wb.Sheets["견적서(갑지)"];
+  const ws = wb.Sheets[TEMPLATE_SHEET];
+  if(!ws) {
+    alert(`❌ 시트를 찾을 수 없습니다: "${TEMPLATE_SHEET}"\n\n템플릿 파일(${TEMPLATE_FILE})의 시트명을 확인해주세요.`);
+    return;
+  }
 
   // ── 셀 채우기 헬퍼 ──
   const setCell = (addr, val, numFmt) => {
@@ -9221,23 +9253,31 @@ async function generateQuoteExcel() {
   setCell("C3", subject);
   setCell("C4", dateStr);
   setCell("C5", manager);
-  setCell("C6", contact);
+  if(!isEN) setCell("C6", contact);  // 영문 템플릿엔 연락처 행 없음
   setCell("C8", quoteNo || `Quo)${recipient.substring(0,3)}_Q1_${(dateVal||"").replace(/-/g,"").substring(2)}`);
   setCell("I8", delivery);
   setCell("C9", leadtime);
   setCell("I9", validity);
   setCell("C10", payment);
 
-  // 품목
+  // 품목 - 언어별 분기
   const normalItems = _quoteItems.filter(x=>!x.isDiscount);
   const discItems   = _quoteItems.filter(x=>x.isDiscount);
   if(normalItems.length > 0) {
     const it = normalItems[0];
     setCell("C14", it.name||"");
-    setCell("E14", it.unitPrice||0);
-    setCell("H14", it.qty||1);
-    setCell("I14", it.unit||"Set");
-    // J14는 수식 유지 (=H14*E14)
+    if(isEN) {
+      // 영문: E14(Unit Price) 사용 안 함, J14에 amount 직접 입력
+      setCell("H14", it.qty||1);
+      setCell("I14", it.unit||"Set");
+      const amt = (it.unitPrice||0) * (it.qty||1);
+      setCell("J14", amt, "#,##0");
+    } else {
+      // 한글: E14에 단가, J14는 템플릿 수식(=H14*E14) 유지
+      setCell("E14", it.unitPrice||0);
+      setCell("H14", it.qty||1);
+      setCell("I14", it.unit||"Set");
+    }
   }
   if(discItems.length > 0) {
     setCell("C16", discItems[0].name||"Special Discount");
@@ -9247,25 +9287,34 @@ async function generateQuoteExcel() {
     setCell("E16", 0);
   }
 
-  // 공통사양
+  // 상세항목 / 공통사양 (언어별 헤더)
   const specLines = spec.split("\n").filter(Boolean);
-  setCell("C19", "공통사양");
-  ["C20","C21","C22","C23","C24","C25","C26","C27","C28"].forEach((addr,i)=>{
-    setCell(addr, specLines[i]||"");
-  });
+  if(isEN) {
+    // 영문: C19는 "Detailed Items" 라벨이 이미 템플릿에 있음 → 건드리지 않음
+    // C20부터 항목 시작
+    ["C20","C21","C22","C23","C24","C25","C26","C27","C28"].forEach((addr,i)=>{
+      setCell(addr, specLines[i]||"");
+    });
+  } else {
+    setCell("C19", "공통사양");
+    ["C20","C21","C22","C23","C24","C25","C26","C27","C28"].forEach((addr,i)=>{
+      setCell(addr, specLines[i]||"");
+    });
+  }
 
   // 특이사항
   if(note) setCell("C55", note);
 
-  // 문서번호 (자동 SEQ/REV)
-  setCell("A57", docNo);
+  // 문서번호 (자동 SEQ/REV) - 언어별
+  setCell("A57", docNoFinal);
 
-  // 파일명
-  const fileName = `견적서_${recipient}_${quoteNo||"Q1"}_${docNo.replace(/[\s\/\\:*?"<>|]/g,"_")}.xlsx`;
+  // 파일명 (언어별)
+  const filePrefix = isEN ? "Quotation" : "견적서";
+  const fileName = `${filePrefix}_${recipient}_${quoteNo||"Q1"}_${docNoFinal.replace(/[\s\/\\:*?"<>|]/g,"_")}.xlsx`;
 
   // ── 로컬 다운로드 제거 → SP에만 자동 저장 ──
   // XLSX.writeFile(wb, fileName);  // ← 다운로드 다이얼로그 제거
-  console.log("✅ 견적서 생성:", fileName, "/ 문서번호:", docNo);
+  console.log(`✅ 견적서 생성 [${_quoteLang}]:`, fileName, "/ 문서번호:", docNoFinal);
 
   // ── SharePoint 업로드 ──
   if(act) {
@@ -9287,11 +9336,12 @@ async function generateQuoteExcel() {
         const d = await r.json();
         if(!act.files) act.files={};
         if(!act.files.estimate) act.files.estimate=[];
-        act.files.estimate.push({name:fileName, url:d.webUrl, size:blob.size, uploadedAt:new Date().toISOString(), docNo});
+        act.files.estimate.push({name:fileName, url:d.webUrl, size:blob.size, uploadedAt:new Date().toISOString(), docNo:docNoFinal, lang:_quoteLang});
         if(!act.history) act.history=[];
+        const histLabel = isEN ? "📊 Quotation generated" : "📊 견적서 생성";
         act.history.unshift({
           date: dateVal||new Date().toISOString().split("T")[0],
-          action: `📊 견적서 생성: ${docNo} (${fileName})`,
+          action: `${histLabel}: ${docNoFinal} (${fileName})`,
           type: "file"
         });
         // ✅ 견적서 업로드 → 진행상태 자동 변경
@@ -9300,7 +9350,7 @@ async function generateQuoteExcel() {
         const totalAmt = _quoteItems.reduce((s,it)=>
           it.isDiscount ? s+(it.unitPrice||0) : s+(it.unitPrice||0)*(it.qty||1), 0);
         await addToQuoteDB({
-          docNo, quoteNo,
+          docNo:docNoFinal, quoteNo,
           company: recipient,
           subject: get("q-subject"),
           items: _quoteItems.filter(x=>!x.isDiscount).map(x=>x.name).filter(Boolean).join(", "),
@@ -9310,6 +9360,7 @@ async function generateQuoteExcel() {
           fileName,
           fileUrl: d.webUrl,
           actId: _quoteActId,
+          lang: _quoteLang,
         });
         await saveSLToSP();
         renderSLAll();
@@ -9328,12 +9379,12 @@ async function generateQuoteExcel() {
   } else {
     // 영업활동 미연결 시 로컬 다운로드
     XLSX.writeFile(wb, fileName);
-    alert(`✅ 견적서 저장 완료 (로컬)\n\n📋 ${docNo}\n📁 ${fileName}\n\n⚠️ 영업활동 연결 후 SP 자동 저장 가능`);
+    alert(`✅ 견적서 저장 완료 (로컬)\n\n📋 ${docNoFinal}\n📁 ${fileName}\n\n⚠️ 영업활동 연결 후 SP 자동 저장 가능`);
     return;
   }
   // finalSaveQuote에서 호출 시 alert는 거기서 처리 (중복 방지)
   if(!window._quoteSavingFromFinal) {
-    alert(`✅ 견적서 SP 저장 완료!\n\n📋 ${docNo}\n📁 SP: 📦영업/.../견적서/${fileName}`);
+    alert(`✅ 견적서 SP 저장 완료!\n\n📋 ${docNoFinal}\n📁 SP: 📦영업/.../견적서/${fileName}`);
   }
 }
 function openCustMgrPickerForQuote() {
@@ -9540,11 +9591,153 @@ function fmt(n) {
   return Math.abs(n).toLocaleString("ko-KR");
 }
 
+let _quoteLang = 'KR'; // 기본: 한국어
+
+function setQuoteLang(lang) {
+  _quoteLang = lang;
+  // 버튼 스타일 토글
+  const krBtn = document.getElementById("q-lang-kr");
+  const enBtn = document.getElementById("q-lang-en");
+  if(krBtn && enBtn) {
+    if(lang === 'KR') {
+      krBtn.style.cssText = "padding:4px 14px;border-radius:6px;border:1.5px solid var(--p);background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--s)";
+      enBtn.style.cssText = "padding:4px 14px;border-radius:6px;border:1.5px solid var(--border2);background:transparent;color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--s)";
+    } else {
+      enBtn.style.cssText = "padding:4px 14px;border-radius:6px;border:1.5px solid var(--p);background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--s)";
+      krBtn.style.cssText = "padding:4px 14px;border-radius:6px;border:1.5px solid var(--border2);background:transparent;color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--s)";
+    }
+  }
+  // 영문일 때 입력 필드 힌트 변경
+  const delivEl = document.getElementById("q-delivery");
+  const leadEl  = document.getElementById("q-leadtime");
+  const validEl = document.getElementById("q-validity");
+  const payEl   = document.getElementById("q-payment");
+  if(lang === 'EN') {
+    if(delivEl && delivEl.value === "고객사 지정 장소") delivEl.value = "Customer's designated location";
+    if(leadEl  && leadEl.value  === "발주 문서 접수 후 1 영업일") leadEl.value = "1 business day after receipt of P.O.";
+    if(validEl && validEl.value === "제출일로부터 30일") validEl.value = "30 days from the date of quote";
+    if(payEl   && payEl.value   === "납품 후 현금 100%") payEl.value = "100% after delivery";
+  } else {
+    if(delivEl && delivEl.value === "Customer's designated location") delivEl.value = "고객사 지정 장소";
+    if(leadEl  && leadEl.value  === "1 business day after receipt of P.O.") leadEl.value = "발주 문서 접수 후 1 영업일";
+    if(validEl && validEl.value === "30 days from the date of quote") validEl.value = "제출일로부터 30일";
+    if(payEl   && payEl.value   === "100% after delivery") payEl.value = "납품 후 현금 100%";
+  }
+  updateQuotePreview();
+}
+
 function updateQuotePreview() {
+  if(_quoteLang === 'EN') { updateQuotePreviewEN(); return; }
+  updateQuotePreviewKR();
+}
+
+function updateQuotePreviewEN() {
   const area = document.getElementById("quotePrintArea");
   if(!area) return;
-
   const get = id => document.getElementById(id)?.value||"";
+  const dateVal = get("q-date");
+  const dateEng = dateVal ? new Date(dateVal).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"}) : "-";
+  let total = 0;
+  _quoteItems.forEach(item=>{
+    if(item.isDiscount) total += item.unitPrice;
+    else total += (item.unitPrice||0)*(item.qty||1);
+  });
+  const fmtUSD = v => "$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:0});
+  const itemRows = _quoteItems.map((item,i)=>{
+    if(item.isDiscount) return `<tr style="background:#fffde7">
+      <td style="border:1px solid #aaa;padding:3px 5px;text-align:center"></td>
+      <td style="border:1px solid #aaa;padding:3px 8px;font-style:italic;font-weight:700;color:#b26200" colspan="4">${item.name||"Special Discount"}</td>
+      <td style="border:1px solid #aaa;padding:3px 5px;text-align:right;color:#c00;font-weight:700">${item.unitPrice<0?"-"+fmtUSD(-item.unitPrice):fmtUSD(item.unitPrice)}</td>
+      <td style="border:1px solid #aaa;padding:3px 5px"></td></tr>`;
+    const amt = (item.unitPrice||0)*(item.qty||1);
+    return `<tr>
+      <td style="border:1px solid #aaa;padding:3px 5px;text-align:center">${i+1}</td>
+      <td style="border:1px solid #aaa;padding:3px 8px;text-align:left">${item.name||""}</td>
+      <td style="border:1px solid #aaa;padding:3px 5px;text-align:right">${item.unitPrice?fmtUSD(item.unitPrice):""}</td>
+      <td style="border:1px solid #aaa;padding:3px 5px;text-align:center">${item.qty||1}</td>
+      <td style="border:1px solid #aaa;padding:3px 5px;text-align:center">${item.unit||"Set"}</td>
+      <td style="border:1px solid #aaa;padding:3px 5px;text-align:right">${amt?fmtUSD(amt):""}</td>
+      <td style="border:1px solid #aaa;padding:3px 5px">${item.note||""}</td></tr>`;
+  }).join("");
+  const empty = Array(Math.max(0,3-_quoteItems.length)).fill(`<tr><td colspan="7" style="border:1px solid #aaa;padding:10px"></td></tr>`).join("");
+  const specText = get("q-spec").split("\n").filter(Boolean).map(l=>`<div>${l}</div>`).join("");
+  const noteText = get("q-note");
+  const _act = slData.find(x=>x.id===_quoteActId);
+  const _seq = String(((_act?.history||[]).filter(h=>h.action&&(h.action.includes("견적서")||h.action.includes("Quotation"))).length)+1).padStart(2,"0");
+
+  area.innerHTML = `
+  <div style="font-family:Arial,sans-serif;color:#000">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:32px;font-weight:900;letter-spacing:10px;color:#1F3864">QUOTATION</div>
+      <div style="text-align:right">
+        <div style="font-size:16px;font-weight:800;color:#1F3864">ENJET INC., LTD.</div>
+        <div style="font-size:9px;color:#666;line-height:1.6">
+          No.45, Saneop-ro 92beon-gil, Gwonseon-gu,<br>Suwon-si, Gyeonggi-do, Korea<br>
+          Tel: 070-4892-8100 · Fax: 070-4892-8121<br>
+          TIN: 206-86-36037
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <table style="width:100%;border-collapse:collapse;font-size:10px">
+        <tr style="background:#1F3864;color:#fff"><th colspan="2" style="padding:4px 8px">CLIENT</th></tr>
+        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700;width:70px">Company</td><td style="border:1px solid #aaa;padding:3px 6px;font-weight:700">${get("q-recipient")}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Details</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-subject")}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Date</td><td style="border:1px solid #aaa;padding:3px 6px">${dateEng}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Manager</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-manager")}</td></tr>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:10px">
+        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700;width:90px">Quotation NO</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-quoteNo")}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Delivery Place</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-delivery")}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Delivery Date</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-leadtime")}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Validity</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-validity")}</td></tr>
+        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Payment</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-payment")}</td></tr>
+      </table>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;border:2px solid #1F3864;padding:5px 12px;margin-bottom:6px;background:#EDF2F8">
+      <div style="font-size:11px;font-weight:700;color:#1F3864;letter-spacing:1px">TOTAL PRICE</div>
+      <div style="font-size:17px;font-weight:900;color:#C00000;letter-spacing:1px">${fmtUSD(total)}</div>
+      <div style="font-size:9px;color:#777">(Currency: USD)</div>
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:7px;font-size:10px">
+      <thead>
+        <tr style="background:#1F3864;color:#fff">
+          <th style="border:1px solid #555;padding:4px 5px;width:28px">NO.</th>
+          <th style="border:1px solid #555;padding:4px 5px">Description</th>
+          <th style="border:1px solid #555;padding:4px 5px;width:75px">Unit Price</th>
+          <th style="border:1px solid #555;padding:4px 5px;width:35px">Q'ty</th>
+          <th style="border:1px solid #555;padding:4px 5px;width:38px">Unit</th>
+          <th style="border:1px solid #555;padding:4px 5px;width:85px">Total Price(USD)</th>
+          <th style="border:1px solid #555;padding:4px 5px;width:55px">Remark</th>
+        </tr>
+      </thead>
+      <tbody>${itemRows}${empty}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" style="border:1px solid #aaa;border-top:2px solid #1F3864;padding:4px 8px;text-align:right;font-weight:700;background:#EDF2F8">Total</td>
+          <td style="border:1px solid #aaa;border-top:2px solid #1F3864;padding:4px 6px;text-align:right;font-weight:700;color:#C00000;background:#EDF2F8">${fmtUSD(total)}</td>
+          <td style="border:1px solid #aaa;border-top:2px solid #1F3864;background:#EDF2F8"></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    ${specText?`<div style="border:1px solid #aaa;margin-bottom:6px">
+      <div style="background:#EDF2F8;font-weight:700;padding:3px 8px;font-size:10px;border-bottom:1px solid #aaa;color:#1F3864">SPECIFICATIONS</div>
+      <div style="padding:6px 8px;font-size:10px">${specText}</div></div>`:""}
+    ${noteText?`<div style="border-top:1px dashed #aaa;padding-top:4px;font-size:10px">
+      <div style="font-weight:700;margin-bottom:3px;color:#1F3864">※ Remarks</div>
+      <div>${noteText}</div></div>`:""}
+
+    <div style="position:absolute;bottom:6mm;left:0;right:0;padding:0 14mm;display:flex;justify-content:space-between;font-size:9px;color:#777;border-top:1px solid #ddd;padding-top:3px">
+      <span>ENJET-QUO-ENG-${_seq} REV(00)</span><span>ENJET INC., LTD.</span>
+    </div>
+  </div>`;
+}
+
+function updateQuotePreviewKR() {
   const dateVal = get("q-date");
   let dateKor = "-";
   if(dateVal) {
