@@ -1179,7 +1179,7 @@
                   style="padding:8px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">
                   📋 복사
                 </button>
-                <button onclick="saveSLMtgResult()"
+                <button id="slMtgSaveBtn" onclick="saveSLMtgResult()"
                   style="padding:8px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
                   💾 SP 저장 + Todo 생성
                 </button>
@@ -1378,7 +1378,8 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
               <div>
                 <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">고객사 <span style="color:var(--t3);font-weight:400">(미확정 가능)</span></label>
-                <input class="si" type="text" id="mtgdb-company" placeholder="예: 셀러메드 (선택사항)" style="width:100%">
+                <input class="si" type="text" id="mtgdb-company" placeholder="예: 셀러메드 (선택사항)" style="width:100%"
+                  oninput="onMtgCompanyInput(this.value)">
               </div>
               <div>
                 <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">프로젝트코드 <span style="color:var(--t3);font-weight:400">(선택)</span></label>
@@ -1439,7 +1440,8 @@
 
               <!-- 고객사 참석자 -->
               <div>
-                <label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:5px">🏭 고객사 참석자</label>
+                <label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:5px">🏭 고객사 참석자 <span style="font-weight:400;color:var(--t3)">(고객사DB에서 자동완성)</span></label>
+                <div id="mtg-attendees-hint" style="display:none;font-size:12px;color:var(--g);background:var(--gd);padding:5px 8px;border-radius:6px;margin-bottom:5px"></div>
                 <div class="mtg-tag-box" id="mtg-attendees-tags" style="border-color:var(--g)"></div>
                 <div style="display:flex;gap:6px;margin-top:5px">
                   <input class="si" type="text" id="mtg-attendees-input" placeholder="이름 입력 후 Enter (예: 홍길동 부장)"
@@ -6202,7 +6204,6 @@ async function createPlannerTask(planId, bucketId, title, notes, assignee, dueDa
     planId, bucketId,
     title: title.substring(0,255),
     orderHint: " !",
-    notes: notes ? {description: notes} : undefined,
   };
   if(dueDate) {
     try { body.dueDateTime = new Date(dueDate).toISOString(); } catch(e){}
@@ -6213,7 +6214,28 @@ async function createPlannerTask(planId, bucketId, title, notes, assignee, dueDa
     body:JSON.stringify(body)
   });
   if(!r.ok) { const e=await r.json(); throw new Error("태스크 생성 실패: "+e.error?.message); }
-  return await r.json();
+  const task = await r.json();
+
+  // notes(설명)는 별도 PATCH로 저장 (Graph API 요구사항)
+  if(notes && task.id) {
+    try {
+      const detailR = await fetch("https://graph.microsoft.com/v1.0/planner/tasks/"+task.id+"/details", {
+        headers:{"Authorization":"Bearer "+t}
+      });
+      const detail = await detailR.json();
+      const etag = detail["@odata.etag"];
+      await fetch("https://graph.microsoft.com/v1.0/planner/tasks/"+task.id+"/details", {
+        method:"PATCH",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":"Bearer "+t,
+          "If-Match": etag
+        },
+        body: JSON.stringify({ description: notes.substring(0,1000) })
+      });
+    } catch(e) { console.warn("Planner notes 저장 실패:", e.message); }
+  }
+  return task;
 }
 
 // 회의록 → Planner 태스크 생성 (메인)
@@ -6316,13 +6338,20 @@ function switchMtgTab(n) {
 }
 
 // ━━ 탭3: 직접 작성 → 파일로 저장 ━━
+let _slMtgSaving = false;
 async function saveMtgDirectAsFile() {
+  if(_slMtgSaving) return;
   const content = document.getElementById("slMtgDirectContent")?.value?.trim();
   if(!content) { alert("회의록 내용을 입력해주세요."); return; }
 
   const actId = window._slMinutesActId;
   const act = slData.find(x=>x.id===actId);
   if(!act) return;
+
+  // 저장 버튼 비활성화
+  const saveBtn = document.getElementById("slMtgSaveBtn");
+  if(saveBtn) { saveBtn.disabled=true; saveBtn.textContent="저장 중..."; }
+  _slMtgSaving = true;
 
   const date = document.getElementById("slMtgDate3")?.value || new Date().toISOString().split("T")[0];
   const attendees = document.getElementById("slMtgAttendees3")?.value || "";
@@ -6370,13 +6399,16 @@ async function saveMtgDirectAsFile() {
     act.lastActivity = date;
     await saveSLToSP();
     renderSLAll();
-    // 성공 후 파일 목록으로
     document.getElementById("slMtgDirectContent").value = "";
     document.getElementById("slMtgFileName3").value = "";
     await loadSLMinutesFiles(actId);
     switchMtgTab(1);
+    _slMtgSaving = false;
+    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Todo 생성"; }
     alert(`✅ 회의록 저장 완료!\n파일명: ${fileName}`);
   } catch(e) {
+    _slMtgSaving = false;
+    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Todo 생성"; }
     alert("저장 실패: "+e.message);
   }
 }
@@ -6630,10 +6662,15 @@ function copySLMtgResult() {
 let _slMtgAudioFile = null; // 업로드된 오디오 파일 보관
 
 async function saveSLMtgResult() {
+  if(_slMtgSaving) return;
   const act = slData.find(x=>x.id===_slMtgActId);
   if(!act) return;
   const txt = document.getElementById("slMtgResultContent")?.value||"";
   if(!txt) return;
+
+  const saveBtn = document.getElementById("slMtgSaveBtn");
+  if(saveBtn) { saveBtn.disabled=true; saveBtn.textContent="저장 중..."; }
+  _slMtgSaving = true;
 
   const today = document.getElementById("slMtgDate")?.value || new Date().toISOString().split("T")[0];
   const location = document.getElementById("slMtgLocation")?.value||"";
@@ -6749,7 +6786,13 @@ async function saveSLMtgResult() {
     }
     switchMtgTab(1);
     await loadSLMinutesFiles(_slMtgActId);
-  } catch(e) { alert("저장 실패: "+e.message); }
+    _slMtgSaving = false;
+    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Todo 생성"; }
+  } catch(e) {
+    _slMtgSaving = false;
+    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Todo 생성"; }
+    alert("저장 실패: "+e.message);
+  }
 }
 
 // 회의록 파일 삭제/이름변경
@@ -10267,22 +10310,29 @@ function showMtgSuggest(type, inputEl) {
   const suggest = document.getElementById(`mtg-${type}-suggest`);
   if(!suggest || !q) { hideMtgSuggest(type); return; }
 
-  // 자동완성 소스: 팀원(영업담당자) or 고객 담당자
   let candidates = [];
   if(type === "sales" || type === "author") {
-    // ENJET 팀원 (acct + 기존 영업담당자 목록)
+    // ENJET 팀원
     const teamNames = [...new Set([
       acct?.name,
       ...(slData||[]).map(x=>x.salesMgr).filter(Boolean),
-      ...(window._mtgLogs||[]).map(x=>x.salesMgr).filter(Boolean),
+      ...(window._mtgLogs||[]).flatMap(x=>Array.isArray(x.salesMgr)?x.salesMgr:[x.salesMgr]).filter(Boolean),
     ].filter(Boolean))];
     candidates = teamNames.filter(n=>n.toLowerCase().includes(q));
   } else {
-    // 고객사 담당자 (CD에서)
-    candidates = (CD||[])
-      .filter(r=>(r["이름"]||"").toLowerCase().includes(q) || (r["회사"]||"").toLowerCase().includes(q))
-      .slice(0,8)
-      .map(r=>r["이름"]+(r["회사"]?" ("+r["회사"]+")":""));
+    // 고객사 참석자: 현재 입력된 고객사 기준으로 CD 필터링
+    const curCompany = document.getElementById("mtgdb-company")?.value?.trim();
+    const cdList = CD||[];
+    // 고객사 입력됐으면 해당 회사 우선, 없으면 전체
+    const filtered = curCompany
+      ? cdList.filter(r=>r["회사"]===curCompany || (r["이름"]||"").toLowerCase().includes(q) || (r["회사"]||"").toLowerCase().includes(q))
+      : cdList.filter(r=>(r["이름"]||"").toLowerCase().includes(q)||(r["회사"]||"").toLowerCase().includes(q));
+    candidates = filtered.slice(0,8).map(r=>{
+      const name = r["이름"]||"";
+      const co = r["회사"]||"";
+      const title = r["직함"]||"";
+      return `${name}${title?" "+title:""}${co&&co!==curCompany?" ("+co+")":""}`;
+    }).filter(Boolean);
   }
 
   if(!candidates.length) { hideMtgSuggest(type); return; }
@@ -10310,6 +10360,19 @@ function selectMtgSuggest(type, val) {
 }
 
 // openMtgDBModal - 태그 초기화 포함
+// 고객사 입력 시 해당 회사 담당자 힌트 표시
+function onMtgCompanyInput(company) {
+  if(!company || !CD) return;
+  const coContacts = CD.filter(r=>r["회사"]===company);
+  if(!coContacts.length) return;
+  // 참석자 입력창에 힌트 표시
+  const hint = document.getElementById("mtg-attendees-hint");
+  if(hint) {
+    hint.textContent = `💡 ${company} 담당자: ${coContacts.slice(0,5).map(r=>r["이름"]+(r["직함"]?" "+r["직함"]:"")).join(", ")}`;
+    hint.style.display = "block";
+  }
+}
+
 function openMtgDBModal() {
   const modal = document.getElementById("mtgDBModal");
   if(!modal) return;
@@ -10330,17 +10393,31 @@ function openMtgDBModal() {
   document.getElementById("mtgdb-type").value = "영업미팅";
   document.getElementById("mtgdb-place").value = "";
   document.getElementById("mtgdb-content").value = "";
+  const hint = document.getElementById("mtg-attendees-hint");
+  if(hint) hint.style.display = "none";
   const fi = document.getElementById("mtgdb-file"); if(fi) fi.value = "";
   modal.style.display = "flex";
 }
 
 function closeMtgDBModal() {
   document.getElementById("mtgDBModal").style.display = "none";
+  _mtgSaving = false; // 닫으면 항상 해제
+  // 버튼 복원
+  const saveBtn = document.querySelector("#mtgDBModal button[onclick='saveMtgDBEntry()']");
+  if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 저장"; }
 }
 
+let _mtgSaving = false; // 중복 저장 방지
+
 async function saveMtgDBEntry() {
+  if(_mtgSaving) return; // 이미 저장 중이면 무시
   const content = document.getElementById("mtgdb-content")?.value?.trim();
   if(!content) { alert("회의 내용을 입력해주세요."); return; }
+
+  // 저장 버튼 비활성화
+  const saveBtn = document.querySelector("#mtgDBModal button[onclick='saveMtgDBEntry()']");
+  if(saveBtn) { saveBtn.disabled=true; saveBtn.textContent="저장 중..."; }
+  _mtgSaving = true;
 
   const dateVal   = document.getElementById("mtgdb-date")?.value||new Date().toISOString().split("T")[0];
   const company   = document.getElementById("mtgdb-company")?.value?.trim();
@@ -10401,6 +10478,7 @@ async function saveMtgDBEntry() {
   await saveMtgLogsToSP();
   renderMtgLog(window._mtgLogs);
   closeMtgDBModal();
+  _mtgSaving = false;
 
   // 영업활동 연결 제안 (고객사 입력된 경우)
   if(company) {
@@ -10991,9 +11069,8 @@ async function loadMtgLogsFromSP() {
     const fd = await gGet("/drives/"+spDrive+"/root:/"+enc);
     const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
     window._mtgLogs = await res.json();
-  } catch(e){window._mtgLogs=[];}
-  renderMtgLogTable();
-  const el=document.getElementById("mtgLogUpd"); if(el) el.textContent="로드:"+new Date().toLocaleTimeString("ko-KR");
+  } catch(e){ window._mtgLogs=[]; }
+  renderMtgLog(window._mtgLogs); // ← 신버전 (KPI + 필터 포함)
 }
 function filterMtgLog(){
   renderMtgLog(window._mtgLogs||[]);
