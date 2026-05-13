@@ -1336,7 +1336,7 @@
 
             <!-- 파일 업로드 존 -->
             <input type="file" id="slMtgFileInput" style="display:none"
-              accept="audio/*,video/*,text/*,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.mp3,.mp4,.m4a,.wav,.webm,.txt,.vtt,.srt,.docx"
+              accept="audio/*,video/*,text/*,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.mp3,.mp4,.m4a,.wav,.webm,.amr,.3gp,.3gpp,.aac,.flac,.ogg,.txt,.vtt,.srt,.docx"
               onchange="handleSLMtgFile(this.files[0])">
             <label for="slMtgFileInput" id="slMtgDropZone"
               style="border:2px dashed var(--border2);border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;background:var(--bg3);display:block"
@@ -4153,7 +4153,7 @@ function renderBars(data,label) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 미팅 회의록 자동 요약 시스템
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const AUDIO_EXTS = ["mp3","mp4","m4a","wav","webm","ogg"];
+const AUDIO_EXTS = ["mp3","mp4","m4a","wav","webm","amr","3gp","3gpp","aac","flac","oga","ogg"];
 const TEXT_EXTS  = ["txt","vtt","srt","docx"];
 const MTG_FOLDER = "📦영업/99.Dashboard(real-time)/meetings";
 let currentSummary = "";
@@ -4240,9 +4240,28 @@ async function handleFile(file) {
 
 // Whisper STT
 async function whisperSTT(file, apiKey) {
-  showProgress(20, "🎙️ Whisper STT 변환 중... (파일 크기에 따라 수분 소요)");
+  // Whisper 지원 포맷 확인
+  const WHISPER_OK = ["flac","m4a","mp3","mp4","mpeg","mpga","oga","ogg","wav","webm"];
+  const ext = file.name.split(".").pop().toLowerCase();
+  
+  let uploadFile = file;
+  let uploadName = file.name;
+
+  if(!WHISPER_OK.includes(ext)) {
+    // 지원 안 되는 포맷 (갤럭시 AMR 등) → WebAudio로 WAV 변환
+    slMtgShowProgress(15, "🔄 오디오 포맷 변환 중... (갤럭시 녹음 파일)");
+    try {
+      uploadFile = await convertToWav(file);
+      uploadName = file.name.replace(/\.[^.]+$/, ".wav");
+    } catch(convErr) {
+      console.warn("WAV 변환 실패, 원본으로 시도:", convErr.message);
+      // 변환 실패해도 원본으로 시도
+    }
+  }
+
+  slMtgShowProgress(20, "🎙️ Whisper STT 변환 중... (파일 크기에 따라 1~3분 소요)");
   const form = new FormData();
-  form.append("file", file, file.name);
+  form.append("file", uploadFile, uploadName);
   form.append("model", "whisper-1");
   form.append("language", "ko");
   form.append("response_format", "text");
@@ -4257,8 +4276,69 @@ async function whisperSTT(file, apiKey) {
     throw new Error("Whisper 오류: " + (err.error?.message || r.status));
   }
   const text = await r.text();
-  showProgress(55, "✅ 음성 변환 완료! (" + text.length + "자)");
+  slMtgShowProgress(55, "✅ 음성 변환 완료! (" + text.length + "자)");
   return text;
+}
+
+// 오디오 파일 → WAV 변환 (WebAudio API 사용, 갤럭시 AMR/3GPP 등 지원)
+async function convertToWav(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const arrayBuffer = e.target.result;
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        
+        // WAV 인코딩
+        const wav = audioBufferToWav(audioBuffer);
+        const blob = new Blob([wav], { type: "audio/wav" });
+        audioCtx.close();
+        resolve(blob);
+      } catch(err) {
+        reject(new Error("오디오 디코딩 실패: " + err.message));
+      }
+    };
+    reader.onerror = () => reject(new Error("파일 읽기 실패"));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// AudioBuffer → WAV Blob 변환
+function audioBufferToWav(buffer) {
+  const numCh = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const length = buffer.length * numCh * 2; // 16bit
+  const wavBuf = new ArrayBuffer(44 + length);
+  const view = new DataView(wavBuf);
+
+  function writeStr(offset, str) {
+    for(let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  }
+  writeStr(0, "RIFF");
+  view.setUint32(4, 36 + length, true);
+  writeStr(8, "WAVE");
+  writeStr(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);          // PCM
+  view.setUint16(22, numCh, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numCh * 2, true);
+  view.setUint16(32, numCh * 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, "data");
+  view.setUint32(40, length, true);
+
+  // 샘플 쓰기 (스테레오면 인터리브)
+  let offset = 44;
+  for(let i = 0; i < buffer.length; i++) {
+    for(let ch = 0; ch < numCh; ch++) {
+      const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+  return wavBuf;
 }
 
 // 텍스트 파일 읽기
@@ -7717,7 +7797,7 @@ function handleSLMtgDrop(e) {
 
 async function handleSLMtgFile(file) {
   if(!file) return;
-  const AUDIO_EXTS = ["mp3","mp4","m4a","wav","webm"];
+  const AUDIO_EXTS = ["mp3","mp4","m4a","wav","webm","amr","3gp","3gpp","aac","flac","oga","ogg"];
   const ext0 = file.name.split(".").pop().toLowerCase();
   if(AUDIO_EXTS.includes(ext0)) _slMtgAudioFile = file;
   else _slMtgAudioFile = null;
