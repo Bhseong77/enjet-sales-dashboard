@@ -1123,18 +1123,23 @@
                 style="width:100%;height:200px;resize:vertical;font-size:14px;line-height:1.7"></textarea>
             </div>
 
-            <!-- ✅ 액션아이템 필수 입력 -->
-            <div style="margin-bottom:10px;border:1.5px solid var(--p);border-radius:10px;padding:12px;background:#fff">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                <div style="font-size:14px;font-weight:800;color:var(--p)">📋 액션아이템 <span style="color:var(--r);font-size:12px">* 1개 이상 필수</span></div>
-                <button onclick="addActionItemRow3()" type="button"
-                  style="padding:3px 10px;border-radius:6px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">
-                  + 추가
-                </button>
+              <div id="slActionItemPanel3" style="margin-bottom:10px;border:1.5px solid var(--p);border-radius:10px;padding:12px;background:#fff">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <div style="font-size:14px;font-weight:800;color:var(--p)">
+                    📋 액션아이템
+                    <span style="color:var(--t3);font-size:12px;font-weight:500"> (없으면 회의록만 저장)</span>
+                  </div>
+                  <button onclick="addActionItemRow3()" type="button"
+                    style="padding:3px 10px;border-radius:6px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                    + 추가
+                  </button>
+                </div>
+                <div id="slActionItemList3" style="display:flex;flex-direction:column;gap:6px"></div>
+                <div id="slActionItemHint" style="display:none;font-size:13px;color:var(--r);font-weight:700;margin-top:6px;padding:6px 10px;background:#fff0f0;border-radius:6px;border:1px solid var(--rd)">
+                  ⚠️ 액션아이템을 입력하거나, 저장 버튼을 누르면 선택할 수 있어요.
+                </div>
+                <div style="font-size:12px;color:var(--t3);margin-top:6px">💡 Planner에 Todo로 등록됩니다. 담당자(클릭 선택)와 기한을 입력하세요.</div>
               </div>
-              <div id="slActionItemList3" style="display:flex;flex-direction:column;gap:6px"></div>
-              <div style="font-size:12px;color:var(--t3);margin-top:6px">💡 Planner에 그대로 Todo로 등록됩니다. 담당자와 기한을 꼭 입력하세요.</div>
-            </div>
 
             <div style="margin-bottom:8px">
               <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">💾 파일명</label>
@@ -4786,10 +4791,11 @@ function renderExhTable(data) {
       <td style="font-size:14px">${[e.country,e.city].filter(Boolean).join(" / ")||"-"}</td>
       <td style="font-size:13px;color:var(--t2)">${e.venue||"-"}</td>
       <td><input value="${(e.manager||"").replace(/"/g,"&quot;")}" placeholder="담당자"
-        onkeydown="if(event.key==='Enter')this.blur()"
-        style="width:100%;padding:3px 6px;border:1px solid transparent;border-radius:4px;font-size:14px;font-family:var(--s);background:transparent;cursor:text;min-width:70px"
+        readonly
+        onclick="openHRPickerForExh('${e.id}',this)"
+        style="width:100%;padding:3px 6px;border:1px solid transparent;border-radius:4px;font-size:14px;font-family:var(--s);background:transparent;cursor:pointer;min-width:70px"
         onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
-        onblur="this.style.borderColor='transparent';this.style.background='transparent';updateExhField('${e.id}','manager',this.value)"></td>
+        onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td>
       <td><select onchange="updateExhField('${e.id}','status',this.value)"
         style="padding:2px 5px;border-radius:5px;border:1px solid var(--border2);font-size:13px;font-family:var(--s);background:#fff">
         ${["준비중","진행중","완료","취소"].map(s=>`<option${s===dispStatus?" selected":""}>${s}</option>`).join("")}
@@ -6511,7 +6517,7 @@ async function createPlannerTask(planId, bucketId, title, notes, assignee, dueDa
 // UI에서 확정된 액션아이템 배열로 Planner 태스크 생성
 async function createPlannerFromMtgItems(actId, items, mtgDate, company, pjcode, minutesUrl, minutesName, extraMeta) {
   const bucketName = company+(pjcode?"-"+pjcode:"");
-  const assignee  = extraMeta?.assignee||"";
+  const internalAssignee = extraMeta?.assignee||""; // 내부참석자 전체 (fallback)
   const dept      = extraMeta?.dept||"";
   const custAtts  = extraMeta?.custAttendees||"";
 
@@ -6519,7 +6525,7 @@ async function createPlannerFromMtgItems(actId, items, mtgDate, company, pjcode,
   const bucketId = await getOrCreateBucket(planId, bucketName);
   const token = await getToken();
 
-  const patchDetails = async(taskId) => {
+  const patchDetails = async(taskId, taskAssignee) => {
     try {
       const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,
         {headers:{"Authorization":"Bearer "+token}});
@@ -6527,29 +6533,29 @@ async function createPlannerFromMtgItems(actId, items, mtgDate, company, pjcode,
       const refs = {...(det.references||{})};
       if(minutesUrl) refs[encodeURIComponent(minutesUrl)] = {alias:minutesName||"회의록", type:"other", previewPriority:" !"};
       const metaLines = [
-        assignee  ? `[담당자] ${assignee}`       : "",
-        dept      ? `[협의부서] ${dept}`          : "",
-        custAtts  ? `[고객참석자] ${custAtts}`    : "",
-        minutesUrl? `[회의록URL] ${minutesUrl}`   : "",
-        minutesName?`[회의록명] ${minutesName}`   : "",
+        taskAssignee ? `[담당자] ${taskAssignee}` : "",  // 태스크별 담당자
+        dept         ? `[협의부서] ${dept}`        : "",
+        custAtts     ? `[고객참석자] ${custAtts}`  : "",
+        minutesUrl   ? `[회의록URL] ${minutesUrl}` : "",
+        minutesName  ? `[회의록명] ${minutesName}` : "",
       ].filter(Boolean).join("\n");
       await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,{
         method:"PATCH",
         headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":det["@odata.etag"]},
         body:JSON.stringify({references:refs, description:metaLines.substring(0,1000)})
       });
+      console.log("✅ details 저장:", taskAssignee, dept, custAtts, minutesName);
     } catch(e){ console.warn("details 저장 실패:", e.message); }
   };
 
   let created = 0;
   for(const item of items) {
+    // 행별 담당자 우선, 없으면 내부참석자 fallback
+    const taskAssignee = item.assignee || internalAssignee;
     const task = await createPlannerTask(planId, bucketId,
-      item.title,
-      "",
-      item.assignee||assignee,
-      item.dueDate
+      item.title, "", taskAssignee, item.dueDate
     );
-    await patchDetails(task.id);
+    await patchDetails(task.id, taskAssignee);
     created++;
   }
   return {created, bucketName};
@@ -6703,17 +6709,51 @@ function switchMtgTab(n) {
 
 // ━━ 탭3: 직접 작성 → 파일로 저장 ━━
 let _slMtgSaving = false;
+let _slMtgNoPlanner = false; // 액션아이템 없이 회의록만 저장할 때
 async function saveMtgDirectAsFile() {
   if(_slMtgSaving) return;
   const content = document.getElementById("slMtgDirectContent")?.value?.trim();
   if(!content) { alert("회의록 내용을 입력해주세요."); return; }
 
-  // ✅ 액션아이템 필수 검증
+  // ✅ 액션아이템 검증
   const actionItems = getActionItemsFromUI("slActionItemList3");
+
+  // 제목 비어있는 행 강조
+  const allRows = document.querySelectorAll("#slActionItemList3 div[id^='ai_']");
+  let hasEmpty = false;
+  allRows.forEach(row=>{
+    const titleInput = row.querySelector("input[type='text']");
+    if(titleInput && !titleInput.value.trim()) {
+      titleInput.style.borderColor = "var(--r)";
+      titleInput.style.background = "#fff0f0";
+      hasEmpty = true;
+    }
+  });
+
   if(actionItems.length === 0) {
-    alert("❗ 액션아이템을 1개 이상 입력해야 저장할 수 있습니다.\n\n[+ 추가] 버튼으로 액션아이템을 추가하세요.");
-    document.getElementById("slActionItemList3")?.scrollIntoView({behavior:"smooth", block:"nearest"});
+    // 액션아이템 없음 → 선택지 제공
+    const choice = confirm(
+      "⚠️ 액션아이템이 없습니다!\n\n" +
+      "• [확인] → 회의록만 SP 저장 (Planner 전송 안 함)\n" +
+      "• [취소] → 돌아가서 액션아이템 입력"
+    );
+    if(!choice) {
+      // 액션아이템 영역 빨간 테두리 강조
+      const panel = document.getElementById("slActionItemList3")?.closest("div");
+      if(panel) { panel.style.borderColor="var(--r)"; setTimeout(()=>panel.style.borderColor="var(--p)",3000); }
+      _slMtgSaving = false;
+      if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Planner 전송"; }
+      return;
+    }
+    // 회의록만 저장 (Planner 없이)
+    _slMtgNoPlanner = true;
+  } else if(hasEmpty) {
+    alert("❗ 액션아이템 제목을 입력해주세요.\n(빨간색 입력란 확인)");
+    _slMtgSaving = false;
+    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Planner 전송"; }
     return;
+  } else {
+    _slMtgNoPlanner = false;
   }
 
   const actId = window._slMinutesActId;
@@ -6783,22 +6823,27 @@ async function saveMtgDirectAsFile() {
     _slMtgSaving = false;
     if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Planner 전송"; }
 
-    // Planner Todo 생성 (UI 액션아이템 사용)
-    try {
-      const plResult = await createPlannerFromMtgItems(
-        actId, actionItems, date, act.company, act.pjcode,
-        d.webUrl, fileName,
-        {
-          assignee:    document.getElementById("slMtgInternalAttendees")?.value||"",
-          dept:        getSlMtgDepts(),
-          custAttendees: _slMtgCustTags.join(", ")
-        }
-      );
-      loadTodoFromPlanner(false).catch(()=>{});
-      alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n📋 Planner: "${plResult.bucketName}" 버킷에 ${plResult.created}개 Todo 생성`);
-    } catch(pe) {
-      alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n⚠️ Planner Todo 생성 실패: ${pe.message}`);
+    // Planner Todo 생성 (액션아이템 없으면 스킵)
+    if(_slMtgNoPlanner || actionItems.length === 0) {
+      alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n📋 Planner: 액션아이템 없어 전송하지 않음`);
+    } else {
+      try {
+        const plResult = await createPlannerFromMtgItems(
+          actId, actionItems, date, act.company, act.pjcode,
+          d.webUrl, fileName,
+          {
+            assignee:    document.getElementById("slMtgInternalAttendees")?.value||"",
+            dept:        getSlMtgDepts(),
+            custAttendees: _slMtgCustTags.join(", ")
+          }
+        );
+        loadTodoFromPlanner(true).catch(()=>{});
+        alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n📋 Planner: "${plResult.bucketName}" 버킷에 ${plResult.created}개 Todo 생성`);
+      } catch(pe) {
+        alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n⚠️ Planner Todo 생성 실패: ${pe.message}`);
+      }
     }
+    _slMtgNoPlanner = false;
   } catch(e) {
     _slMtgSaving = false;
     if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Todo 생성"; }
@@ -7189,7 +7234,7 @@ async function saveSLMtgResult() {
           }
         );
         console.log("✅ Planner Todo:", plResult.created+"개 생성, 버킷:", plResult.bucketName);
-        loadTodoFromPlanner(false).catch(()=>{});
+        loadTodoFromPlanner(true).catch(()=>{});
         alert("✅ 저장 완료!\n"+spPath+"/"+fileName+"\n\n📋 Planner: "+plResult.bucketName+" 버킷에 "+plResult.created+"개 Todo 생성");
       } catch(pe) {
         console.warn("Planner 생성 실패:", pe.message);
@@ -8095,10 +8140,11 @@ function renderSLTable(data) {
       </td>
       <td>
         <input value="${(r.salesMgr||"").replace(/"/g,"&quot;")}" placeholder="-"
-          onkeydown="if(event.key==='Enter')this.blur()"
-          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:14px;font-family:var(--s);background:transparent;cursor:text"
+          readonly
+          onclick="openHRPickerForField('${r.id}','salesMgr',this)"
+          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:14px;font-family:var(--s);background:transparent;cursor:pointer"
           onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
-          onblur="this.style.borderColor='transparent';this.style.background='transparent';updateSLField('${r.id}','salesMgr',this.value)">
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'">
       </td>
       ${fileCols}
       <td style="white-space:nowrap">
@@ -11386,7 +11432,7 @@ async function loadTodoFromPlanner(force=false) {
 
     // 4. 태스크별 details 조회 (첨부파일 references)
     const detailsMap = {};
-    await Promise.allSettled(tasks.slice(0,50).map(async task=>{
+    await Promise.allSettled(tasks.map(async task=>{
       try {
         const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${task.id}/details`,
           {headers:{"Authorization":"Bearer "+t}});
@@ -11593,10 +11639,11 @@ function renderTodo(data) {
       </td>
       <td>
         <input type="text" value="${(t.assignee||"").replace(/"/g,"&quot;")}" placeholder="담당자"
-          onkeydown="if(event.key==='Enter')this.blur()"
-          onblur="updateTodoField('${t.id}','assignee',this.value)"
-          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--s);background:transparent;cursor:text"
-          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'">
+          readonly
+          onclick="openHRPickerForTodo('${t.id}',this)"
+          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--s);background:transparent;cursor:pointer"
+          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'">
       </td>
       <td>${custCell}</td>
       <td>
@@ -12167,7 +12214,15 @@ function renderHRPickerList(q) {
 }
 
 function selectHRPerson(name, rank, dept) {
-  const display = name; // 이름만 (직급 제외 - 필드에 간결하게)
+  const display = name;
+
+  // callback 모드 (테이블 셀 직접 업데이트)
+  if(_hrPickerMode === "callback" && _hrPickerCallback) {
+    _hrPickerCallback(display);
+    _hrPickerCallback = null;
+    document.getElementById("hrPickerModal").style.display = "none";
+    return;
+  }
 
   if(_hrPickerMode === "tag" && _hrPickerTagType) {
     // mtg 태그 박스에 추가
@@ -12282,19 +12337,35 @@ let _actionItems = []; // [{title, assignee, dueDate}]
 
 function makeActionItemRow(item={}, listId="slActionItemList") {
   const id = "ai_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);
+  // 담당자 기본값: 로그인한 사용자 이름
+  const defaultAssignee = item.assignee || acct?.name || "";
   const row = document.createElement("div");
   row.id = id;
   row.style.cssText = "display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;background:var(--bg3);border-radius:7px;padding:7px 10px;border:1px solid var(--border)";
+
   row.innerHTML = `
     <input type="text" placeholder="📌 액션아이템 제목 *" value="${(item.title||"").replace(/"/g,"&quot;")}"
+      oninput="this.parentElement.style.borderColor=this.value.trim()?'var(--border)':'var(--r)'"
       style="padding:5px 8px;border:1px solid var(--border2);border-radius:5px;font-size:13px;font-family:var(--s);width:100%">
-    <input type="text" placeholder="담당자" value="${(item.assignee||"").replace(/"/g,"&quot;")}"
-      style="padding:5px 8px;border:1px solid var(--border2);border-radius:5px;font-size:13px;font-family:var(--s);width:90px">
-    <input type="date" value="${item.dueDate||""}"
-      style="padding:5px 8px;border:1px solid var(--border2);border-radius:5px;font-size:13px;font-family:var(--s);width:130px">
-    <button type="button" onclick="this.closest('div').remove()"
+    <input type="text" placeholder="담당자" value="${defaultAssignee.replace(/"/g,"&quot;")}"
+      readonly
+      onclick="openHRPickerForAI(this)"
+      style="padding:5px 8px;border:1px solid var(--border2);border-radius:5px;font-size:13px;font-family:var(--s);width:90px;cursor:pointer;background:#fff"
+      title="클릭하여 담당자 선택">
+    <input type="date" value="${item.dueDate||""}" placeholder="마감일"
+      style="padding:5px 8px;border:1px solid var(--border2);border-radius:5px;font-size:13px;font-family:var(--s);width:130px"
+      title="마감일 선택">
+    <button type="button" onclick="this.closest('div[id]').remove()"
       style="padding:4px 8px;border-radius:5px;border:none;background:var(--rd);color:var(--r);font-size:14px;cursor:pointer">✕</button>`;
   return row;
+}
+
+// 액션아이템 행 담당자 HR 피커
+function openHRPickerForAI(inputEl) {
+  _hrPickerTargetId = "";
+  _hrPickerMode = "callback";
+  _hrPickerCallback = (name) => { if(inputEl) inputEl.value = name; };
+  _openHRPickerModal();
 }
 
 // AI생성 탭 - 요약 후 액션아이템 추출해서 패널에 표시
@@ -12333,7 +12404,8 @@ function initActionItemList3() {
   const list = document.getElementById("slActionItemList3");
   if(!list) return;
   list.innerHTML = "";
-  list.appendChild(makeActionItemRow({}, "slActionItemList3"));
+  // 빈 행 자동 추가 제거 - 사용자가 + 추가 버튼으로 추가
+  // (없으면 회의록만 저장 가능)
 }
 
 // 액션아이템 수집 (listId 기준)
@@ -12349,6 +12421,41 @@ function getActionItemsFromUI(listId) {
     };
   }).filter(i=>i.title);
 }
+
+// ── 영업활동 목록 테이블 담당자 셀 클릭 ──
+function openHRPickerForField(actId, field, inputEl) {
+  _hrPickerTargetId = "";
+  _hrPickerMode = "callback";
+  _hrPickerCallback = (name) => {
+    if(inputEl) { inputEl.value = name; inputEl.style.borderColor="transparent"; inputEl.style.background="transparent"; }
+    updateSLField(actId, field, name);
+  };
+  _openHRPickerModal();
+}
+
+// ── 전시회 담당자 셀 클릭 ──
+function openHRPickerForExh(exhId, inputEl) {
+  _hrPickerTargetId = "";
+  _hrPickerMode = "callback";
+  _hrPickerCallback = (name) => {
+    if(inputEl) { inputEl.value = name; inputEl.style.borderColor="transparent"; inputEl.style.background="transparent"; }
+    updateExhField(exhId, "manager", name);
+  };
+  _openHRPickerModal();
+}
+
+// ── 영업Todo 담당자 셀 클릭 ──
+function openHRPickerForTodo(taskId, inputEl) {
+  _hrPickerTargetId = "";
+  _hrPickerMode = "callback";
+  _hrPickerCallback = (name) => {
+    if(inputEl) { inputEl.value = name; inputEl.style.borderColor="transparent"; inputEl.style.background="transparent"; }
+    updateTodoField(taskId, "assignee", name);
+  };
+  _openHRPickerModal();
+}
+
+let _hrPickerCallback = null;
 
 function go(id, el) {
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
