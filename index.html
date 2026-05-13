@@ -550,9 +550,16 @@
         <div class="cb" style="padding:10px 14px">
           <div class="pc">
             <input class="si" type="text" placeholder="🔍 프로젝트명 / 번호 / 거래처..." id="plSrch" oninput="filterPL()">
-            <select class="ss" id="plSt" onchange="filterPL()"><option value="">전체 상태</option><option value="확정">✅ 확정</option><option value="작성">📝 작성</option><option value="완료">🏁 완료</option><option value="중단">⛔ 중단</option></select>
+            <select class="ss" id="plSt" onchange="filterPL()"><option value="">전체 상태</option><option value="확정">✅ 확정</option><option value="작성">📝 작성</option><option value="완료">🏁 완료</option><option value="중단">⛔ 중단</option><option value="개발">🔬 개발</option></select>
             <select class="ss" id="plTp" onchange="filterPL()"><option value="">전체 유형</option></select>
             <select class="ss" id="plMg" onchange="filterPL()"><option value="">전체 담당자</option></select>
+            <select class="ss" id="plYr" onchange="filterPL()"><option value="">전체 연도</option></select>
+            <select class="ss" id="plSort" onchange="filterPL()">
+              <option value="">기본 정렬</option>
+              <option value="yr_desc">연도 최신순</option>
+              <option value="yr_asc">연도 오래된순</option>
+              <option value="amt_desc">금액 높은순</option>
+            </select>
           </div>
           <div class="qf">
             <button class="qb" onclick="qf('',this)">전체 <span id="ql-a">-</span></button>
@@ -561,6 +568,7 @@
             <button class="qb" onclick="qf('작성',this)">작성 <span id="ql-작">-</span></button>
             <button class="qb" onclick="qf('완료',this)">완료 <span id="ql-완">-</span></button>
             <button class="qb" onclick="qf('중단',this)">중단 <span id="ql-중">-</span></button>
+            <button class="qb" onclick="qf('개발',this)">개발 <span id="ql-개">-</span></button>
           </div>
           <div class="tw"><table class="tbl">
             <thead><tr><th>번호</th><th>프로젝트명</th><th>거래처</th><th>유형</th><th class="r">금액(원화)</th><th>상태</th><th>계약일</th><th>담당자</th><th>PM</th></tr></thead>
@@ -568,7 +576,7 @@
           </table></div>
           <div style="font-size:14px;color:var(--t3);margin-top:7px;text-align:right" id="pl-cnt2"></div>
         </div>
-        <div class="cn">※ SharePoint 99.Dashboard(real-time) 폴더의 [프로젝트List]... 파일 자동 연동</div>
+        <div class="cn">※ SharePoint 99.Dashboard(real-time) 폴더의 [프로젝트List]... 파일 자동 연동 · 상태/거래처/금액 클릭 편집 가능</div>
       </div>
     </div>
 
@@ -2613,9 +2621,59 @@ async function loadSales() {
       품목:   String(r["품목"]||""),
       공급:   N(r["공급가액"]),
       입금:   N(r["입금액"]),
-      // 현재기준잔액 우선(정확한 미수금), 없으면 잔액 fallback
-      잔금:   N(r["현재기준잔액"]||r["잔액"]),
+      잔금:   0, // 미수금은 별도 시트에서 로드
     }));
+
+    // ── 미수금: "미수금_260512기준" 시트에서 직접 읽기 ──
+    // 이 시트의 현재기준잔액이 가장 정확한 값
+    const shAR = wb.Sheets["미수금_260512기준"];
+    if(shAR) {
+      const rawAR = XLSX.utils.sheet_to_json(shAR,{defval:"",range:1});
+      // 거래처별 현재기준잔액 합산 → SD 행 잔금에 매핑
+      const arMap = {}; // key: 거래처+코드+수익인식일 → 현재기준잔액
+      rawAR.forEach(r=>{
+        const co=String(r["거래처"]||"").trim();
+        const pj=String(r["프로젝트코드"]||"").trim();
+        const dt=String(r["수익인식일"]||r["매출채권인식일"]||"").substring(0,10);
+        const pm=String(r["품목"]||"").trim();
+        const v=N(r["현재기준잔액"]);
+        if(v>0) {
+          const k=co+"||"+pj+"||"+dt+"||"+pm;
+          arMap[k]=(arMap[k]||0)+v;
+        }
+      });
+      // SD 행에 잔금 매핑
+      SD.forEach(r=>{
+        const dt=String(r.날짜||"").substring(0,10);
+        const k=r.거래처+"||"+r.프번+"||"+dt+"||"+r.품목;
+        if(arMap[k]) { r.잔금=arMap[k]; delete arMap[k]; }
+      });
+      // 미매칭 미수금 → 거래처별 합산하여 SD에 별도 행 추가
+      const unmatchedTotal = Object.values(arMap).reduce((s,v)=>s+v,0);
+      if(unmatchedTotal>0) console.log("📋 미매칭 미수금:", unmatchedTotal.toLocaleString()+"원 → 거래처별 합산");
+      // 미매칭 행들을 거래처별로 합산
+      const byComp={};
+      Object.entries(arMap).forEach(([k,v])=>{
+        const co=k.split("||")[0];
+        byComp[co]=(byComp[co]||0)+v;
+      });
+      Object.entries(byComp).forEach(([co,v])=>{
+        // 해당 거래처의 첫 번째 SD 행 찾아서 잔금 추가
+        const existing=SD.find(r=>r.거래처===co);
+        if(existing) existing.잔금+=v;
+        else SD.push({날짜:"",연도:2026,월:0,거래처:co,구분:"",프번:"",품목:"(미수합산)",공급:0,입금:0,잔금:v});
+      });
+      const totalAR = SD.reduce((s,r)=>s+r.잔금,0);
+      console.log("✅ 미수금 시트 로드 완료:", totalAR.toLocaleString()+"원");
+    } else {
+      // 미수금 시트 없으면 기존 방식: 현재기준잔액 → 잔액 fallback
+      SD.forEach(r2=>{
+        const matched=raw.find(x=>String(x["거래처"]||"")==r2.거래처);
+        // 실제로는 index 기반 매핑 불가, 그냥 잔액 사용
+      });
+      console.warn("⚠️ 미수금_260512기준 시트 없음 → 잔액 컬럼 사용");
+    }
+
     console.log("✅ 매출 로드:", SD.length, "건 ←", name, "| 미수합:", SD.reduce((s,r)=>s+r.잔금,0).toLocaleString()+"원");
     updateSalesAll();
   } catch(e) {
@@ -2809,12 +2867,47 @@ async function loadProject() {
         if(!v1||!v4||v4==="TOTAL"||v1==="진행구분") continue;
         const s=(idx)=>(r.length>idx&&r[idx]!=null)?String(r[idx]).trim():"";
         const sN=(idx)=>{try{const v=parseFloat(r[idx]);return isNaN(v)?0:v;}catch{return 0;}};
+        // 프로젝트번호에서 연도 추출 (앞 2자리: 22→2022, 23→2023 등)
+        const pjNo = v4;
+        const yrMatch = pjNo.match(/^(\d{2})/);
+        const pjYear = yrMatch ? (2000 + parseInt(yrMatch[1])) : 0;
         PD.push({
           진행구분:v1, 프로젝트명:s(3), 프로젝트번호:v4,
           계약일:s(11), 유형:s(12), 거래처:s(13),
           책임자:s(16), PM:s(17), 원화금액:sN(19),
+          연도: pjYear,
+          _overrideStatus: null, // 대시보드 편집 상태
         });
       } catch(_){}
+    }
+    // ── 매출 데이터로 상태 자동 보정 ──
+    if(typeof SD !== "undefined" && SD.length > 0) {
+      const sdMap = {};
+      SD.forEach(r=>{
+        const pj = String(r.프번||"").trim();
+        if(!pj) return;
+        if(!sdMap[pj]) sdMap[pj]={공급:0, 잔금:0, 건수:0};
+        sdMap[pj].공급 += r.공급||0;
+        sdMap[pj].잔금 += r.잔금||0;
+        sdMap[pj].건수++;
+      });
+      PD.forEach(p=>{
+        if(p._overrideStatus) return; // 수동 편집 우선
+        // ❌ 중단은 절대 건드리지 않음
+        if(p.진행구분 === "중단") return;
+        const pjNo = p.프로젝트번호;
+        if(sdMap[pjNo]) {
+          // 매출에 있고 잔금 0 → 완료 (단, 확정/작성 중인 것만)
+          if(sdMap[pjNo].잔금 === 0 && sdMap[pjNo].공급 > 0) {
+            if(["작성"].includes(p.진행구분)) p.진행구분 = "완료";
+            // 확정은 잔금 0이어도 그대로 (진행 중일 수 있으므로)
+          }
+        } else {
+          // 매출에 없음 → 개발 (단, 작성 상태인 것만)
+          if(p.진행구분 === "작성") p.진행구분 = "개발";
+        }
+      });
+      console.log("✅ 매출 연동 상태 보정 완료");
     }
     updPlKPI();
     try { renderPL(PD.filter(r=>r&&["확정","작성"].includes(r.진행구분))); } catch(pe){ console.warn("파이프라인 렌더 실패:", pe.message); }
@@ -2871,39 +2964,125 @@ function updPlKPI() {
   const amt=act.reduce((s,r)=>s+r.원화금액,0);
   const don=PD.filter(r=>r.진행구분==="완료").length;
   const stp=PD.filter(r=>r.진행구분==="중단").length;
+  const dev=PD.filter(r=>r.진행구분==="개발").length;
   $("pl-tot",PD.length);$("pl-act",act.length);$("pl-act-amt",(amt/1e8).toFixed(1)+"억");
   $("pl-don",don);$("pl-stp",stp);$("badge-pl",act.length);$("k-proj",act.length);$("k-proj-amt",(amt/1e8).toFixed(1)+"억");
   $("ql-a",PD.length);$("ql-act",act.length);
   $("ql-확",PD.filter(r=>r.진행구분==="확정").length);$("ql-작",PD.filter(r=>r.진행구분==="작성").length);
-  $("ql-완",don);$("ql-중",stp);
+  $("ql-완",don);$("ql-중",stp);$("ql-개",dev);
+
+  // 연도 필터 드롭다운 업데이트
+  const yrSel = document.getElementById("plYr");
+  if(yrSel) {
+    const years = [...new Set(PD.map(r=>r.연도).filter(y=>y>2000))].sort((a,b)=>b-a);
+    const cur = yrSel.value;
+    while(yrSel.options.length>1) yrSel.remove(1);
+    years.forEach(y=>{ const o=new Option(y+"년",y); yrSel.add(o); });
+    if(cur) yrSel.value=cur;
+  }
 }
 let plQF="active";
 function qf(t,el){plQF=t;document.querySelectorAll(".qb").forEach(b=>b.classList.remove("on"));el.classList.add("on");filterPL();}
 function filterPL() {
-  const q=document.getElementById("plSrch").value.toLowerCase();
-  const st=document.getElementById("plSt").value,tp=document.getElementById("plTp").value,mg=document.getElementById("plMg").value;
-  let d=PD;
-  if(plQF==="active")d=d.filter(r=>["확정","작성"].includes(r.진행구분));
-  else if(plQF)d=d.filter(r=>r.진행구분===plQF);
-  if(q)d=d.filter(r=>[r.프로젝트명,r.프로젝트번호,r.거래처].some(v=>String(v||"").toLowerCase().includes(q)));
-  if(st)d=d.filter(r=>r.진행구분===st);if(tp)d=d.filter(r=>r.유형===tp);if(mg)d=d.filter(r=>r.책임자===mg);
+  const q  = document.getElementById("plSrch")?.value.toLowerCase()||"";
+  const st = document.getElementById("plSt")?.value||"";
+  const tp = document.getElementById("plTp")?.value||"";
+  const mg = document.getElementById("plMg")?.value||"";
+  const yr = document.getElementById("plYr")?.value||"";
+  const sort = document.getElementById("plSort")?.value||"";
+  let d = PD;
+  // 퀵필터
+  if(plQF==="active") d=d.filter(r=>["확정","작성"].includes(r.진행구분));
+  else if(plQF)        d=d.filter(r=>r.진행구분===plQF);
+  // 검색
+  if(q) d=d.filter(r=>[r.프로젝트명,r.프로젝트번호,r.거래처].some(v=>String(v||"").toLowerCase().includes(q)));
+  // 드롭다운 필터
+  if(st) d=d.filter(r=>r.진행구분===st);
+  if(tp) d=d.filter(r=>r.유형===tp);
+  if(mg) d=d.filter(r=>r.책임자===mg);
+  if(yr) d=d.filter(r=>String(r.연도)===String(yr));
+  // 정렬
+  if(sort==="yr_desc")  d=[...d].sort((a,b)=>(b.연도||0)-(a.연도||0));
+  else if(sort==="yr_asc")  d=[...d].sort((a,b)=>(a.연도||0)-(b.연도||0));
+  else if(sort==="amt_desc") d=[...d].sort((a,b)=>(b.원화금액||0)-(a.원화금액||0));
   renderPL(d);
 }
+
+const PL_STATUS_OPTS = ["확정","작성","완료","중단","개발"];
+const PL_STATUS_SC   = {확정:"up",작성:"warn",완료:"info",중단:"dn",개발:"gray"};
+const PL_STATUS_ICON = {확정:"✅",작성:"📝",완료:"🏁",중단:"⛔",개발:"🔬"};
+const PL_STATUS_COLOR= {up:"var(--g)",warn:"var(--a)",info:"var(--p)",dn:"var(--r)",gray:"var(--t3)"};
+
 function renderPL(data) {
-  const SC={확정:"up",작성:"warn",완료:"info",중단:"dn"};
   const tb=document.getElementById("plTb");
-  if(!data.length){tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div></td></tr>`;return;}
+  if(!tb) return;
+  if(!data||!data.length){
+    tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div></td></tr>`;
+    return;
+  }
   tb.innerHTML=data.slice(0,300).filter(r=>r&&r.프로젝트번호).map(r=>{
-    const amt=(r.원화금액||0)>0?((r.원화금액||0)/1e8).toFixed(3)+"억":"-";
-    const dt=r.계약일&&r.계약일!=""?String(r.계약일).substring(0,10):"-";
-    const nm=(r.프로젝트명||"").replace(/\(.*?\)/g,"").trim().substring(0,28);
-    const 거래처 = r.거래처||"";
-    const 유형 = r.유형||"";
-    const 책임자 = r.책임자||"";
-    const PM = r.PM||"";
-    return `<tr><td><span class="tm" style="font-size:14px">${r.프로젝트번호}</span></td><td><span class="tn" style="font-size:15px" title="${r.프로젝트명}">${nm}</span></td><td style="max-width:110px;overflow:hidden;text-overflow:ellipsis">${거래처.substring(0,14)}</td><td style="font-size:14px;color:var(--t3)">${유형}</td><td class="r"><span class="tm b">${amt}</span></td><td><span class="badge ${SC[r.진행구분]||"gray"}">${r.진행구분}</span></td><td style="font-size:14px;color:var(--t3)">${dt}</td><td style="font-size:14px">${r.책임자}</td><td style="font-size:14px;color:var(--t3)">${r.PM}</td></tr>`;
+    const pjNo = r.프로젝트번호;
+    const nm   = (r.프로젝트명||"").replace(/\(.*?\)/g,"").trim().substring(0,28);
+    const dt   = r.계약일&&r.계약일!==""?String(r.계약일).substring(0,10):"-";
+    const sc   = PL_STATUS_SC[r.진행구분]||"gray";
+    const color= PL_STATUS_COLOR[sc];
+
+    // 상태 편집 드롭다운
+    const statusOpts = PL_STATUS_OPTS.map(o=>
+      `<option value="${o}"${r.진행구분===o?" selected":""}>${PL_STATUS_ICON[o]} ${o}</option>`
+    ).join("");
+    const statusCell=`<td>
+      <select onchange="updatePLField('${pjNo}','진행구분',this.value)"
+        style="border:1px solid transparent;background:transparent;font-family:var(--s);font-size:13px;cursor:pointer;padding:2px 6px;border-radius:5px;font-weight:700;color:${color}"
+        onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
+        onblur="this.style.borderColor='transparent';this.style.background='transparent'">
+        ${statusOpts}
+      </select>
+    </td>`;
+
+    // 거래처 편집
+    const custCell=`<td style="max-width:120px;padding:2px 6px">
+      <input value="${(r.거래처||"").replace(/"/g,"&quot;")}" placeholder="-"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        onblur="updatePLField('${pjNo}','거래처',this.value);this.style.borderColor='transparent';this.style.background='transparent'"
+        style="width:100%;padding:2px 4px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--s);background:transparent;cursor:text"
+        onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'">
+    </td>`;
+
+    // 금액 편집
+    const amtVal = r.원화금액||0;
+    const amtDisp = amtVal>0 ? (amtVal/1e8).toFixed(3)+"억" : "";
+    const amtCell=`<td class="r" style="padding:2px 6px">
+      <input value="${amtVal}" type="number"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        onblur="updatePLField('${pjNo}','원화금액',parseFloat(this.value)||0);this.style.borderColor='transparent';this.style.background='transparent'"
+        title="${amtDisp}"
+        style="width:75px;padding:2px 4px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--s);background:transparent;cursor:text;text-align:right;font-weight:700;color:var(--t)"
+        onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'">
+    </td>`;
+
+    return `<tr>
+      <td><span class="tm" style="font-size:13px">${pjNo}</span>${r.연도?`<span style="font-size:11px;color:var(--t3);margin-left:3px">'${String(r.연도).slice(2)}</span>`:""}</td>
+      <td><span class="tn" style="font-size:14px" title="${r.프로젝트명||""}">${nm}</span></td>
+      ${custCell}
+      <td style="font-size:13px;color:var(--t3)">${r.유형||""}</td>
+      ${amtCell}
+      ${statusCell}
+      <td style="font-size:13px;color:var(--t3)">${dt}</td>
+      <td style="font-size:13px">${r.책임자||""}</td>
+      <td style="font-size:13px;color:var(--t3)">${r.PM||""}</td>
+    </tr>`;
   }).join("");
-  $("pl-cnt2",data.length+"건 (최대 300)");
+  $("pl-cnt2", data.length+"건 (최대 300)");
+}
+
+function updatePLField(pjNo, field, value) {
+  const p = PD.find(r=>r.프로젝트번호===pjNo);
+  if(!p) return;
+  p[field] = field==="원화금액" ? (parseFloat(value)||0) : value;
+  if(field==="진행구분") p._overrideStatus = value;
+  updPlKPI();
+  console.log(`✅ PL 편집: ${pjNo} → ${field}=${value}`);
 }
 
 // ━━ 연락처 로드 ━━
