@@ -359,6 +359,7 @@
       <div class="ni" onclick="go('quote-db',this)">📄 견적서 DB <span class="nb nbg" id="badge-qdb">0</span></div>
       <div class="ni" onclick="go('sales-meeting',this)">📝 회의록 DB <span class="nb nbg" id="badge-sm">0</span></div>
       <div class="ni" onclick="go('customer',this)">🏭 고객사 DB <span class="nb nbg" id="badge-ct">-</span></div>
+      <div class="ni" onclick="go('orgchart',this)">🏢 조직도</div>
       <div class="sb-sec">마케팅</div>
       <div class="ni" onclick="go('marketing',this)">📣 마케팅 활동</div>
       <div class="ni" onclick="go('mkt-meeting',this)">📝 미팅 로그 (마케팅)</div>
@@ -631,6 +632,87 @@
               <div class="empty" style="grid-column:1/-1"><div class="ei">👈</div><div class="et">좌측에서 회사를 선택하세요</div></div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🏢 조직도 탭 -->
+    <div class="page" id="tab-orgchart">
+
+      <!-- KPI -->
+      <div class="kr" style="grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:9px" id="org-kpi-row">
+        <div class="kpi"><div class="kl">👥 재직 인원</div><div class="kv" id="org-kpi-total" style="color:var(--p)">-</div><div class="ks" id="org-kpi-total-sub">명</div></div>
+        <div class="kpi"><div class="kl">📋 정규직</div><div class="kv" id="org-kpi-regular">-</div><div class="ks">명</div></div>
+        <div class="kpi"><div class="kl">🗓 입사예정</div><div class="kv" id="org-kpi-new" style="color:var(--g)">-</div><div class="ks">명</div></div>
+        <div class="kpi"><div class="kl">🏖 휴직</div><div class="kv" id="org-kpi-leave" style="color:var(--a)">-</div><div class="ks">명</div></div>
+        <div class="kpi"><div class="kl">🏢 부서 수</div><div class="kv" id="org-kpi-dept">-</div><div class="ks">개</div></div>
+      </div>
+
+      <!-- 조직도 뷰 선택 -->
+      <div class="card" style="margin-bottom:9px">
+        <div class="ch">
+          <div class="ct"><div class="ci c1">🏢</div>조직도
+            <span id="orgSyncBadge" style="font-size:13px;padding:1px 7px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">SharePoint 연동</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;gap:3px">
+              <button class="pp on" id="org-view-tree" onclick="setOrgView('tree',this)" style="padding:3px 12px;font-size:14px">🌳 트리</button>
+              <button class="pp" id="org-view-card" onclick="setOrgView('card',this)" style="padding:3px 12px;font-size:14px">📇 카드</button>
+            </div>
+            <select class="ss" id="orgDeptFilter" onchange="filterOrgChart()" style="min-width:130px">
+              <option value="">전체 부서</option>
+            </select>
+            <input class="si" type="text" id="orgSearch" placeholder="🔍 이름/직급 검색..." oninput="filterOrgChart()" style="width:160px">
+            <span style="font-size:13px;color:var(--t3)" id="orgUpd">-</span>
+            <button onclick="loadOrgData(true)" style="padding:4px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">🔄 동기화</button>
+          </div>
+        </div>
+        <div class="cb" style="padding:12px 16px;min-height:200px;overflow-x:auto" id="orgChartBody">
+          <div class="sw"><div class="spr"></div></div>
+        </div>
+      </div>
+
+      <!-- 인사현황 테이블 -->
+      <div class="card">
+        <div class="ch">
+          <div class="ct"><div class="ci c2">👥</div>인사현황</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <select class="ss" id="orgTableDept" onchange="renderOrgTable()" style="min-width:130px">
+              <option value="">전체 부서</option>
+            </select>
+            <select class="ss" id="orgTableStatus" onchange="renderOrgTable()">
+              <option value="">전체 상태</option>
+              <option value="재직">재직</option>
+              <option value="휴직">🏖 휴직</option>
+              <option value="예정">🗓 예정</option>
+            </select>
+            <select class="ss" id="orgTableType" onchange="renderOrgTable()">
+              <option value="">전체 고용형태</option>
+              <option value="정규직">정규직</option>
+              <option value="계약직">계약직</option>
+            </select>
+            <input class="si" type="text" id="orgTableSearch" placeholder="🔍 이름/부서..." oninput="renderOrgTable()" style="width:150px">
+          </div>
+        </div>
+        <div class="cb" style="padding:10px 14px">
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead><tr>
+                <th style="min-width:90px">부서</th>
+                <th style="min-width:70px">팀</th>
+                <th style="min-width:60px">직급</th>
+                <th style="min-width:70px">성명</th>
+                <th style="min-width:80px">입사일</th>
+                <th style="min-width:60px">근무지</th>
+                <th style="min-width:70px">고용형태</th>
+                <th style="min-width:60px">상태</th>
+              </tr></thead>
+              <tbody id="orgTableBody">
+                <tr><td colspan="8"><div class="empty"><div class="ei">👥</div><div class="et">데이터 로딩 중...</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="font-size:13px;color:var(--t3);margin-top:6px;text-align:right" id="orgTableCnt"></div>
         </div>
       </div>
     </div>
@@ -10028,7 +10110,7 @@ async function deleteSLActivity(id) {
 // 영업활동 탭 자동로드 → 통합 go 함수에서 처리
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
 
 // ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -11503,6 +11585,249 @@ function renderSlMtgCustPickerList(q) {
   }).join("");
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 🏢 조직도 시스템 (HR Dashboard 연동)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const HR_SP_SITE  = "enjetco.sharepoint.com:/sites/06.BackOffice";
+const HR_LIST     = "인사현황DB_최종";
+let _hrData = [];       // 전체 인사 데이터
+let _orgView = "tree";  // tree | card
+let _orgLoading = false;
+
+async function loadOrgData(force=false) {
+  if(_orgLoading) return;
+  _orgLoading = true;
+  const badge = document.getElementById("orgSyncBadge");
+  if(badge){ badge.textContent="로딩 중..."; badge.style.background="var(--yd)"; badge.style.color="var(--y)"; }
+
+  try {
+    // SharePoint 인사현황DB 조회
+    await getIds();
+    const t = await getToken();
+
+    // site ID 가져오기 (영업 대시보드와 동일한 사이트)
+    const siteR = await fetch(`https://graph.microsoft.com/v1.0/sites/${HR_SP_SITE}`,
+      {headers:{"Authorization":"Bearer "+t}});
+    const siteD = await siteR.json();
+    const hrSiteId = siteD.id;
+
+    // 인사현황 리스트 조회
+    let url = `https://graph.microsoft.com/v1.0/sites/${hrSiteId}/lists/${encodeURIComponent(HR_LIST)}/items?expand=fields&$top=999`;
+    let items = [];
+    while(url) {
+      const r = await fetch(url, {headers:{"Authorization":"Bearer "+t}});
+      if(!r.ok) throw new Error(`인사현황 조회 실패 (${r.status})`);
+      const d = await r.json();
+      items = items.concat((d.value||[]).map(i=>i.fields));
+      url = d["@odata.nextLink"]||null;
+    }
+    _hrData = items;
+    console.log("✅ 인사현황 로드:", _hrData.length+"명");
+    if(badge){ badge.textContent="✅ SP 연동"; badge.style.background="var(--gd)"; badge.style.color="var(--g)"; }
+    $("orgUpd","갱신: "+new Date().toLocaleTimeString("ko-KR"));
+  } catch(e) {
+    console.error("인사현황 로드 실패:", e.message);
+    if(badge){ badge.textContent="⚠️ 로드 실패"; badge.style.background="var(--rd)"; badge.style.color="var(--r)"; }
+    $("orgUpd","실패: "+e.message.substring(0,40));
+  }
+
+  renderOrgKPI();
+  renderOrgFilters();
+  renderOrgChart();
+  renderOrgTable();
+  _orgLoading = false;
+}
+
+// KPI
+function renderOrgKPI() {
+  const active = _hrData.filter(r=>r["field_4"]&&r["field_12"]!=="퇴직");
+  const working = active.filter(r=>r["field_12"]==="재직");
+  const regular = active.filter(r=>r["field_13"]==="정규직");
+  const planned = active.filter(r=>r["field_12"]==="예정");
+  const leave   = active.filter(r=>r["field_12"]==="휴직");
+  const depts   = new Set(active.map(r=>r["field_1"]).filter(Boolean));
+  $("org-kpi-total", working.length);
+  $("org-kpi-total-sub", `예정 ${planned.length}명 포함 총 ${active.length}명`);
+  $("org-kpi-regular", regular.length);
+  $("org-kpi-new", planned.length);
+  $("org-kpi-leave", leave.length);
+  $("org-kpi-dept", depts.size);
+}
+
+// 필터 셀렉트 갱신
+function renderOrgFilters() {
+  const active = _hrData.filter(r=>r["field_4"]&&r["field_12"]!=="퇴직");
+  const depts = [...new Set(active.map(r=>r["field_1"]).filter(Boolean))].sort();
+  ["orgDeptFilter","orgTableDept"].forEach(id=>{
+    const sel=document.getElementById(id); if(!sel) return;
+    const cur=sel.value;
+    sel.innerHTML=`<option value="">전체 부서</option>`+depts.map(d=>`<option value="${d}"${d===cur?" selected":""}>${d}</option>`).join("");
+  });
+}
+
+// 조직도 뷰 전환
+function setOrgView(v, el) {
+  _orgView = v;
+  document.querySelectorAll("#tab-orgchart .pp").forEach(b=>b.classList.remove("on"));
+  el.classList.add("on");
+  renderOrgChart();
+}
+
+function filterOrgChart() { renderOrgChart(); }
+
+function renderOrgChart() {
+  const el = document.getElementById("orgChartBody");
+  if(!el) return;
+  if(!_hrData.length) {
+    el.innerHTML=`<div class="empty"><div class="ei">🏢</div><div class="et">데이터 없음</div><div style="margin-top:10px"><button onclick="loadOrgData(true)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700">🔄 동기화</button></div></div>`;
+    return;
+  }
+  if(_orgView==="tree") renderOrgTree(el);
+  else renderOrgCard(el);
+}
+
+// 트리 뷰
+function renderOrgTree(el) {
+  const q = (document.getElementById("orgSearch")?.value||"").toLowerCase();
+  const deptF = document.getElementById("orgDeptFilter")?.value||"";
+
+  const active = _hrData.filter(r=>r["field_4"]&&r["field_12"]!=="퇴직");
+  let data = active;
+  if(deptF) data = data.filter(r=>r["field_1"]===deptF);
+  if(q) data = data.filter(r=>[r["field_4"],r["field_3"],r["field_1"],r["field_2"]].some(v=>String(v||"").toLowerCase().includes(q)));
+
+  // 부서별 그룹
+  const DEPT_COLOR = {
+    "경영전략본부":"#0f4c81","ES사업부":"#1a6bb5","기술연구소":"#00b4d8","미래성장전략팀":"#10b981"
+  };
+  const RANK_ORDER = ["대표","부사장","전무","이사","부장","차장","과장","대리","사원"];
+
+  const groups = {};
+  data.forEach(r=>{
+    const dept=r["field_1"]||"미분류";
+    if(!groups[dept]) groups[dept]=[];
+    groups[dept].push(r);
+  });
+
+  el.innerHTML = Object.entries(groups).map(([dept,members])=>{
+    const color = DEPT_COLOR[dept]||"var(--p)";
+    const sorted = [...members].sort((a,b)=>
+      (RANK_ORDER.indexOf(a["field_3"]||"")||99) - (RANK_ORDER.indexOf(b["field_3"]||"")||99)
+    );
+    return `
+      <div style="margin-bottom:16px">
+        <div style="font-size:13px;font-weight:800;color:${color};padding:6px 12px;background:${color}18;border-left:4px solid ${color};border-radius:0 6px 6px 0;margin-bottom:8px">
+          ${dept} <span style="font-size:12px;font-weight:500;opacity:.7">${members.length}명</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding-left:16px">
+          ${sorted.map(r=>orgPersonCard(r,color)).join("")}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+// 카드 뷰
+function renderOrgCard(el) {
+  const q = (document.getElementById("orgSearch")?.value||"").toLowerCase();
+  const deptF = document.getElementById("orgDeptFilter")?.value||"";
+  const active = _hrData.filter(r=>r["field_4"]&&r["field_12"]!=="퇴직");
+  let data = active;
+  if(deptF) data = data.filter(r=>r["field_1"]===deptF);
+  if(q) data = data.filter(r=>[r["field_4"],r["field_3"],r["field_1"]].some(v=>String(v||"").toLowerCase().includes(q)));
+
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">
+    ${data.map(r=>orgPersonCard(r,"var(--p)",true)).join("")}
+  </div>`;
+}
+
+function orgPersonCard(r, color, big=false) {
+  const name = r["field_4"]||"-";
+  const rank = r["field_3"]||"";
+  const dept = r["field_1"]||"";
+  const team = r["field_2"]||"";
+  const status = r["field_12"]||"재직";
+  const type = r["field_13"]||"";
+  const location = r["field_8"]||"";
+
+  const statusColor = status==="재직"?"var(--g)":status==="휴직"?"var(--a)":"var(--p)";
+  const initials = name.substring(0,1);
+
+  if(big) {
+    return `<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;transition:box-shadow .15s"
+      onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow=''">
+      <div style="width:48px;height:48px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800">${initials}</div>
+      <div style="text-align:center">
+        <div style="font-size:15px;font-weight:700;color:var(--t)">${name}</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">${rank} · ${dept}</div>
+        ${team?`<div style="font-size:11px;color:var(--t3)">${team}</div>`:""}
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center">
+        <span style="font-size:11px;padding:1px 6px;border-radius:8px;background:${statusColor}20;color:${statusColor};font-weight:600">${status}</span>
+        ${type?`<span style="font-size:11px;padding:1px 6px;border-radius:8px;background:var(--pd);color:var(--p);font-weight:600">${type}</span>`:""}
+      </div>
+    </div>`;
+  }
+  return `<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid ${color}40;border-radius:8px;padding:7px 10px;min-width:150px;max-width:200px"
+    title="${dept} ${team} | ${rank} | ${status}${location?" | "+location:""}">
+    <div style="width:32px;height:32px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">${initials}</div>
+    <div style="min-width:0">
+      <div style="font-size:13px;font-weight:700;color:var(--t);white-space:nowrap">${name}</div>
+      <div style="font-size:11px;color:var(--t3)">${rank}${team?" · "+team:""}</div>
+    </div>
+    <span style="font-size:11px;padding:1px 5px;border-radius:4px;background:${statusColor}20;color:${statusColor};font-weight:600;flex-shrink:0;margin-left:auto">${status==="재직"?"●":"○"}</span>
+  </div>`;
+}
+
+// 인사현황 테이블
+function renderOrgTable() {
+  const body = document.getElementById("orgTableBody");
+  if(!body) return;
+  const q = (document.getElementById("orgTableSearch")?.value||"").toLowerCase();
+  const dept = document.getElementById("orgTableDept")?.value||"";
+  const status = document.getElementById("orgTableStatus")?.value||"";
+  const type = document.getElementById("orgTableType")?.value||"";
+  const RANK_ORDER = ["대표","부사장","전무","이사","부장","차장","과장","대리","사원"];
+
+  const active = _hrData.filter(r=>r["field_4"]&&r["field_12"]!=="퇴직");
+  let filtered = active.filter(r=>{
+    if(dept && r["field_1"]!==dept) return false;
+    if(status && r["field_12"]!==status) return false;
+    if(type && r["field_13"]!==type) return false;
+    if(q) return [r["field_4"],r["field_1"],r["field_2"],r["field_3"]].some(v=>String(v||"").toLowerCase().includes(q));
+    return true;
+  }).sort((a,b)=>{
+    const da=a["field_1"]||""; const db=b["field_1"]||"";
+    if(da!==db) return da.localeCompare(db);
+    return (RANK_ORDER.indexOf(a["field_3"]||"")||99)-(RANK_ORDER.indexOf(b["field_3"]||"")||99);
+  });
+
+  if(!filtered.length){
+    body.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="ei">👥</div><div class="et">해당 인원 없음</div></div></td></tr>`;
+    $("orgTableCnt","");
+    return;
+  }
+
+  const STATUS_STYLE={재직:"background:#dcfce7;color:#166534",휴직:"background:#fef9c3;color:#854d0e",예정:"background:#dbeafe;color:#1e40af"};
+  const TYPE_STYLE={"정규직":"background:var(--pd);color:var(--p)","계약직":"background:var(--bg3);color:var(--t3)"};
+
+  body.innerHTML = filtered.map(r=>{
+    const ss = STATUS_STYLE[r["field_12"]]||"background:var(--bg3);color:var(--t3)";
+    const ts = TYPE_STYLE[r["field_13"]]||"";
+    const hireDate = (r["field_7"]||"").substring(0,10);
+    return `<tr>
+      <td style="font-size:14px;font-weight:600;color:var(--p)">${r["field_1"]||"-"}</td>
+      <td style="font-size:13px;color:var(--t3)">${r["field_2"]||"-"}</td>
+      <td style="font-size:13px">${r["field_3"]||"-"}</td>
+      <td style="font-size:14px;font-weight:700">${r["field_4"]||"-"}</td>
+      <td style="font-size:13px;color:var(--t3)">${hireDate||"-"}</td>
+      <td style="font-size:13px">${r["field_8"]||"-"}</td>
+      <td><span style="font-size:12px;padding:2px 8px;border-radius:8px;font-weight:600;${ts}">${r["field_13"]||"-"}</span></td>
+      <td><span style="font-size:12px;padding:2px 8px;border-radius:8px;font-weight:700;${ss}">${r["field_12"]||"-"}</span></td>
+    </tr>`;
+  }).join("");
+  $("orgTableCnt", `총 ${filtered.length}명`);
+}
+
 function go(id, el) {
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
   document.querySelectorAll(".ni").forEach(n=>n.classList.remove("on"));
@@ -11547,6 +11872,9 @@ function go(id, el) {
   }
   // 영업활동 Log 탭
   // 견적서 DB 탭
+  if(id==="orgchart") {
+    loadOrgData();
+  }
   if(id==="sales-todo") {
     loadTodoFromPlanner();
   }
