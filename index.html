@@ -1719,30 +1719,31 @@
         <div class="kpi c4"><div class="kl">완료</div><div class="kv"><span id="exh-sched-done">-</span><span style="font-size:15px;color:var(--t2)">개</span></div><div class="ks"><span class="badge up">완료</span></div></div>
       </div>
 
-      <!-- 전시회 일정 캘린더 뷰 -->
+      <!-- 전시회 일정 캘린더 (영업활동과 동일한 구조) -->
       <div class="card">
         <div class="ch">
           <div class="ct"><div class="ci c1">📅</div>국내/해외 전시회 일정
-            <span id="exhSyncBadge" style="font-size:14px;padding:1px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Teams 연동</span>
+            <span id="exhSyncBadge" style="font-size:14px;padding:1px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Outlook 그룹</span>
           </div>
-          <div style="display:flex;gap:6px;align-items:center">
-            <select class="ss" id="exhYearFilter" onchange="filterExhSched()" style="font-size:15px">
-              <option value="">전체연도</option>
-              <option value="2026" selected>2026년</option>
-              <option value="2027">2027년</option>
-            </select>
-            <select class="ss" id="exhTypeFilter" onchange="filterExhSched()" style="font-size:15px">
-              <option value="">전체</option>
-              <option value="국내">🇰🇷 국내</option>
-              <option value="해외">🌏 해외</option>
-            </select>
-            <button onclick="syncExhFromTeams()" style="padding:4px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">🔄 Teams 동기화</button>
-            <button onclick="openExhModal(null)" style="padding:4px 10px;border-radius:7px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;gap:3px">
+              <button class="pp on" id="exh-view-w" onclick="setExhView('week',this)" style="padding:3px 10px;font-size:15px">주간</button>
+              <button class="pp" id="exh-view-m" onclick="setExhView('month',this)" style="padding:3px 10px;font-size:15px">월간</button>
+              <button class="pp" id="exh-view-a" onclick="setExhView('all',this)" style="padding:3px 10px;font-size:15px">전체</button>
+            </div>
+            <div id="exhCalNav" style="display:flex;align-items:center;gap:4px">
+              <button onclick="exhNavPrev()" style="padding:3px 10px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:16px;cursor:pointer;font-weight:700;color:var(--t2)">◀</button>
+              <button onclick="exhNavToday()" id="exhNavLabel" style="padding:3px 10px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-weight:600;font-family:var(--s);color:var(--t);min-width:100px;text-align:center">이번 주</button>
+              <button onclick="exhNavNext()" style="padding:3px 10px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:16px;cursor:pointer;font-weight:700;color:var(--t2)">▶</button>
+              <button onclick="document.getElementById('exhCalDatePicker').showPicker?document.getElementById('exhCalDatePicker').showPicker():document.getElementById('exhCalDatePicker').click()" style="padding:3px 8px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:16px;cursor:pointer" title="날짜 선택">📅</button>
+              <input type="date" id="exhCalDatePicker" onchange="exhNavGoToDate(this.value)" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0">
+            </div>
+            <button onclick="syncExhFromTeams()" style="padding:4px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">🔄 동기화</button>
+            <button onclick="openExhModal(null)" style="padding:4px 10px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button>
           </div>
         </div>
-        <div class="cb" style="padding:0">
-          <!-- 타임라인 뷰 -->
-          <div id="exhTimeline" style="padding:12px 16px"></div>
+        <div class="cb" style="padding:12px 16px;min-height:120px" id="exhCalendar">
+          <div class="sw"><div class="spr"></div></div>
         </div>
         <div class="cn">※ Outlook 그룹 캘린더 실시간 연동 · 직접 추가/수정도 가능 · SharePoint 저장</div>
       </div>
@@ -4094,6 +4095,144 @@ async function testMktCalendar() {
   console.log("=== 테스트 완료 ===");
 }
 
+// ━━ 마케팅 전시회 캘린더 (영업활동과 동일 구조) ━━
+let exhView = "week";
+let exhNavBase = new Date();
+
+function setExhView(v, el) {
+  exhView = v;
+  document.querySelectorAll("#tab-marketing .pp").forEach(b=>b.classList.remove("on"));
+  el.classList.add("on");
+  exhNavBase = new Date();
+  exhNavUpdateLabel();
+  renderExhCalendar();
+}
+
+function exhNavUpdateLabel() {
+  const label = document.getElementById("exhNavLabel");
+  const nav   = document.getElementById("exhCalNav");
+  if(!label) return;
+  if(exhView === "all") { if(nav) nav.style.display="none"; return; }
+  if(nav) nav.style.display = "flex";
+  const y = exhNavBase.getFullYear(), m = exhNavBase.getMonth()+1;
+  if(exhView === "week") {
+    const mon = new Date(exhNavBase); mon.setDate(exhNavBase.getDate()-exhNavBase.getDay()+1);
+    const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+    const mStr = `${mon.getMonth()+1}/${mon.getDate()}`, sStr = `${sun.getMonth()+1}/${sun.getDate()}`;
+    const todayMon = new Date(); todayMon.setDate(todayMon.getDate()-todayMon.getDay()+1);
+    label.textContent = mon.toDateString()===todayMon.toDateString() ? "이번 주" : `${y}년 ${mStr}~${sStr}`;
+  } else {
+    const now = new Date();
+    label.textContent = (y===now.getFullYear()&&m===now.getMonth()+1) ? "이번 달" : `${y}년 ${m}월`;
+  }
+}
+
+function exhNavPrev() {
+  exhView==="week" ? exhNavBase.setDate(exhNavBase.getDate()-7) : exhNavBase.setMonth(exhNavBase.getMonth()-1);
+  exhNavUpdateLabel(); renderExhCalendar();
+}
+function exhNavNext() {
+  exhView==="week" ? exhNavBase.setDate(exhNavBase.getDate()+7) : exhNavBase.setMonth(exhNavBase.getMonth()+1);
+  exhNavUpdateLabel(); renderExhCalendar();
+}
+function exhNavToday() { exhNavBase=new Date(); exhNavUpdateLabel(); renderExhCalendar(); }
+function exhNavGoToDate(dateStr) {
+  if(!dateStr) return;
+  exhNavBase = new Date(dateStr);
+  exhNavUpdateLabel(); renderExhCalendar();
+  setTimeout(()=>{ const p=document.getElementById("exhCalDatePicker"); if(p) p.value=""; },100);
+}
+
+function renderExhCalendar() {
+  exhNavUpdateLabel();
+  const el = document.getElementById("exhCalendar");
+  if(!el) return;
+
+  // exhSchedule → 캘린더 이벤트 형식
+  const events = (exhSchedule||[]).map(e=>({
+    id: e.id,
+    title: e.name,
+    start: e.start,
+    end: e.end||e.start,
+    color: e.region==="해외" ? "var(--a)" : "var(--g)",
+    bg: e.region==="해외" ? "var(--ad)" : "var(--gd)",
+    badge: (e.region==="해외"?"🌏":"🇰🇷")+" "+e.type,
+  }));
+
+  if(exhView==="week") renderExhWeek(el, events);
+  else if(exhView==="month") renderExhMonth(el, events);
+  else renderExhList(el, events);
+}
+
+function renderExhWeek(el, events) {
+  const base = exhNavBase;
+  const now = new Date();
+  const mon = new Date(base); mon.setDate(base.getDate()-base.getDay()+1);
+  const days = Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
+  const KOR_DAY=["일","월","화","수","목","금","토"];
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+    ${days.map(d=>{
+      const ds = d.toISOString().split("T")[0];
+      const isToday = ds===now.toISOString().split("T")[0];
+      const dayEvts = events.filter(e=>e.start<=ds&&e.end>=ds);
+      return `<div style="border:1px solid var(--border);border-radius:8px;padding:8px;min-height:80px;${isToday?"background:var(--pd);border-color:var(--p)":""}">
+        <div style="font-size:14px;font-weight:700;color:${isToday?"var(--p)":"var(--t3)"};margin-bottom:4px">${KOR_DAY[d.getDay()]} ${d.getDate()}</div>
+        ${dayEvts.map(e=>`<div onclick="openExhModal(exhSchedule.find(x=>x.id==='${e.id}'))"
+          style="font-size:12px;padding:2px 5px;border-radius:4px;background:${e.bg};color:${e.color};margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer" title="${e.title}">${e.badge} ${e.title}</div>`).join("")}
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+function renderExhMonth(el, events) {
+  const base = exhNavBase;
+  const now = new Date();
+  const year=base.getFullYear(), month=base.getMonth();
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const KOR_DAY=["일","월","화","수","목","금","토"];
+  const todayStr=now.toISOString().split("T")[0];
+  let html=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">
+    ${KOR_DAY.map(d=>`<div style="text-align:center;font-size:12px;font-weight:700;color:var(--t3);padding:4px">${d}</div>`).join("")}
+  </div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">`;
+  for(let i=0;i<firstDay;i++) html+=`<div></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const isToday=ds===todayStr;
+    const dayEvts=events.filter(e=>e.start<=ds&&e.end>=ds);
+    html+=`<div style="border:1px solid var(--border);border-radius:6px;padding:4px;min-height:60px;${isToday?"background:var(--pd);border-color:var(--p)":""}">
+      <div style="font-size:12px;font-weight:700;color:${isToday?"var(--p)":"var(--t3)"};margin-bottom:2px">${d}</div>
+      ${dayEvts.map(e=>`<div onclick="openExhModal(exhSchedule.find(x=>x.id==='${e.id}'))"
+        style="font-size:11px;padding:1px 4px;border-radius:3px;background:${e.bg};color:${e.color};margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer" title="${e.title}">${e.title}</div>`).join("")}
+    </div>`;
+  }
+  el.innerHTML=html+"</div>";
+}
+
+function renderExhList(el, events) {
+  const sorted=[...exhSchedule].sort((a,b)=>(a.start||"").localeCompare(b.start||""));
+  if(!sorted.length){el.innerHTML=`<div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div></div>`;return;}
+  el.innerHTML=`<div style="display:flex;flex-direction:column;gap:6px">
+    ${sorted.map(e=>{
+      const color=e.region==="해외"?"var(--a)":"var(--g)";
+      const bg=e.region==="해외"?"var(--ad)":"var(--gd)";
+      return `<div onclick="openExhModal(exhSchedule.find(x=>x.id==='${e.id}'))"
+        style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:#fff;transition:background .15s"
+        onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='#fff'">
+        <div style="width:4px;height:40px;border-radius:2px;background:${color};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;color:var(--t)">${e.name}</div>
+          <div style="font-size:13px;color:var(--t3)">${e.start}${e.end&&e.end!==e.start?" ~ "+e.end:""} · ${e.venue||""} ${e.city||""}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+          <span style="font-size:12px;padding:2px 8px;border-radius:10px;font-weight:700;background:${bg};color:${color}">${e.region==="해외"?"🌏":"🇰🇷"} ${e.region}</span>
+          <span style="font-size:12px;color:var(--t3)">${e.type||""} · ${e.status||"준비중"}</span>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
 async function syncExhFromTeams() {
   $("exhSchedUpd", "Teams 동기화 중...");
   const badge = document.getElementById("exhSyncBadge");
@@ -4215,7 +4354,8 @@ async function syncExhFromTeams() {
     exhSchedule = [...teamsEvtsMerged, ...localOnly];
     exhSchedule.sort((a,b)=>(a.start||"").localeCompare(b.start||""));
     console.log("병합 결과:", exhSchedule.length, "개 (Teams:", teamsEvtsMerged.length, "/ 로컬전용:", localOnly.length, ")");
-    await saveExhToSP(); // 병합 결과 즉시 저장
+    await saveExhToSP();
+    renderExhCalendar();
     renderExhSched();
     $("exhSchedUpd", `✅ 동기화 완료: ${new Date().toLocaleTimeString("ko-KR")} (Teams ${teamsEvtsMerged.length}개 + 로컬 ${localOnly.length}개)`);
     const badge2 = document.getElementById("exhSyncBadge");
@@ -4238,6 +4378,7 @@ async function loadExhFromSP() {
     const data = await res.json();
     exhSchedule = data||[];
     exhSchedule.sort((a,b)=>a.start.localeCompare(b.start));
+    renderExhCalendar();
     renderExhSched();
     $("exhSchedUpd", "로드: "+new Date().toLocaleTimeString("ko-KR"));
   } catch(e) {
@@ -10701,7 +10842,11 @@ function go(id, el) {
     }
     if(window._exhSyncInterval) clearInterval(window._exhSyncInterval);
     window._exhSyncInterval=setInterval(()=>{
-      if(document.getElementById("tab-marketing")?.classList.contains("on")) syncExhFromTeams();
+      if(id==="marketing") {
+    exhNavBase = new Date();
+    exhNavUpdateLabel();
+    syncExhFromTeams();
+  }
       else clearInterval(window._exhSyncInterval);
     },3*60*1000);
   }
