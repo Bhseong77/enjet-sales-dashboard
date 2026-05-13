@@ -6156,6 +6156,21 @@ async function openSLProposalFiles(actId) {
       }
       body.appendChild(section);
     }
+    // SP 스캔 완료 후 act.files.proposal 전체 집계 → 건수 동기화
+    let totalProposalFiles = [];
+    for(const sub of allSubs) {
+      const subPath = basePath+"/"+sub;
+      try {
+        const enc = subPath.split("/").map(encodeURIComponent).join("/");
+        const fd3 = await gGet("/drives/"+spDrive+"/root:/"+enc+":/children");
+        (fd3.value||[]).filter(f=>!f.folder).forEach(f=>totalProposalFiles.push({name:f.name,url:f.webUrl,size:f.size,sub}));
+      } catch(e){}
+    }
+    if(!act.files) act.files={};
+    act.files.proposal = totalProposalFiles;
+    saveSLToSP().catch(()=>{});
+    renderSLAll();
+
     // 새 폴더 생성
     const addDiv = document.createElement("div");
     addDiv.style.cssText = "margin-top:16px;padding-top:14px;border-top:1px solid var(--border)";
@@ -6179,7 +6194,14 @@ async function _deleteProposalFile(fileId, fileName, actId) {
     const t = await getToken();
     await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
       {method:"DELETE", headers:{"Authorization":"Bearer "+t}});
-    await openSLProposalFiles(actId);
+    // act.files.proposal에서도 제거
+    const act = slData.find(x=>x.id===actId);
+    if(act?.files?.proposal) {
+      act.files.proposal = act.files.proposal.filter(f=>f.name!==fileName);
+      saveSLToSP().catch(()=>{});
+      renderSLAll();
+    }
+    await openSLProposalFiles(actId); // 모달도 갱신
   } catch(e) { alert("삭제 실패: "+e.message); }
 }
 
@@ -7300,6 +7322,15 @@ async function _deleteSLFile(fileId, fileName, actId, fileType) {
       {method:"DELETE", headers:{"Authorization":"Bearer "+t}}
     );
     if(!r.ok && r.status!==204) { const e=await r.json(); throw new Error(e.error?.message||r.status); }
+
+    // slData에서도 제거 → 건수 즉시 갱신
+    const act = slData.find(x=>x.id===actId);
+    if(act?.files?.[fileType]) {
+      act.files[fileType] = act.files[fileType].filter(f=>f.name!==fileName && f.fileId!==fileId && f.id!==fileId);
+      await saveSLToSP();
+      renderSLAll();
+    }
+
     await openSLFileModal(actId, fileType);
   } catch(e) { alert("삭제 실패: "+e.message); }
 }
@@ -11436,8 +11467,12 @@ async function loadTodoFromPlanner(force=false) {
       try {
         const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${task.id}/details`,
           {headers:{"Authorization":"Bearer "+t}});
-        if(dR.ok) { detailsMap[task.id] = await dR.json(); }
-        else { console.warn(`details 조회 실패 (${dR.status}):`, task.title?.substring(0,20)); }
+        if(dR.ok) {
+          const d = await dR.json();
+          detailsMap[task.id] = d;
+          // DEBUG: description 내용 확인
+          console.log(`📄 details[${task.title?.substring(0,15)}]:`, JSON.stringify(d.description||"").substring(0,200), "refs:", Object.keys(d.references||{}).length+"개");
+        } else { console.warn(`details 조회 실패 (${dR.status}):`, task.title?.substring(0,20)); }
       } catch(e){ console.warn("details 에러:", task.id, e.message); }
     }
 
