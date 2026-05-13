@@ -7354,39 +7354,35 @@ function autoAdvanceStatusByFile(act, fileType) {
   let newStatus = null;
   let reason = "";
 
+  // 파일 종류 → 상태 변경 매핑
+  // 이미 더 높은 단계면 변경 안 함
+  const STATUS_RANK = {
+    "신규":0, "제안":1, "견적":2, "발주":3, "진행":4,
+    "납품완료":5, "세금계산서미발행":5, "세금계산서완료":6, "잔금":7, "유지보수(무상)":8, "종료":9
+  };
+  const curRank = STATUS_RANK[oldStatus] ?? 0;
+
   if(fileType === "proposal") {
-    // 자료(제안서) 업로드 → 신규/(빈상태)에서 제안으로
-    if(oldStatus === "신규" || !oldStatus) {
-      newStatus = "제안";
-      reason = "자료(제안서) 업로드";
-    }
+    // 자료/제안서 → 제안
+    if(curRank < STATUS_RANK["제안"]) { newStatus = "제안"; reason = "자료(제안서) 업로드"; }
   } else if(fileType === "estimate") {
-    // 견적서 업로드 → 제안에서 견적으로 / 신규에서도 제안으로
-    if(oldStatus === "신규" || !oldStatus) {
-      newStatus = "제안";
-      reason = "견적서 업로드";
-    } else if(oldStatus === "제안") {
-      newStatus = "견적";
-      reason = "견적서 업로드";
-    }
+    // 견적서 → 견적 (제안 이상이어야)
+    if(curRank < STATUS_RANK["제안"])  { newStatus = "제안"; reason = "견적서 업로드 (제안 단계 선진입)"; }
+    else if(curRank < STATUS_RANK["견적"]) { newStatus = "견적"; reason = "견적서 업로드"; }
   } else if(fileType === "order") {
-    // 발주서 업로드 → 발주로
-    if(["신규","제안","견적"].includes(oldStatus)) {
-      newStatus = "발주";
-      reason = "발주서 업로드";
-    }
+    // 발주서 → 발주
+    if(curRank < STATUS_RANK["발주"]) { newStatus = "발주"; reason = "발주서 수령"; }
   } else if(fileType === "contract") {
-    // 계약서 업로드 → 진행으로
-    if(["신규","제안","견적","발주"].includes(oldStatus)) {
-      newStatus = "진행";
-      reason = "계약서 업로드";
-    }
+    // 계약서 → 진행
+    if(curRank < STATUS_RANK["진행"]) { newStatus = "진행"; reason = "계약서 체결"; }
   } else if(fileType === "tax") {
-    // 세금계산서 업로드 → 세금계산서완료
-    if(!["세금계산서완료","잔금","유지보수(무상)","종료"].includes(oldStatus)) {
-      newStatus = "세금계산서완료";
-      reason = "세금계산서 업로드";
+    // 세금계산서 → 세금계산서미발행(납품완료) → 세금계산서완료
+    if(curRank < STATUS_RANK["납품완료"]) {
+      newStatus = "납품완료"; reason = "세금계산서 업로드 (납품완료 처리)";
+    } else if(oldStatus === "납품완료" || oldStatus === "세금계산서미발행") {
+      newStatus = "세금계산서완료"; reason = "세금계산서 발행 완료";
     }
+    // 이미 세금계산서완료 이상이면 변경 안 함
   }
 
   if(newStatus && newStatus !== oldStatus) {
@@ -9001,9 +8997,9 @@ async function generateQuoteExcel() {
   // 파일명
   const fileName = `견적서_${recipient}_${quoteNo||"Q1"}_${docNo.replace(/[\s\/\\:*?"<>|]/g,"_")}.xlsx`;
 
-  // ── 다운로드 ──
-  XLSX.writeFile(wb, fileName);
-  console.log("✅ 견적서 엑셀:", fileName, "/ 문서번호:", docNo);
+  // ── 로컬 다운로드 제거 → SP에만 자동 저장 ──
+  // XLSX.writeFile(wb, fileName);  // ← 다운로드 다이얼로그 제거
+  console.log("✅ 견적서 생성:", fileName, "/ 문서번호:", docNo);
 
   // ── SharePoint 업로드 ──
   if(act) {
@@ -9032,7 +9028,9 @@ async function generateQuoteExcel() {
           action: `📊 견적서 생성: ${docNo} (${fileName})`,
           type: "file"
         });
-        // ── 견적서 DB에 자동 저장 ──
+        // ✅ 견적서 업로드 → 진행상태 자동 변경
+        const advanced = autoAdvanceStatusByFile(act, "estimate");
+        // 견적서 DB 저장
         const totalAmt = _quoteItems.reduce((s,it)=>
           it.isDiscount ? s+(it.unitPrice||0) : s+(it.unitPrice||0)*(it.qty||1), 0);
         await addToQuoteDB({
@@ -9050,12 +9048,27 @@ async function generateQuoteExcel() {
         await saveSLToSP();
         renderSLAll();
         renderQuoteFileList();
+        console.log("✅ SP 업로드 완료:", d.webUrl);
+      } else {
+        throw new Error(`업로드 실패 (${r.status})`);
       }
     } catch(e) {
-      console.warn("SP 업로드 실패:", e.message);
+      console.error("SP 업로드 실패:", e.message);
+      // SP 실패 시 로컬 다운로드로 폴백
+      alert(`⚠️ SharePoint 업로드 실패:\n${e.message}\n\n로컬에 다운로드합니다.`);
+      XLSX.writeFile(wb, fileName);
+      return;
     }
+  } else {
+    // 영업활동 미연결 시 로컬 다운로드
+    XLSX.writeFile(wb, fileName);
+    alert(`✅ 견적서 저장 완료 (로컬)\n\n📋 ${docNo}\n📁 ${fileName}\n\n⚠️ 영업활동 연결 후 SP 자동 저장 가능`);
+    return;
   }
-  alert(`✅ 견적서 엑셀 저장!\n\n📋 문서번호: ${docNo}\n📁 파일명: ${fileName}\n\n다음 견적서 작성 시 자동으로 ${String(parseInt(seq)+1).padStart(2,"0")}번이 부여됩니다.`);
+  // finalSaveQuote에서 호출 시 alert는 거기서 처리 (중복 방지)
+  if(!window._quoteSavingFromFinal) {
+    alert(`✅ 견적서 SP 저장 완료!\n\n📋 ${docNo}\n📁 SP: 📦영업/.../견적서/${fileName}`);
+  }
 }
 function openCustMgrPickerForQuote() {
   const company = document.getElementById("q-recipient")?.value || "";
@@ -9447,17 +9460,21 @@ async function finalSaveQuote() {
   if(btn) { btn.disabled=true; btn.textContent="저장 중..."; }
 
   try {
-    // 1. 엑셀 SP 자동 업로드
+    // 1. 엑셀 SP 자동 업로드 (alert 중복 방지 플래그)
+    window._quoteSavingFromFinal = true;
     await generateQuoteExcel();
+    window._quoteSavingFromFinal = false;
 
     // 2. JSON 임시저장도 갱신 (silent)
     await saveQuoteToDashboard(true);
 
-    // 3. PDF - 브라우저 인쇄 다이얼로그 (자동 SP 업로드 불가 - 보안 제약)
-    // 인쇄 창에서 "PDF로 저장" 선택 → 로컬 다운로드
+    // 3. PDF
     setTimeout(()=>{
+      // 상태변경 확인 (act에서 직접)
+      const act2 = slData.find(x=>x.id===_quoteActId);
+      const statusInfo = act2 ? `\n📊 현재 진행상태: ${act2.status}` : "";
       const ok = confirm(
-        "✅ 엑셀이 SharePoint에 자동 저장됐어요!\n\n" +
+        "✅ 엑셀이 SharePoint에 자동 저장됐어요!" + statusInfo + "\n\n" +
         "📄 PDF 저장:\n" +
         "• 확인 → 인쇄 창에서 'PDF로 저장' 선택\n" +
         "• (보안 정책상 PDF는 브라우저에서 직접 저장해야 합니다)"
