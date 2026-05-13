@@ -6554,9 +6554,8 @@ async function createPlannerFromMtgItems(actId, items, mtgDate, company, pjcode,
         {headers:{"Authorization":"Bearer "+token}});
       if(!dR.ok) { console.warn("details GET 실패:", dR.status); return; }
       const det = await dR.json();
-      const etag = det["@odata.etag"];
 
-      // description: plain text (Planner는 plain text OK)
+      // description에 모든 메타 저장 (references는 URL 형식 제약으로 사용 안 함)
       const descLines = [
         taskAssignee ? `[담당자] ${taskAssignee}` : "",
         dept         ? `[협의부서] ${dept}`        : "",
@@ -6565,38 +6564,21 @@ async function createPlannerFromMtgItems(actId, items, mtgDate, company, pjcode,
         minutesName  ? `[회의록명] ${minutesName}` : "",
       ].filter(Boolean).join("\n");
 
-      // references: URL을 key로, 값은 {alias, type, previewPriority}
-      const refs = {};
-      if(minutesUrl) {
-        // Planner references key: encodeURIComponent(url).replace(/\./g,'%2E')
-        const refKey = encodeURIComponent(minutesUrl).replace(/\./g, "%2E");
-        refs[refKey] = {
-          "@odata.type": "microsoft.graph.plannerExternalReference",
-          alias: (minutesName||"회의록").substring(0, 255),
-          type: "Other",
-          previewPriority: " !"
-        };
-      }
-
-      const body = { description: descLines };
-      if(Object.keys(refs).length > 0) body.references = refs;
-
       const pR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer " + token,
-          "If-Match": etag,
-          "Prefer": "return=representation"
+          "If-Match": det["@odata.etag"]
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ description: descLines })
       });
 
       if(pR.ok || pR.status === 204) {
-        console.log("✅ details 저장:", taskAssignee||"-", dept||"-", custAtts||"-", minutesName||"-");
+        console.log("✅ details 저장:", taskAssignee||"-", dept||"-", custAtts||"-");
       } else {
         const errText = await pR.text().catch(()=>"");
-        console.warn("❌ details PATCH 실패:", pR.status, errText.substring(0, 200));
+        console.warn("❌ details PATCH 실패:", pR.status, errText.substring(0,150));
       }
     } catch(e) { console.warn("details 저장 예외:", e.message); }
   };
@@ -6627,34 +6609,28 @@ async function createPlannerFromMtg(actId, summaryText, mtgDate, company, pjcode
     const items = extractActionItems(summaryText);
     const token = await getToken();
 
-    // 태스크 details에 회의록 링크 + 메타(담당자/협의부서/고객참석자) 저장
+    // 태스크 details에 메타 저장 (description만 사용 - references URL 형식 제약)
     const patchDetails = async(taskId) => {
       try {
+        await new Promise(r=>setTimeout(r,600));
         const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,
           {headers:{"Authorization":"Bearer "+token}});
+        if(!dR.ok) return;
         const det = await dR.json();
-        const refs = {...(det.references||{})};
-        if(minutesUrl) {
-          refs[encodeURIComponent(minutesUrl)] = {alias: minutesName||"회의록", type:"other", previewPriority:" !"};
-        }
-        // description에 메타 저장 (동기화 시 복원용)
         const metaLines = [
           assignee  ? `[담당자] ${assignee}`       : "",
           dept      ? `[협의부서] ${dept}`          : "",
           custAtts  ? `[고객참석자] ${custAtts}`    : "",
           minutesUrl? `[회의록URL] ${minutesUrl}`   : "",
           minutesName?`[회의록명] ${minutesName}`   : "",
-        ].filter(Boolean);
-        const existDesc = (det.description||"").split("\n").filter(l=>
-          !l.startsWith("[담당자]")&&!l.startsWith("[협의부서]")&&
-          !l.startsWith("[고객참석자]")&&!l.startsWith("[회의록URL]")&&!l.startsWith("[회의록명]")
-        );
-        const newDesc = [...metaLines, ...existDesc].join("\n").substring(0,1000);
-        await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`, {
+        ].filter(Boolean).join("\n");
+        const pR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`, {
           method:"PATCH",
           headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":det["@odata.etag"]},
-          body:JSON.stringify({references: refs, description: newDesc})
+          body:JSON.stringify({ description: metaLines })
         });
+        if(pR.ok||pR.status===204) console.log("✅ details 저장(AI):", assignee||"-", dept||"-");
+        else { const t2=await pR.text().catch(()=>""); console.warn("❌ details PATCH 실패(AI):", pR.status, t2.substring(0,100)); }
       } catch(e2){ console.warn("details 저장 실패:", e2.message); }
     };
 
@@ -11526,21 +11502,21 @@ async function loadTodoFromPlanner(force=false) {
       const savedMinutesUrl  = getMeta("회의록URL");
       const savedMinutesName = getMeta("회의록명");
 
-      if(savedAssignee||savedDept||savedMinutesUrl) {
-        console.log(`📋 [${task.title?.substring(0,20)}] 담당자:${savedAssignee} 협의부서:${savedDept} 고객:${savedCustAtts} 회의록:${savedMinutesName}`);
-      }
-
-      // 첨부파일: 항상 Planner references에서 새로 파싱 (캐시 무시)
-      const attachments = Object.entries(refs).map(([encUrl, ref])=>{
-        const url = decodeURIComponent(encUrl);
-        const name = ref.alias||url.split("/").pop()||"파일";
-        const type = (name.includes("회의록")||url===savedMinutesUrl) ? "minutes" : "material";
-        return {type, name, url};
+      // 첨부파일: description에서 모든 URL 파싱 (references 미사용)
+      const attachments = [];
+      desc.split("\n").forEach(line=>{
+        if(line.startsWith("[회의록URL] ")) {
+          const url = line.replace("[회의록URL] ","").trim();
+          const nameL = desc.split("\n").find(l=>l.startsWith("[회의록명] "));
+          const name = nameL ? nameL.replace("[회의록명] ","").trim() : "회의록";
+          if(url && !attachments.find(a=>a.url===url)) attachments.push({type:"minutes", name, url});
+        } else if(line.startsWith("[자료URL] ")) {
+          const url = line.replace("[자료URL] ","").trim();
+          const nameL = desc.split("\n").find(l=>l.startsWith("[자료명] "));
+          const name = nameL ? nameL.replace("[자료명] ","").trim() : "자료";
+          if(url && !attachments.find(a=>a.url===url)) attachments.push({type:"material", name, url});
+        }
       });
-      // 저장된 회의록 URL이 refs에 없으면 추가
-      if(savedMinutesUrl && !attachments.find(a=>a.url===savedMinutesUrl)) {
-        attachments.unshift({type:"minutes", name:savedMinutesName||"회의록", url:savedMinutesUrl});
-      }
 
       return {
         id: task.id,
@@ -11854,22 +11830,24 @@ async function attachTodoFile(taskId, type) {
         if(r.ok) {
           const d = await r.json();
           t.attachments.push({type, name:f.name, url:d.webUrl, fileId:d.id, uploadedAt:new Date().toISOString()});
-
-          // Planner 태스크 details에 링크 첨부
+          // Planner details에 URL 저장
           try {
-            const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,
+            await new Promise(res=>setTimeout(res,400));
+            const dR2 = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,
               {headers:{"Authorization":"Bearer "+token}});
-            const det = await dR.json();
-            const detEtag = det["@odata.etag"];
-            const refs = det.references||{};
-            const encUrl = encodeURIComponent(d.webUrl);
-            refs[encUrl] = {alias:f.name, type:"other", previewPriority:" !"};
-            await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,{
-              method:"PATCH",
-              headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":detEtag},
-              body:JSON.stringify({references:refs})
-            });
-          } catch(e2){ console.warn("Planner 링크 첨부 실패:", e2.message); }
+            if(dR2.ok) {
+              const det2 = await dR2.json();
+              const typeLabel = type==="minutes"?"회의록":"자료";
+              const newLine = `[${typeLabel}URL] ${d.webUrl}\n[${typeLabel}명] ${f.name}`;
+              const existDesc = (det2.description||"").trim();
+              const newDesc = (existDesc ? existDesc+"\n"+newLine : newLine).substring(0,1000);
+              await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,{
+                method:"PATCH",
+                headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":det2["@odata.etag"]},
+                body:JSON.stringify({description:newDesc})
+              });
+            }
+          } catch(e2){ console.warn("Planner 파일 첨부 실패:", e2.message); }
         }
       }
       alert(`✅ ${files.length}개 파일 첨부 완료!\nPlanner에도 링크가 추가됩니다.`);
