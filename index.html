@@ -935,6 +935,39 @@
           <div style="font-size:22px;font-weight:900;color:var(--t);margin-bottom:6px" id="slMinutesTitle">📝 회의록</div>
           <div style="font-size:14px;color:var(--t3);margin-bottom:20px" id="slMinutesSubtitle"></div>
 
+          <!-- 공통 회의 기본정보 (모든 탭 공유) -->
+          <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:12px;border:1px solid var(--border)">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 일시 *</label>
+                <input class="si" type="date" id="slMtgDateCommon" style="width:100%;font-size:14px">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:3px">🏢 내부 참석자 (ENJET)</label>
+                <input class="si" type="text" id="slMtgInternalAttendees" placeholder="예: 성백훈, 김팀장" style="width:100%;font-size:14px">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📍 장소</label>
+                <input class="si" type="text" id="slMtgLocationCommon" placeholder="예: 고객사 회의실" style="width:100%;font-size:14px">
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                <label style="font-size:12px;font-weight:700;color:var(--g)">🏭 고객사 참석자</label>
+                <button onclick="openSlMtgCustPicker()" style="padding:2px 9px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">👤 고객사DB에서 선택</button>
+              </div>
+              <!-- 태그 박스 -->
+              <div class="mtg-tag-box" id="slMtgCustTags" style="border-color:var(--g);min-height:32px"></div>
+              <div style="display:flex;gap:5px;margin-top:5px">
+                <input class="si" type="text" id="slMtgCustInput" placeholder="이름 직접 입력 후 Enter"
+                  style="flex:1;font-size:13px;padding:5px 9px"
+                  onkeydown="if(event.key==='Enter'||event.key===','){event.preventDefault();addSlMtgCustTag(this.value);this.value=''}">
+                <button onclick="addSlMtgCustTag(document.getElementById('slMtgCustInput').value);document.getElementById('slMtgCustInput').value=''"
+                  style="padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:#fff;font-size:14px;cursor:pointer">+</button>
+              </div>
+            </div>
+          </div>
+
           <!-- 탭: 파일 목록 / AI 요약 / 직접 작성 / 파일 올리기 -->
           <div style="display:flex;gap:2px;margin-bottom:20px;border-bottom:2px solid var(--border);flex-wrap:wrap">
             <button id="slMtgTab1" onclick="switchMtgTab(1)"
@@ -976,20 +1009,6 @@
 
           <!-- 탭3: 직접 작성 → 파일 저장 -->
           <div id="slMtgPane3" style="display:none">
-            <div style="margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-              <div>
-                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">📅 일시</label>
-                <input class="si" type="date" id="slMtgDate3" style="width:100%;font-size:14px">
-              </div>
-              <div>
-                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">👥 참석자</label>
-                <input class="si" type="text" id="slMtgAttendees3" placeholder="예: 성백훈, 홍길동" style="width:100%;font-size:14px">
-              </div>
-              <div>
-                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">📍 장소</label>
-                <input class="si" type="text" id="slMtgLocation3" placeholder="예: 고객사 회의실" style="width:100%;font-size:14px">
-              </div>
-            </div>
             <div style="margin-bottom:8px">
               <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">📝 회의록 내용</label>
               <textarea id="slMtgDirectContent" class="si"
@@ -1001,11 +1020,18 @@
               <input class="si" type="text" id="slMtgFileName3" placeholder="예: 회의록_세종산업_20260512.txt"
                 style="width:100%;font-size:14px">
             </div>
-            <div style="text-align:right;display:flex;gap:8px;justify-content:flex-end">
-              <button onclick="switchMtgTab(1)"
-                style="padding:9px 16px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
-              <button onclick="saveMtgDirectAsFile()"
-                style="padding:9px 20px;border-radius:8px;border:none;background:var(--g);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 파일로 저장</button>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;color:var(--t2)">
+                <input type="checkbox" id="slMtgDirectCreateTodo" checked
+                  style="width:16px;height:16px;accent-color:var(--p)">
+                <span>📋 액션아이템 추출 → Planner Todo 생성</span>
+              </label>
+              <div style="display:flex;gap:8px">
+                <button onclick="switchMtgTab(1)"
+                  style="padding:9px 16px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+                <button id="slMtgDirectSaveBtn" onclick="saveMtgDirectAsFile()"
+                  style="padding:9px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 SP 저장 + Todo 생성</button>
+              </div>
             </div>
           </div>
 
@@ -1098,22 +1124,6 @@
               <!-- 오디오 STT는 항상 OpenAI Whisper 필요 -->
               <div style="font-size:12px;color:var(--t3);padding:6px 10px;background:var(--yd);border-radius:6px">
                 ⚠️ 오디오 파일(mp3 등) STT 변환은 OpenAI Whisper API 필요 (텍스트/직접입력은 Ollama만으로 가능)
-              </div>
-            </div>
-
-            <!-- 회의 기본 정보 입력 -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
-              <div>
-                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">📅 일시</label>
-                <input class="si" type="date" id="slMtgDate" style="width:100%;font-size:14px">
-              </div>
-              <div>
-                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">👥 참석자</label>
-                <input class="si" type="text" id="slMtgAttendees" placeholder="예: 성백훈, 홍길동 부장" style="width:100%;font-size:14px">
-              </div>
-              <div>
-                <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">📍 장소</label>
-                <input class="si" type="text" id="slMtgLocation" placeholder="예: 고객사 회의실, Teams" style="width:100%;font-size:14px">
               </div>
             </div>
 
@@ -1486,6 +1496,22 @@
           <div id="mtgActLinkBody" style="max-height:55vh;overflow-y:auto"></div>
           <div style="padding:10px 16px;border-top:1px solid var(--border);text-align:right">
             <button onclick="closeMtgActLinkModal()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:13px;cursor:pointer;font-family:var(--s)">나중에 연결</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 회의록 고객사 참석자 선택 모달 -->
+      <div id="slMtgCustPickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10300;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div style="background:#fff;border-radius:14px;width:600px;max-width:96vw;max-height:88vh;overflow-y:auto;position:relative">
+          <button onclick="document.getElementById('slMtgCustPickerModal').style.display='none'" style="position:absolute;top:14px;right:16px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+          <div style="font-size:18px;font-weight:900;color:var(--t);margin:16px 20px 4px">🏭 고객사 참석자 선택</div>
+          <div style="font-size:13px;color:var(--t3);margin:0 20px 12px">고객사DB에서 선택하거나 직접 입력하세요</div>
+          <div style="padding:0 16px 12px;border-bottom:1px solid var(--border)">
+            <input class="si" type="text" id="slMtgCustPickerSrch" placeholder="🔍 이름 / 회사명 / 직함..." oninput="renderSlMtgCustPickerList(this.value)" style="width:100%;font-size:16px">
+          </div>
+          <div id="slMtgCustPickerBody" style="max-height:55vh;overflow-y:auto"></div>
+          <div style="padding:10px 16px;border-top:1px solid var(--border);text-align:right">
+            <button onclick="document.getElementById('slMtgCustPickerModal').style.display='none'" style="padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:13px;cursor:pointer;font-family:var(--s)">확인</button>
           </div>
         </div>
       </div>
@@ -6079,9 +6105,9 @@ async function openAISummarize(transcript, meta) {
 
 // ─── 공통 프롬프트 ───
 function buildMtgPrompt(transcript, meta) {
-  const date = document.getElementById("slMtgDate")?.value || meta.date || new Date().toISOString().split("T")[0];
-  const attendees = document.getElementById("slMtgAttendees")?.value || meta.attendees || "";
-  const location = document.getElementById("slMtgLocation")?.value || "";
+  const date = document.getElementById("slMtgDateCommon")?.value || meta.date || new Date().toISOString().split("T")[0];
+  const attendees = getSlMtgAllAttendees() || meta.attendees || "";
+  const location = document.getElementById("slMtgLocationCommon")?.value || "";
   return `다음은 "${meta.company||""}" 관련 영업 회의/미팅 내용입니다.
 아래 형식으로 한국어 회의록을 작성해주세요:
 
@@ -6318,34 +6344,50 @@ async function createPlannerTask(planId, bucketId, title, notes, assignee, dueDa
 }
 
 // 회의록 → Planner 태스크 생성 (메인)
-async function createPlannerFromMtg(actId, summaryText, mtgDate, company, pjcode) {
+async function createPlannerFromMtg(actId, summaryText, mtgDate, company, pjcode, minutesUrl, minutesName) {
   const bucketName = company+(pjcode?"-"+pjcode:"");
 
   try {
-    // 1. Plan ID 가져오기
     const planId = await getPlannerPlanId();
-    // 2. 버킷 가져오기/생성
     const bucketId = await getOrCreateBucket(planId, bucketName);
-    // 3. 액션 아이템 추출
     const items = extractActionItems(summaryText);
+    const token = await getToken();
+
+    // 회의록 파일을 Planner 태스크 references에 추가하는 헬퍼
+    const attachMinutes = async(taskId) => {
+      if(!minutesUrl) return;
+      try {
+        const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,
+          {headers:{"Authorization":"Bearer "+token}});
+        const det = await dR.json();
+        const refs = det.references||{};
+        const encUrl = encodeURIComponent(minutesUrl);
+        refs[encUrl] = {alias: minutesName||"회의록", type:"other", previewPriority:" !"};
+        await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`, {
+          method:"PATCH",
+          headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":det["@odata.etag"]},
+          body:JSON.stringify({references: refs})
+        });
+      } catch(e2){ console.warn("회의록 첨부 실패:", e2.message); }
+    };
 
     if(items.length===0) {
-      // 액션아이템 없으면 회의 요약 자체를 하나의 태스크로
-      await createPlannerTask(planId, bucketId,
+      const task = await createPlannerTask(planId, bucketId,
         "["+mtgDate+"] "+company+" 미팅 결과 확인",
         summaryText.substring(0,500), "", ""
       );
+      await attachMinutes(task.id);
       return {created:1, bucketName};
     }
 
-    // 4. 각 액션아이템 → 태스크 생성
     let created=0;
     for(const item of items) {
-      await createPlannerTask(planId, bucketId,
+      const task = await createPlannerTask(planId, bucketId,
         item.title,
-        "["+mtgDate+"] "+company+" 미팅 액션아이템",
+        "["+mtgDate+"] "+company+" 미팅 액션아이템\n"+summaryText.substring(0,300),
         item.assignee, item.dueDate
       );
+      await attachMinutes(task.id);
       created++;
     }
     return {created, bucketName};
@@ -6384,9 +6426,14 @@ async function openSLMinutesModal(actId) {
   document.getElementById("slMtgProgress").style.display = "none";
   document.getElementById("slMtgDirectInput").value = "";
   // 기본값 설정
-  document.getElementById("slMtgDate").value = new Date().toISOString().split("T")[0];
-  document.getElementById("slMtgAttendees").value = act?.custMgr||"";
-  document.getElementById("slMtgLocation").value = "";
+  document.getElementById("slMtgDateCommon").value = new Date().toISOString().split("T")[0];
+  // 내부 참석자 기본값
+  document.getElementById("slMtgInternalAttendees").value = acct?.name||"";
+  // 고객 담당자를 고객참석자 태그로
+  _slMtgCustTags = [];
+  if(act?.custMgr) _slMtgCustTags.push(act.custMgr.split(" <")[0]);
+  renderSlMtgCustTags();
+  document.getElementById("slMtgLocationCommon").value = "";
 
   switchMtgTab(1);
   await loadSLMinutesFiles(actId);
@@ -6405,7 +6452,7 @@ function switchMtgTab(n) {
   });
   // 탭3: 날짜 기본값 + 파일명 기본값 자동 채우기
   if(n===3) {
-    const d = document.getElementById("slMtgDate3");
+    const d = document.getElementById("slMtgDateCommon");
     if(d && !d.value) d.value = new Date().toISOString().split("T")[0];
     const act = slData.find(x=>x.id===window._slMinutesActId);
     const fn = document.getElementById("slMtgFileName3");
@@ -6428,13 +6475,13 @@ async function saveMtgDirectAsFile() {
   if(!act) return;
 
   // 저장 버튼 비활성화
-  const saveBtn = document.getElementById("slMtgSaveBtn");
+  const saveBtn = document.getElementById("slMtgDirectSaveBtn");
   if(saveBtn) { saveBtn.disabled=true; saveBtn.textContent="저장 중..."; }
   _slMtgSaving = true;
 
-  const date = document.getElementById("slMtgDate3")?.value || new Date().toISOString().split("T")[0];
-  const attendees = document.getElementById("slMtgAttendees3")?.value || "";
-  const location = document.getElementById("slMtgLocation3")?.value || "";
+  const date = document.getElementById("slMtgDateCommon")?.value || new Date().toISOString().split("T")[0];
+  const attendees = document.getElementById("slMtgInternalAttendees")?.value || "";
+  const location = document.getElementById("slMtgLocationCommon")?.value || "";
   let fileName = document.getElementById("slMtgFileName3")?.value?.trim();
   if(!fileName) fileName = `회의록_${act.company}_${date.replace(/-/g,"")}.txt`;
   if(!fileName.includes(".")) fileName += ".txt";
@@ -6471,7 +6518,7 @@ async function saveMtgDirectAsFile() {
     // 파일 목록에 추가
     if(!act.files) act.files={};
     if(!act.files.minutes) act.files.minutes=[];
-    act.files.minutes.push({name:fileName, url:d.webUrl, size:fullContent.length, uploadedAt:new Date().toISOString()});
+    act.files.minutes.push({name:fileName, url:d.webUrl, fileId:d.id, size:fullContent.length, uploadedAt:new Date().toISOString()});
     // 이력 추가
     if(!act.history) act.history=[];
     act.history.unshift({date, action:`📝 회의록 직접 작성: ${fileName}`, type:"file"});
@@ -6484,15 +6531,29 @@ async function saveMtgDirectAsFile() {
     switchMtgTab(1);
     _slMtgSaving = false;
     if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Todo 생성"; }
-    alert(`✅ 회의록 저장 완료!\n파일명: ${fileName}`);
+
+    // Planner Todo 생성 (체크박스 on이면)
+    const doTodo = document.getElementById("slMtgDirectCreateTodo")?.checked;
+    if(doTodo) {
+      try {
+        const plResult = await createPlannerFromMtg(
+          actId, content, date, act.company, act.pjcode,
+          d.webUrl, fileName  // 회의록 파일 URL 전달
+        );
+        loadTodoFromPlanner(false).catch(()=>{});
+        alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n📋 Planner: "${plResult.bucketName}" 버킷에 ${plResult.created}개 Todo 생성`);
+      } catch(pe) {
+        alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n⚠️ Planner Todo 생성 실패: ${pe.message}`);
+      }
+    } else {
+      alert(`✅ 회의록 저장 완료!\n파일명: ${fileName}`);
+    }
   } catch(e) {
     _slMtgSaving = false;
     if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Todo 생성"; }
     alert("저장 실패: "+e.message);
   }
 }
-
-// ━━ 탭4: 파일 그대로 업로드 ━━
 let _slMtgRawFiles = [];
 
 function handleSLMtgRawDrop(event) {
@@ -6751,8 +6812,8 @@ async function saveSLMtgResult() {
   if(saveBtn) { saveBtn.disabled=true; saveBtn.textContent="저장 중..."; }
   _slMtgSaving = true;
 
-  const today = document.getElementById("slMtgDate")?.value || new Date().toISOString().split("T")[0];
-  const location = document.getElementById("slMtgLocation")?.value||"";
+  const today = document.getElementById("slMtgDateCommon")?.value || new Date().toISOString().split("T")[0];
+  const location = document.getElementById("slMtgLocationCommon")?.value||"";
   const baseName = today+"_"+act.company.replace(/[\/:*?"<>|]/g,"")+(location?"_"+location.replace(/[\/:*?"<>|]/g,""):"");
   const fileName = baseName+"_회의록.txt";
   const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
@@ -6817,7 +6878,7 @@ async function saveSLMtgResult() {
       pjcode: act.pjcode||"",
       date: today,
       location: location,
-      attendees: document.getElementById("slMtgAttendees")?.value||"",
+      attendees: getSlMtgAllAttendees(),
       summary: txt,
       fileName: fileName,
       spPath: spPath+"/"+fileName,
@@ -6844,7 +6905,7 @@ async function saveSLMtgResult() {
               <tr><td><b>고객사</b></td><td>${act.company}</td></tr>
               <tr><td><b>일시</b></td><td>${today}</td></tr>
               <tr><td><b>장소</b></td><td>${location||"-"}</td></tr>
-              <tr><td><b>참석자</b></td><td>${document.getElementById("slMtgAttendees")?.value||"-"}</td></tr>
+              <tr><td><b>참석자</b></td><td>${getSlMtgAllAttendees()||"-"}</td></tr>
               <tr><td><b>파일</b></td><td><a href="https://enjetco.sharepoint.com/sites/06.BackOffice/Shared%20Documents/${encodeURIComponent(spPath+"/"+fileName).replace(/%2F/g,"/")}">📄 ${fileName}</a></td></tr>
             </table>
             <p><b>주요 내용 (요약)</b><br>${txt.substring(0,300).replace(/\n/g,"<br>")}${txt.length>300?"...":""}</p>
@@ -6865,10 +6926,11 @@ async function saveSLMtgResult() {
       try {
         $("slUpd","Planner Todo 생성 중...");
         const plResult = await createPlannerFromMtg(
-          _slMtgActId, txt, today, act.company, act.pjcode
+          _slMtgActId, txt, today, act.company, act.pjcode,
+          saved.webUrl||"",  // ← 회의록 파일 URL 전달
+          fileName
         );
         console.log("✅ Planner Todo:", plResult.created+"개 생성, 버킷:", plResult.bucketName);
-        // Todo 탭 뱃지 갱신 (백그라운드)
         loadTodoFromPlanner(false).catch(()=>{});
         const plannerMsg = "\n📋 Planner: "+plResult.bucketName+" 버킷에 "+plResult.created+"개 Todo 생성";
         alert("✅ 저장 완료!\n"+spPath+"/"+fileName+plannerMsg);
@@ -11002,7 +11064,7 @@ async function loadTodoFromPlanner(force=false) {
     const tData = await tR.json();
     const tasks = tData.value||[];
 
-    // 3. 담당자 표시명 (userId → displayName)
+    // 3. 담당자 표시명 + 태스크 details(첨부파일) 병렬 조회
     const userIds = [...new Set(tasks.flatMap(t2=>Object.keys(t2.assignments||{})))].filter(Boolean);
     const userMap = {};
     await Promise.allSettled(userIds.map(async uid=>{
@@ -11013,10 +11075,29 @@ async function loadTodoFromPlanner(force=false) {
       } catch(e){}
     }));
 
+    // 4. 태스크별 details 조회 (첨부파일 references)
+    const detailsMap = {};
+    await Promise.allSettled(tasks.slice(0,50).map(async task=>{
+      try {
+        const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${task.id}/details`,
+          {headers:{"Authorization":"Bearer "+t}});
+        if(dR.ok) { const d=await dR.json(); detailsMap[task.id]=d; }
+      } catch(e){}
+    }));
+
     _todoItems = tasks.map(task=>{
       const assignee = Object.keys(task.assignments||{}).map(uid=>userMap[uid]||uid.substring(0,8)).join(", ");
-      // 기존 로컬 캐시에서 dept/attachments 보존
       const existing = _todoItems.find(x=>x.id===task.id);
+      // details에서 첨부파일 복원
+      const det = detailsMap[task.id];
+      const refs = det?.references||{};
+      const attachments = existing?.attachments || Object.entries(refs).map(([encUrl, ref])=>{
+        const url = decodeURIComponent(encUrl);
+        const name = ref.alias||url.split("/").pop()||"파일";
+        // 회의록 파일 판별 (파일명에 '회의록' 포함 or alias에 포함)
+        const type = name.includes("회의록") ? "minutes" : "material";
+        return {type, name, url};
+      });
       return {
         id: task.id,
         title: task.title||"(제목없음)",
@@ -11030,9 +11111,8 @@ async function loadTodoFromPlanner(force=false) {
         status: task.percentComplete===100?"완료":task.percentComplete>0?"진행중":"대기",
         completedAt: task.completedDateTime||"",
         plannerUrl: `https://tasks.office.com/enjetco.onmicrosoft.com/en-US/Home/Task/${task.id}`,
-        // 로컬 확장 필드 보존
         dept: existing?.dept||"",
-        attachments: existing?.attachments||[],
+        attachments,  // references에서 복원
       };
     });
 
@@ -11137,12 +11217,25 @@ function renderTodo(data) {
     // 첨부파일 표시
     const minutes=(t.attachments||[]).filter(a=>a.type==="minutes");
     const materials=(t.attachments||[]).filter(a=>a.type==="material");
-    const minBtn=minutes.length>0
-      ?`<button onclick="viewTodoAttachments('${t.id}','minutes')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:12px;cursor:pointer;font-weight:700">📝 ${minutes.length}개</button>`
-      :`<button onclick="attachTodoFile('${t.id}','minutes')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:12px;cursor:pointer">⬆</button>`;
-    const matBtn=materials.length>0
-      ?`<button onclick="viewTodoAttachments('${t.id}','material')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer;font-weight:700">📎 ${materials.length}개</button>`
-      :`<button onclick="attachTodoFile('${t.id}','material')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:12px;cursor:pointer">⬆</button>`;
+
+    // 회의록: 파일 있으면 바로 열기, 없으면 업로드
+    const minBtn = minutes.length > 0
+      ? `<div style="display:flex;flex-direction:column;gap:2px">
+          ${minutes.slice(0,2).map(f=>`<a href="${f.url}" target="_blank"
+            style="display:block;padding:2px 7px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px"
+            title="${f.name}">📝 ${f.name.replace("_회의록.txt","").substring(0,8)}...</a>`).join("")}
+          <button onclick="attachTodoFile('${t.id}','minutes')" style="padding:1px 5px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:11px;cursor:pointer">+ 추가</button>
+         </div>`
+      : `<button onclick="attachTodoFile('${t.id}','minutes')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:12px;cursor:pointer">⬆ 업로드</button>`;
+
+    const matBtn = materials.length > 0
+      ? `<div style="display:flex;flex-direction:column;gap:2px">
+          ${materials.slice(0,2).map(f=>`<a href="${f.url}" target="_blank"
+            style="display:block;padding:2px 7px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px"
+            title="${f.name}">📎 ${f.name.substring(0,8)}...</a>`).join("")}
+          <button onclick="attachTodoFile('${t.id}','material')" style="padding:1px 5px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:11px;cursor:pointer">+ 추가</button>
+         </div>`
+      : `<button onclick="attachTodoFile('${t.id}','material')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:12px;cursor:pointer">⬆ 업로드</button>`;
 
     const rowBg=isLongOverdue?"background:rgba(239,68,68,.04)":"";
     return `<tr style="${rowBg}">
@@ -11340,6 +11433,74 @@ function viewTodoAttachments(taskId, type) {
   if(confirm(`📎 ${label} 첨부파일 ${atts.length}개\n\n${list}\n\n첫 번째 파일을 열까요?`)) {
     window.open(atts[0].url, "_blank");
   }
+}
+
+// ━━ 회의록 모달 고객사 참석자 태그 시스템 ━━
+let _slMtgCustTags = [];
+
+function getSlMtgAllAttendees() {
+  const internal = document.getElementById("slMtgInternalAttendees")?.value?.trim()||"";
+  const cust = _slMtgCustTags.join(", ");
+  return [internal, cust].filter(Boolean).join(" / ");
+}
+
+function addSlMtgCustTag(val) {
+  const v = (val||"").trim().replace(/,$/,"").trim();
+  if(!v || _slMtgCustTags.includes(v)) return;
+  _slMtgCustTags.push(v);
+  renderSlMtgCustTags();
+}
+
+function removeSlMtgCustTag(idx) {
+  _slMtgCustTags.splice(idx,1);
+  renderSlMtgCustTags();
+}
+
+function renderSlMtgCustTags() {
+  const box = document.getElementById("slMtgCustTags");
+  if(!box) return;
+  box.innerHTML = _slMtgCustTags.map((name,i)=>`
+    <span class="mtg-tag" style="color:#166534;background:#dcfce7">
+      ${name}
+      <span class="mtg-tag-x" onclick="removeSlMtgCustTag(${i})">×</span>
+    </span>`).join("");
+}
+
+function openSlMtgCustPicker() {
+  const act = slData.find(x=>x.id===_slMtgActId);
+  const modal = document.getElementById("slMtgCustPickerModal");
+  if(!modal) return;
+  const srch = document.getElementById("slMtgCustPickerSrch");
+  if(srch) { srch.value = act?.company||""; }
+  renderSlMtgCustPickerList(act?.company||"");
+  modal.style.display = "flex";
+}
+
+function renderSlMtgCustPickerList(q) {
+  const el = document.getElementById("slMtgCustPickerBody");
+  if(!el) return;
+  const cdList = CD||[];
+  const list = q
+    ? cdList.filter(r=>(r["이름"]||"").toLowerCase().includes(q.toLowerCase())||(r["회사"]||"").toLowerCase().includes(q.toLowerCase()))
+    : cdList.slice(0,50);
+  if(!list.length){ el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--t3)">검색 결과 없음</div>`; return; }
+  el.innerHTML = list.slice(0,40).map(r=>{
+    const name=r["이름"]||"";
+    const co=r["회사"]||"";
+    const title=r["직함"]||"";
+    const display=`${name}${title?" "+title:""}`;
+    const alreadyAdded=_slMtgCustTags.includes(display);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);${alreadyAdded?"background:var(--gd)":""}">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:var(--t)">${name} <span style="font-size:13px;font-weight:400;color:var(--t3)">${title}</span></div>
+        <div style="font-size:12px;color:var(--t3)">${co}</div>
+      </div>
+      <button onclick="addSlMtgCustTag('${display.replace(/'/g,"\\'")}');renderSlMtgCustPickerList(document.getElementById('slMtgCustPickerSrch').value)"
+        style="padding:4px 12px;border-radius:6px;border:none;background:${alreadyAdded?"var(--g)":"var(--p)"};color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">
+        ${alreadyAdded?"✅ 추가됨":"+"}
+      </button>
+    </div>`;
+  }).join("");
 }
 
 function go(id, el) {
