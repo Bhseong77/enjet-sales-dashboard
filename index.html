@@ -550,7 +550,7 @@
         <div class="cb" style="padding:10px 14px">
           <div class="pc">
             <input class="si" type="text" placeholder="🔍 프로젝트명 / 번호 / 거래처..." id="plSrch" oninput="filterPL()">
-            <select class="ss" id="plSt" onchange="filterPL()"><option value="">전체 상태</option><option value="확정">✅ 확정</option><option value="작성">📝 작성</option><option value="완료">🏁 완료</option><option value="중단">⛔ 중단</option><option value="개발">🔬 개발</option></select>
+            <select class="ss" id="plSt" onchange="filterPL()"><option value="">전체 상태</option><option value="진행">🔄 진행</option><option value="잔금">💰 잔금</option><option value="완료">🏁 완료</option><option value="중단">⛔ 중단</option></select>
             <select class="ss" id="plTp" onchange="filterPL()"><option value="">전체 유형</option></select>
             <select class="ss" id="plMg" onchange="filterPL()"><option value="">전체 담당자</option></select>
             <select class="ss" id="plYr" onchange="filterPL()"><option value="">전체 연도</option></select>
@@ -562,13 +562,11 @@
             </select>
           </div>
           <div class="qf">
-            <button class="qb" onclick="qf('',this)">전체 <span id="ql-a">-</span></button>
-            <button class="qb on" onclick="qf('active',this)">진행중 <span id="ql-act">-</span></button>
-            <button class="qb" onclick="qf('확정',this)">확정 <span id="ql-확">-</span></button>
-            <button class="qb" onclick="qf('작성',this)">작성 <span id="ql-작">-</span></button>
+            <button class="qb on" onclick="qf('',this)">전체 <span id="ql-a">-</span></button>
+            <button class="qb" onclick="qf('진행',this)">진행 <span id="ql-진">-</span></button>
+            <button class="qb" onclick="qf('잔금',this)">잔금 <span id="ql-잔">-</span></button>
             <button class="qb" onclick="qf('완료',this)">완료 <span id="ql-완">-</span></button>
             <button class="qb" onclick="qf('중단',this)">중단 <span id="ql-중">-</span></button>
-            <button class="qb" onclick="qf('개발',this)">개발 <span id="ql-개">-</span></button>
           </div>
           <div class="tw"><table class="tbl">
             <thead><tr><th>번호</th><th>프로젝트명</th><th>거래처</th><th>유형</th><th class="r">금액(원화)</th><th>상태</th><th>계약일</th><th>담당자</th><th>PM</th></tr></thead>
@@ -2593,7 +2591,8 @@ let SD=[], PD=[], CD=[], coMap={}, selCo=null, cfF={type:"all"};
 async function syncAll() {
   setSS("spin","동기화 중...");
   try {
-    await Promise.allSettled([loadSales(), loadProject(), loadContacts()]);
+    await loadSales();                              // 매출 먼저 (SD 구성)
+    await Promise.allSettled([loadProject(), loadContacts()]); // 나머지 병렬
     setSS("live","실시간 연동"); $("lsync","동기화: "+new Date().toLocaleTimeString("ko-KR"));
   } catch(e) { console.error(e); setSS("","연동 실패"); }
 }
@@ -2880,37 +2879,33 @@ async function loadProject() {
         });
       } catch(_){}
     }
-    // ── 매출 데이터로 상태 자동 보정 ──
+    // ── 매출 데이터로 상태 자동 결정 ──
+    // 규칙: 중단→중단유지 / 매출+잔금0→완료 / 매출+잔금>0→잔금 / 매출없음→진행
     if(typeof SD !== "undefined" && SD.length > 0) {
       const sdMap = {};
       SD.forEach(r=>{
         const pj = String(r.프번||"").trim();
         if(!pj) return;
-        if(!sdMap[pj]) sdMap[pj]={공급:0, 잔금:0, 건수:0};
+        if(!sdMap[pj]) sdMap[pj]={공급:0, 잔금:0};
         sdMap[pj].공급 += r.공급||0;
         sdMap[pj].잔금 += r.잔금||0;
-        sdMap[pj].건수++;
       });
       PD.forEach(p=>{
-        if(p._overrideStatus) return; // 수동 편집 우선
-        // ❌ 중단은 절대 건드리지 않음
-        if(p.진행구분 === "중단") return;
-        const pjNo = p.프로젝트번호;
-        if(sdMap[pjNo]) {
-          // 매출에 있고 잔금 0 → 완료 (단, 확정/작성 중인 것만)
-          if(sdMap[pjNo].잔금 === 0 && sdMap[pjNo].공급 > 0) {
-            if(["작성"].includes(p.진행구분)) p.진행구분 = "완료";
-            // 확정은 잔금 0이어도 그대로 (진행 중일 수 있으므로)
-          }
+        if(p._overrideStatus) return;      // 수동 편집 우선
+        if(p.진행구분 === "중단") return;  // 중단은 절대 건드리지 않음
+        const m = sdMap[p.프로젝트번호];
+        if(m && m.공급 > 0) {
+          p.진행구분 = m.잔금 > 0 ? "잔금" : "완료";
         } else {
-          // 매출에 없음 → 개발 (단, 작성 상태인 것만)
-          if(p.진행구분 === "작성") p.진행구분 = "개발";
+          p.진행구분 = "진행";  // 매출 없음 → 진행
         }
       });
       console.log("✅ 매출 연동 상태 보정 완료");
+    } else {
+      console.warn("⚠️ SD 없음 - 상태 보정 스킵 (매출 로드 대기)");
     }
     updPlKPI();
-    try { renderPL(PD.filter(r=>r&&["확정","작성"].includes(r.진행구분))); } catch(pe){ console.warn("파이프라인 렌더 실패:", pe.message); }
+    try { filterPL(); } catch(pe){ console.warn("파이프라인 렌더 실패:", pe.message); }
     const tp=[...new Set(PD.map(r=>r.유형).filter(Boolean))].sort();
     const mg=[...new Set(PD.map(r=>r.책임자).filter(Boolean))].sort();
     const ts=document.getElementById("plTp"); const ms=document.getElementById("plMg");
@@ -2922,11 +2917,11 @@ async function loadProject() {
     if(dashProjects.length === 0) {
       loadDashProjectsFromSP().then(()=>{
         // 머지 후 렌더 재실행
-        try { renderPL(PD.filter(r=>r&&["확정","작성"].includes(r.진행구분))); } catch(_){}
+        try { filterPL(); } catch(_){}
       });
     } else {
       mergeDashProjectsIntoPD();
-      try { renderPL(PD.filter(r=>r&&["확정","작성"].includes(r.진행구분))); } catch(_){}
+      try { filterPL(); } catch(_){}
     }
   } catch(e) {
     console.error("❌ 프로젝트 실패:", e.message, e.stack);
@@ -2960,40 +2955,52 @@ async function loadProject() {
   }
 }
 function updPlKPI() {
-  const act=PD.filter(r=>["확정","작성"].includes(r.진행구분));
-  const amt=act.reduce((s,r)=>s+r.원화금액,0);
-  const don=PD.filter(r=>r.진행구분==="완료").length;
-  const stp=PD.filter(r=>r.진행구분==="중단").length;
-  const dev=PD.filter(r=>r.진행구분==="개발").length;
-  $("pl-tot",PD.length);$("pl-act",act.length);$("pl-act-amt",(amt/1e8).toFixed(1)+"억");
-  $("pl-don",don);$("pl-stp",stp);$("badge-pl",act.length);$("k-proj",act.length);$("k-proj-amt",(amt/1e8).toFixed(1)+"억");
-  $("ql-a",PD.length);$("ql-act",act.length);
-  $("ql-확",PD.filter(r=>r.진행구분==="확정").length);$("ql-작",PD.filter(r=>r.진행구분==="작성").length);
-  $("ql-완",don);$("ql-중",stp);$("ql-개",dev);
+  const done = PD.filter(r=>r.진행구분==="완료").length;
+  const ing  = PD.filter(r=>r.진행구분==="진행").length;
+  const bal  = PD.filter(r=>r.진행구분==="잔금").length;
+  const stp  = PD.filter(r=>r.진행구분==="중단").length;
+  const ingAmt = PD.filter(r=>r.진행구분==="진행").reduce((s,r)=>s+r.원화금액,0);
 
-  // 연도 필터 드롭다운 업데이트
+  $("pl-tot",  PD.length);
+  $("pl-act",  ing+bal);   // 진행중 = 진행 + 잔금
+  $("pl-act-amt", ((ingAmt)/1e8).toFixed(1)+"억");
+  $("pl-don",  done);
+  $("pl-stp",  stp);
+  $("badge-pl", ing+bal);
+  $("k-proj",  ing+bal);
+  $("k-proj-amt", (ingAmt/1e8).toFixed(1)+"억");
+
+  $("ql-a",   PD.length);
+  $("ql-act", ing+bal);
+  $("ql-완",  done);
+  $("ql-중",  stp);
+  $("ql-잔",  bal);
+  $("ql-진",  ing);
+  // 구형 ID 호환
+  $("ql-확",  0); $("ql-작",0); $("ql-개",0);
+
+  // 연도 필터 드롭다운
   const yrSel = document.getElementById("plYr");
   if(yrSel) {
     const years = [...new Set(PD.map(r=>r.연도).filter(y=>y>2000))].sort((a,b)=>b-a);
     const cur = yrSel.value;
     while(yrSel.options.length>1) yrSel.remove(1);
-    years.forEach(y=>{ const o=new Option(y+"년",y); yrSel.add(o); });
+    years.forEach(y=>{ yrSel.add(new Option(y+"년", y)); });
     if(cur) yrSel.value=cur;
   }
 }
-let plQF="active";
+let plQF="";  // 기본: 전체
 function qf(t,el){plQF=t;document.querySelectorAll(".qb").forEach(b=>b.classList.remove("on"));el.classList.add("on");filterPL();}
 function filterPL() {
-  const q  = document.getElementById("plSrch")?.value.toLowerCase()||"";
-  const st = document.getElementById("plSt")?.value||"";
-  const tp = document.getElementById("plTp")?.value||"";
-  const mg = document.getElementById("plMg")?.value||"";
-  const yr = document.getElementById("plYr")?.value||"";
+  const q    = document.getElementById("plSrch")?.value.toLowerCase()||"";
+  const st   = document.getElementById("plSt")?.value||"";
+  const tp   = document.getElementById("plTp")?.value||"";
+  const mg   = document.getElementById("plMg")?.value||"";
+  const yr   = document.getElementById("plYr")?.value||"";
   const sort = document.getElementById("plSort")?.value||"";
   let d = PD;
-  // 퀵필터
-  if(plQF==="active") d=d.filter(r=>["확정","작성"].includes(r.진행구분));
-  else if(plQF)        d=d.filter(r=>r.진행구분===plQF);
+  // 퀵필터 (active 제거 - 직접 상태명으로)
+  if(plQF) d=d.filter(r=>r.진행구분===plQF);
   // 검색
   if(q) d=d.filter(r=>[r.프로젝트명,r.프로젝트번호,r.거래처].some(v=>String(v||"").toLowerCase().includes(q)));
   // 드롭다운 필터
@@ -3001,17 +3008,18 @@ function filterPL() {
   if(tp) d=d.filter(r=>r.유형===tp);
   if(mg) d=d.filter(r=>r.책임자===mg);
   if(yr) d=d.filter(r=>String(r.연도)===String(yr));
-  // 정렬
-  if(sort==="yr_desc")  d=[...d].sort((a,b)=>(b.연도||0)-(a.연도||0));
-  else if(sort==="yr_asc")  d=[...d].sort((a,b)=>(a.연도||0)-(b.연도||0));
-  else if(sort==="amt_desc") d=[...d].sort((a,b)=>(b.원화금액||0)-(a.원화금액||0));
+  // 정렬: 기본은 연도 최신순
+  if(!sort||sort==="yr_desc")   d=[...d].sort((a,b)=>(b.연도||0)-(a.연도||0));
+  else if(sort==="yr_asc")      d=[...d].sort((a,b)=>(a.연도||0)-(b.연도||0));
+  else if(sort==="amt_desc")    d=[...d].sort((a,b)=>(b.원화금액||0)-(a.원화금액||0));
   renderPL(d);
 }
 
-const PL_STATUS_OPTS = ["확정","작성","완료","중단","개발"];
-const PL_STATUS_SC   = {확정:"up",작성:"warn",완료:"info",중단:"dn",개발:"gray"};
-const PL_STATUS_ICON = {확정:"✅",작성:"📝",완료:"🏁",중단:"⛔",개발:"🔬"};
-const PL_STATUS_COLOR= {up:"var(--g)",warn:"var(--a)",info:"var(--p)",dn:"var(--r)",gray:"var(--t3)"};
+const PL_STATUS_OPTS  = ["진행","잔금","완료","중단"];
+const PL_STATUS_SC    = {진행:"warn",잔금:"up",완료:"info",중단:"dn"};
+const PL_STATUS_ICON  = {진행:"🔄",잔금:"💰",완료:"🏁",중단:"⛔"};
+const PL_STATUS_COLOR = {warn:"var(--a)",up:"var(--g)",info:"var(--p)",dn:"var(--r)"};
+const PL_STATUS_BGMAP = {warn:"var(--yd)",up:"var(--gd)",info:"var(--pd)",dn:"var(--rd)"};
 
 function renderPL(data) {
   const tb=document.getElementById("plTb");
