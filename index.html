@@ -10821,8 +10821,12 @@ async function uploadQuoteFile() {
 
 function openQuoteModal(actId) {
   _quoteActId = actId;  // null이면 DB 독립 모드
+  _quoteLang = 'KR';   // 항상 KR로 초기화 (사용자가 EN 탭 누르면 변경)
   const modal = document.getElementById("quoteModal");
   if(!modal) return;
+  if(modal) modal.dataset.lang = 'KR';
+  // KR 버튼 활성 상태로 초기화
+  setQuoteLang('KR');
 
   const act = actId ? slData.find(x=>x.id===actId) : null;
   const isDBMode = !actId; // DB 탭에서 바로 작성하는 경우
@@ -10974,6 +10978,9 @@ let _quoteLang = 'KR'; // 기본: 한국어
 
 function setQuoteLang(lang) {
   _quoteLang = lang;
+  // lang 상태를 DOM에도 기록 (saveDraftQuote에서 참조)
+  const modal = document.getElementById("quoteModal");
+  if(modal) modal.dataset.lang = lang;
   // 버튼 스타일 토글
   const krBtn = document.getElementById("q-lang-kr");
   const enBtn = document.getElementById("q-lang-en");
@@ -11333,6 +11340,15 @@ async function finalSaveQuote() {
 async function saveDraftQuote() {
   const btn = document.getElementById("quoteTempSaveBtn");
   if(btn?._saving) return;
+  
+  // modal의 dataset.lang에서 현재 언어 확인 (setQuoteLang에서 기록됨)
+  const modal = document.getElementById("quoteModal");
+  const langFromDOM = modal?.dataset?.lang;
+  if(langFromDOM === 'EN' || langFromDOM === 'KR') {
+    _quoteLang = langFromDOM;
+  }
+  console.log("💾 임시저장 lang:", _quoteLang);
+  
   if(btn) { btn._saving = true; btn.innerHTML = "⏳ 저장 중..."; btn.disabled = true; }
   try {
     await saveQuoteToDashboard(false);
