@@ -7278,7 +7278,7 @@ async function saveMtgDirectAsFile() {
     const r = await fetch(
       `https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(fileName)}:/content`,
       { method:"PUT", headers:{"Content-Type":"text/plain;charset=utf-8","Authorization":"Bearer "+t},
-        body: new Blob([fullContent], {type:"text/plain;charset=utf-8"}) }
+        body: new Blob(["\uFEFF"+fullContent], {type:"text/plain;charset=utf-8"}) }
     );
     if(!r.ok) { const e=await r.json(); throw new Error(e.error?.message||r.status); }
     const d = await r.json();
@@ -7600,10 +7600,12 @@ async function saveSLMtgResult() {
     await getIds();
     const t = await getToken();
     const enc = spPath.split("/").map(encodeURIComponent).join("/");
+    // UTF-8 BOM 추가 (브라우저/Windows 메모장에서 한글 깨짐 방지)
+    const BOM = "\uFEFF";
     const r = await fetch(
       "https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+"/"+encodeURIComponent(fileName)+":/content",
       {method:"PUT", headers:{"Authorization":"Bearer "+t,"Content-Type":"text/plain;charset=utf-8"},
-       body: new Blob([txt], {type:"text/plain;charset=utf-8"})}
+       body: new Blob([BOM+txt], {type:"text/plain;charset=utf-8"})}
     );
     if(!r.ok) throw new Error(r.status);
     const saved = await r.json();
@@ -7665,7 +7667,7 @@ async function saveSLMtgResult() {
     // 미팅 로그 저장
     if(!window._mtgLogs) window._mtgLogs = [];
     window._mtgLogs.unshift(mtgEntry);
-    saveMtgLogsToSP();
+    try { await saveMtgLogsToSP(); } catch(e){ console.warn("회의록 SP 저장 실패:", e); }
     renderMtgLog(window._mtgLogs);  // 회의록 DB 탭 즉시 반영
 
     // Teams 채널에 회의록 알림 + 노트 탭 링크
@@ -9159,6 +9161,34 @@ function openPjCodeGenModal(actId, company) {
   updatePjGenPreview();
   
   modal.style.display = "flex";
+  
+  // 🔄 PD가 비어있으면 백그라운드로 로드 시도 (자동 다음번호 위해)
+  if(typeof PD === "undefined" || !Array.isArray(PD) || PD.length === 0) {
+    (async () => {
+      try {
+        if(typeof loadProject === "function") {
+          $VS("pjGen-seq-hint", "📋 프로젝트List 로드 중... (잠시만 기다려주세요)");
+          await loadProject();
+        }
+        if(typeof loadDashProjectsFromSP === "function" && (!Array.isArray(dashProjects) || dashProjects.length === 0)) {
+          await loadDashProjectsFromSP();
+        }
+        if(!Array.isArray(pjCodeRequests) || !pjCodeRequests.length) {
+          await loadPjCodeRequestsFromSP();
+        }
+        const totalPD = (typeof PD !== "undefined" && Array.isArray(PD)) ? PD.length : 0;
+        $VS("pjGen-seq-hint", `✅ 프로젝트List 로드 완료 (${totalPD}건). [🔄 다음번호 조회] 클릭하세요`);
+      } catch(e) {
+        $VS("pjGen-seq-hint", "⚠️ 프로젝트List 로드 실패 - 수동 입력하세요");
+        console.warn("PD 자동 로드 실패:", e);
+      }
+    })();
+  } else {
+    // PD 이미 로드되어 있음 - 요청 목록만 로드
+    if(!Array.isArray(pjCodeRequests) || !pjCodeRequests.length) {
+      loadPjCodeRequestsFromSP().catch(e => console.warn("요청 로드 실패:", e));
+    }
+  }
 }
 
 function closePjCodeGenModal() {
@@ -9244,7 +9274,7 @@ function updatePjGenPreview() {
 }
 
 // 자동 일련번호 조회 (PD = 파이프라인 프로젝트List 참조)
-function autoPjGenSeq() {
+async function autoPjGenSeq() {
   const {bu, kd} = _pjGenCtx;
   const yr = ($V("pjGen-yr") || "").trim();
   if(!bu) { alert("사업부를 먼저 선택하세요."); return; }
@@ -9252,30 +9282,51 @@ function autoPjGenSeq() {
   if(!yr) { alert("연도를 먼저 입력하세요."); return; }
   
   const prefix = `${bu}${kd}${yr}`;  // 예: BP26
+  $VS("pjGen-seq-hint", `🔄 ${prefix}로 시작하는 코드 조회 중...`);
   
-  // 1) PD(파이프라인)에서 같은 prefix로 시작하는 코드들의 최대 일련번호
+  // 0) PD가 로드 안 됐으면 자동 로드 시도
+  if(typeof PD === "undefined" || !Array.isArray(PD) || PD.length === 0) {
+    try {
+      if(typeof loadProject === "function") {
+        await loadProject();
+      }
+      if(typeof loadDashProjectsFromSP === "function" && (!dashProjects || dashProjects.length === 0)) {
+        await loadDashProjectsFromSP();
+      }
+    } catch(e) {
+      console.warn("PD 자동 로드 실패:", e);
+    }
+  }
+  
+  // 1) PD에서 같은 prefix 검색
   let maxSeq = 0;
+  let foundList = [];
   if(typeof PD !== "undefined" && Array.isArray(PD)) {
     PD.forEach(p => {
-      const c = String(p.프번 || p.프로젝트코드 || "").trim();
+      const c = String(p.프로젝트번호 || "").trim();
       if(c.startsWith(prefix)) {
-        const m = c.match(new RegExp(`^${prefix}(\\d{3})`));
+        // 메인 부분만 추출 (- 앞)
+        const main = c.split("-")[0];
+        const m = main.match(new RegExp(`^${prefix}(\\d{3})$`));
         if(m) {
           const n = parseInt(m[1], 10);
+          foundList.push({code: c, seq: n});
           if(n > maxSeq) maxSeq = n;
         }
       }
     });
   }
   
-  // 2) pjCodeRequests에서도 검색 (아직 ERP 등록 전 요청들)
+  // 2) pjCodeRequests에서도 검색 (요청대기 중인 것들도 포함)
   if(Array.isArray(pjCodeRequests)) {
     pjCodeRequests.forEach(r => {
       const c = String(r.code || "").trim();
       if(c.startsWith(prefix)) {
-        const m = c.match(new RegExp(`^${prefix}(\\d{3})`));
+        const main = c.split("-")[0];
+        const m = main.match(new RegExp(`^${prefix}(\\d{3})$`));
         if(m) {
           const n = parseInt(m[1], 10);
+          foundList.push({code: c, seq: n, isReq: true});
           if(n > maxSeq) maxSeq = n;
         }
       }
@@ -9283,8 +9334,17 @@ function autoPjGenSeq() {
   }
   
   const nextSeq = String(maxSeq + 1).padStart(3, "0");
-  $VS("pjGen-seq",nextSeq);
-  $VS("pjGen-seq-hint",`🔄 ${prefix}의 다음 번호: ${nextSeq} (기존 최대 ${String(maxSeq).padStart(3,"0")})`);
+  $VS("pjGen-seq", nextSeq);
+  
+  // 디버그 정보
+  const totalPD = (typeof PD !== "undefined" && Array.isArray(PD)) ? PD.length : 0;
+  const totalReq = Array.isArray(pjCodeRequests) ? pjCodeRequests.length : 0;
+  if(foundList.length > 0) {
+    const latestList = foundList.sort((a,b) => b.seq - a.seq).slice(0,3).map(f => f.code + (f.isReq?"(요청)":"")).join(", ");
+    $VS("pjGen-seq-hint", `🔄 다음 번호: ${nextSeq} (기존 ${foundList.length}개 중 최대 ${String(maxSeq).padStart(3,"0")}: ${latestList})`);
+  } else {
+    $VS("pjGen-seq-hint", `🆕 ${prefix}로 시작하는 코드 없음 → 첫 번호 001 부여 (PD ${totalPD}건 / 요청 ${totalReq}건 조회)`);
+  }
   updatePjGenPreview();
 }
 
@@ -9306,11 +9366,11 @@ function renderPjReorderResults() {
   }
   
   let list = PD.filter(p => {
-    const code = String(p.프번 || "").trim();
+    const code = String(p.프로젝트번호 || "").trim();
     if(!code) return false;
     const co = String(p.거래처 || "").toLowerCase();
     const nm = String(p.프로젝트명 || "").toLowerCase();
-    const mgr = String(p.담당자 || "").toLowerCase();
+    const mgr = String(p.책임자 || "").toLowerCase();
     
     if(sameCo && ctxCompany && !co.includes(ctxCompany)) return false;
     if(sameMgr && ctxMgr && !mgr.includes(ctxMgr)) return false;
@@ -9324,7 +9384,7 @@ function renderPjReorderResults() {
   }
   
   el.innerHTML = list.map(p => {
-    const code = String(p.프번 || "");
+    const code = String(p.프로젝트번호 || "");
     const nm = p.프로젝트명 || "(이름 없음)";
     const co = p.거래처 || "-";
     const yr = p.연도 || "";
@@ -9341,28 +9401,28 @@ function renderPjReorderResults() {
 
 function selectPjReorderRef(code) {
   if(typeof PD === "undefined") return;
-  const ref = PD.find(p => String(p.프번||"").trim() === String(code).trim());
+  const ref = PD.find(p => String(p.프로젝트번호||"").trim() === String(code).trim());
   if(!ref) { alert("선택 실패"); return; }
   _pjGenCtx.reorderRef = ref;
   
   // 선택 표시
   document.getElementById("pjGen-reorder-selected").style.display = "block";
-  $VS("pjGen-reorder-selected-info",`${ref.프번} · ${ref.거래처||"-"} · ${ref.프로젝트명||"-"}`);
+  $VS("pjGen-reorder-selected-info",`${ref.프로젝트번호} · ${ref.거래처||"-"} · ${ref.프로젝트명||"-"}`);
   
   // 이전 이력 (같은 거래처 다른 프로젝트들)
   let hist = [];
   if(Array.isArray(PD)) {
-    hist = PD.filter(p => String(p.거래처||"") === String(ref.거래처||"") && String(p.프번||"")!==String(ref.프번||""))
+    hist = PD.filter(p => String(p.거래처||"") === String(ref.거래처||"") && String(p.프로젝트번호||"")!==String(ref.프로젝트번호||""))
       .slice(0,5)
-      .map(p => `${p.프번} (${p.연도||"?"})`);
+      .map(p => `${p.프로젝트번호} (${p.연도||"?"})`);
   }
   $VS("pjGen-reorder-selected-hist",hist.length ? `이력: ${hist.join(", ")}` : "이전 이력 없음");
   
   // 회차 계산 (같은 거래처의 동일 사업부+종류 코드 갯수 + 1)
   let round = 2;
-  const prefix2 = String(ref.프번||"").substring(0,2);  // 예: BP
+  const prefix2 = String(ref.프로젝트번호||"").substring(0,2);  // 예: BP
   if(Array.isArray(PD) && prefix2.length===2) {
-    const sames = PD.filter(p => String(p.거래처||"") === String(ref.거래처||"") && String(p.프번||"").startsWith(prefix2));
+    const sames = PD.filter(p => String(p.거래처||"") === String(ref.거래처||"") && String(p.프로젝트번호||"").startsWith(prefix2));
     round = sames.length + 1;
   }
   $VS("pjGen-reorder-round",`${round}차`);
@@ -9380,18 +9440,24 @@ function selectPjReorderRef(code) {
 function autoPjReorderSeq() {
   const ref = _pjGenCtx.reorderRef;
   if(!ref) { alert("이전 코드를 먼저 선택하세요."); return; }
-  const prefix2 = String(ref.프번||"").substring(0,2);
+  const prefix2 = String(ref.프로젝트번호||"").substring(0,2);
   const yr = ($V("pjGen-reorder-yr") || "").trim();
   if(prefix2.length !== 2 || !yr) { alert("연도 확인"); return; }
   
   const prefix = `${prefix2}${yr}`;
   let maxSeq = 0;
+  let foundCount = 0;
   if(Array.isArray(PD)) {
     PD.forEach(p => {
-      const c = String(p.프번 || "").trim();
+      const c = String(p.프로젝트번호 || "").trim();
       if(c.startsWith(prefix)) {
-        const m = c.match(new RegExp(`^${prefix}(\\d{3})`));
-        if(m) { const n = parseInt(m[1],10); if(n>maxSeq) maxSeq=n; }
+        const main = c.split("-")[0];
+        const m = main.match(new RegExp(`^${prefix}(\\d{3})$`));
+        if(m) { 
+          const n = parseInt(m[1],10);
+          foundCount++;
+          if(n>maxSeq) maxSeq=n; 
+        }
       }
     });
   }
@@ -9399,19 +9465,25 @@ function autoPjReorderSeq() {
     pjCodeRequests.forEach(r => {
       const c = String(r.code || "").trim();
       if(c.startsWith(prefix)) {
-        const m = c.match(new RegExp(`^${prefix}(\\d{3})`));
-        if(m) { const n = parseInt(m[1],10); if(n>maxSeq) maxSeq=n; }
+        const main = c.split("-")[0];
+        const m = main.match(new RegExp(`^${prefix}(\\d{3})$`));
+        if(m) { 
+          const n = parseInt(m[1],10);
+          foundCount++;
+          if(n>maxSeq) maxSeq=n; 
+        }
       }
     });
   }
   $VS("pjGen-reorder-seq",String(maxSeq+1).padStart(3,"0"));
+  console.log(`재주문 자동: ${prefix} 기존 ${foundCount}개, 최대 ${maxSeq}, 다음 ${maxSeq+1}`);
   updatePjReorderPreview();
 }
 
 function updatePjReorderPreview() {
   const ref = _pjGenCtx.reorderRef;
   if(!ref) return;
-  const prefix2 = String(ref.프번||"").substring(0,2);
+  const prefix2 = String(ref.프로젝트번호||"").substring(0,2);
   const yr = ($V("pjGen-reorder-yr") || "").trim();
   const seq = ($V("pjGen-reorder-seq") || "").trim();
   
@@ -9453,10 +9525,26 @@ async function submitPjCodeRequest() {
     if(!code || code.length < 7) { alert("새 프로젝트코드 입력이 완전하지 않습니다."); return; }
     projectName = `${ref.프로젝트명 || ""} (재주문)`.trim();
     reorderInfo = {
-      prevCode: ref.프번,
+      prevCode: ref.프로젝트번호,
       prevName: ref.프로젝트명 || "",
       round: $V("pjGen-reorder-round") || "",
     };
+  }
+  
+  // 🔒 중복 검사: PD(ERP) / pjCodeRequests(요청대기) 둘 다 확인
+  if(typeof PD !== "undefined" && Array.isArray(PD)) {
+    const dupPD = PD.find(p => String(p.프로젝트번호||"").trim() === code);
+    if(dupPD) {
+      alert(`❌ 중복: 프로젝트코드 [${code}]는 이미 ERP에 등록되어 있습니다.\n· 거래처: ${dupPD.거래처||"-"}\n· 프로젝트명: ${dupPD.프로젝트명||"-"}\n\n[다음번호 조회]로 다른 일련번호를 받으세요.`);
+      return;
+    }
+  }
+  if(Array.isArray(pjCodeRequests)) {
+    const dupReq = pjCodeRequests.find(r => String(r.code||"").trim() === code && r.status === "pending");
+    if(dupReq) {
+      alert(`❌ 중복: 프로젝트코드 [${code}]는 이미 요청 대기중입니다.\n· 요청자: ${dupReq.requester||"-"}\n· 요청일: ${(dupReq.requestedAt||"").substring(0,10)}\n\n[다음번호 조회]로 다른 일련번호를 받으세요.`);
+      return;
+    }
   }
   
   // 요청 객체
@@ -9890,20 +9978,84 @@ async function savePjCodeManual() {
   const name = document.getElementById("pjCodeNew-name").value.trim();
   const company = _pjCodePickerCtx.company || "";
 
-  // 1) 영업활동의 현재 활동 정보 (있으면 거기서 거래처 가져옴)
+  // 1) 영업활동의 현재 활동 정보
   const act = slData.find(x=>x.id===_pjCodePickerCtx.actId);
 
-  // 2) PD에 이미 있는지 체크 - 있으면 머지 활동만, 없으면 신규 추가
-  let existsInPD = false;
-  if(typeof PD !== "undefined" && Array.isArray(PD)) {
-    existsInPD = PD.some(p => p.프로젝트번호 === code);
+  // 2) 코드 형식 분류
+  const isTemp = /^신규\d+차$/.test(code);             // 신규N차 (임시)
+  const isFormal = /^[BRTE][PMSRGE]\d{6}(-[A-Z]{1,2}\d{3})?$/i.test(code);  // 정식 코드 패턴
+  
+  // 3) 정식 코드도 임시 코드도 아니면 거부
+  if(!isTemp && !isFormal) {
+    alert("❌ 프로젝트코드 형식이 올바르지 않습니다.\n\n허용되는 형식:\n• 정식 코드: BP26001, BP26001-FA001 (사업부+종류+연도+일련번호[-부가종류+일련번호])\n• 임시 코드: 신규1차, 신규2차, 신규3차\n\n정식 코드를 발급받으려면 [📋 프로젝트코드 생성/요청] 버튼을 사용하세요.");
+    return;
   }
-
-  if(!existsInPD) {
-    // 새 프로젝트로 PD + dashProjects에 추가
-    const isTemp = /^신규\d+차$/.test(code); // 신규N차는 임시 코드
+  
+  // 4) PD/dashProjects/요청목록에서 중복 체크
+  let existsInPD = false;
+  let existsInReq = false;
+  if(typeof PD !== "undefined" && Array.isArray(PD)) {
+    existsInPD = PD.some(p => String(p.프로젝트번호||"").trim() === code);
+  }
+  if(Array.isArray(pjCodeRequests)) {
+    existsInReq = pjCodeRequests.some(r => String(r.code||"").trim() === code && r.status==="pending");
+  }
+  
+  // 5) 정식 코드 처리
+  if(isFormal) {
+    if(existsInPD) {
+      // PD에 이미 있는 정식 코드 - 다른 활동에 적용 OK (재주문/연결)
+      if(!confirm(`프로젝트코드 [${code}]는 이미 ERP에 존재합니다.\n이 활동에 연결할까요? (재주문 시나리오)`)) return;
+      selectPjCode(code, name);
+      return;
+    }
+    if(existsInReq) {
+      alert(`⚠️ 프로젝트코드 [${code}]는 이미 요청 대기중입니다.\n파이프라인 탭의 [프로젝트코드 요청]에서 확인하세요.`);
+      return;
+    }
+    // PD에 없는 정식 코드 → 임의 입력 차단, 요청 모달로 자동 전환
+    if(!confirm(`프로젝트코드 [${code}]는 ERP·요청목록 어디에도 없습니다.\n\n[프로젝트코드 생성/요청] 절차를 거치지 않은 임의 코드는 저장할 수 없습니다.\n\n[확인]을 누르면 [📋 프로젝트코드 생성/요청] 모달이 열립니다.\n[취소]를 누르면 그냥 닫습니다.`)) return;
+    // 새 모달로 자동 전환 (이미 입력한 코드는 파싱해서 모달에 미리 채우기)
+    closePjCodePicker();
+    setTimeout(() => {
+      openPjCodeGenModal(_pjCodePickerCtx.actId, _pjCodePickerCtx.company);
+      // 입력된 코드를 파싱해서 모달에 자동 입력
+      try {
+        const m = code.match(/^([BRTE])([PMSRGE])(\d{2})(\d{3})(?:-([A-Z]{1,2})(\d{3}))?$/i);
+        if(m) {
+          selPjGen("bu", m[1].toUpperCase());
+          selPjGen("kd", m[2].toUpperCase());
+          $VS("pjGen-yr", m[3]);
+          $VS("pjGen-seq", m[4]);
+          if(m[5]) {
+            selPjGen("add", m[5].toUpperCase());
+            $VS("pjGen-add-seq", m[6]);
+          }
+          if(name) $VS("pjGen-name", name);
+          updatePjGenPreview();
+        }
+      } catch(e){ console.warn("코드 파싱 실패", e); }
+    }, 100);
+    return;
+  }
+  
+  // 6) 임시 코드(신규N차) 처리 - 기존 동작 유지
+  if(isTemp) {
+    if(existsInPD) {
+      // 같은 회사의 같은 신규N차 이미 있음
+      const sameTempInCo = PD.find(p => 
+        String(p.프로젝트번호||"").trim() === code &&
+        String(p.거래처||"").trim() === String(company||"").trim()
+      );
+      if(sameTempInCo) {
+        if(!confirm(`임시 코드 [${code}]가 같은 거래처(${company})에 이미 있습니다.\n이 활동도 같은 코드로 연결할까요?`)) return;
+        selectPjCode(code, name);
+        return;
+      }
+    }
+    // 새 임시 프로젝트로 PD + dashProjects에 추가
     const newProject = {
-      진행구분: isTemp ? "작성" : "확정", // 신규N차는 작성, 정식코드는 확정
+      진행구분: "작성",
       프로젝트명: name || (company ? company + " 신규 영업" : "신규 영업"),
       프로젝트번호: code,
       계약일: new Date().toISOString().split("T")[0],
@@ -9912,24 +10064,20 @@ async function savePjCodeManual() {
       책임자: act?.salesMgr || "",
       PM: "",
       원화금액: 0,
-      _source: "dashboard", // 대시보드 자체등록 표시
+      _source: "dashboard",
       _createdAt: new Date().toISOString(),
     };
     if(typeof PD !== "undefined") PD.push(newProject);
     dashProjects.push(newProject);
-    // SP에 영구 저장 (다른 활동에서 검색 가능)
     try {
       await saveDashProjectsToSP();
-      console.log("✅ 신규 프로젝트 PD/SP 등록:", code);
-      // 파이프라인 KPI도 갱신
+      console.log("✅ 임시 프로젝트 등록:", code);
       if(typeof updPlKPI === "function") updPlKPI();
     } catch(e) {
       console.warn("대시보드 프로젝트 SP 저장 실패:", e.message);
     }
+    selectPjCode(code, name);
   }
-
-  // 3) 영업활동에 코드 적용 (selectPjCode와 동일 로직)
-  selectPjCode(code, name);
 }
 
 // ─── 모달 ───
@@ -10527,6 +10675,9 @@ function updateQuotePreviewEN() {
 }
 
 function updateQuotePreviewKR() {
+  const area = document.getElementById("quotePrintArea");
+  if(!area) return;
+  const get = id => document.getElementById(id)?.value||"";
   const dateVal = get("q-date");
   let dateKor = "-";
   if(dateVal) {
@@ -12294,8 +12445,10 @@ async function confirmMtgActLink(actId) {
 // renderMtgLog 수정 — 미연결 표시 + 연결 버튼 추가
 function renderMtgLog(logs) {
   const body = document.getElementById("mtgLogBody");
-  if(!body) return;
   const all = logs||window._mtgLogs||[];
+  // ✅ 회의록 DB 사이드바 배지 갱신 (DOM 없어도 항상 실행)
+  $("badge-sm", all.length);
+  if(!body) return;
   // KPI 갱신
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
@@ -13861,6 +14014,12 @@ function go(id, el) {
     if(dashProjects.length === 0) {
       loadDashProjectsFromSP().catch(e=>console.warn("Dash 프로젝트 로드 실패:", e.message));
     }
+    // 회의록 배지(badge-sm) 갱신용 - 메모리에 없을 때만 로드
+    if(!Array.isArray(window._mtgLogs) || !window._mtgLogs.length) {
+      loadMtgLogsFromSP().catch(e=>console.warn("회의록 로드 실패:", e.message));
+    } else {
+      $("badge-sm", window._mtgLogs.length);
+    }
     if(window._slSyncInterval) clearInterval(window._slSyncInterval);
     window._slSyncInterval=setInterval(()=>{
       if(document.getElementById("tab-sales-log")?.classList.contains("on")) syncSLFromTeams();
@@ -14015,13 +14174,26 @@ async function saveMtgLogsToSP() {
   } catch(e){console.warn("mtglog:",e.message);}
 }
 async function loadMtgLogsFromSP() {
+  // 기존 메모리 백업 (방금 저장한 회의록이 SP 반영되기 전일 수 있음)
+  const memBackup = Array.isArray(window._mtgLogs) ? window._mtgLogs.slice() : [];
   try {
     await getIds();
     const enc = MTG_LOG_SP_PATH.split("/").map(encodeURIComponent).join("/");
     const fd = await gGet("/drives/"+spDrive+"/root:/"+enc);
     const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
-    window._mtgLogs = await res.json();
-  } catch(e){ window._mtgLogs=[]; }
+    const fromSP = await res.json();
+    if(Array.isArray(fromSP)) {
+      // 머지: SP + 메모리 (id 중복 제거)
+      const ids = new Set(fromSP.map(x => x.id));
+      const onlyMem = memBackup.filter(x => x.id && !ids.has(x.id));
+      window._mtgLogs = [...onlyMem, ...fromSP];
+    } else {
+      window._mtgLogs = memBackup;
+    }
+  } catch(e){
+    // SP에 파일 없거나 로드 실패 → 메모리 유지
+    if(!Array.isArray(window._mtgLogs)) window._mtgLogs = memBackup;
+  }
   renderMtgLog(window._mtgLogs); // ← 신버전 (KPI + 필터 포함)
 }
 function filterMtgLog(){
