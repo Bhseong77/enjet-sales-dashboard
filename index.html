@@ -4270,9 +4270,9 @@ async function syncExhFromTeams() {
       // [마케팅]/[전시회] prefix 또는 전시회/마케팅 카테고리 → 포함
       if(title.startsWith("[마케팅]") || title.startsWith("[전시회]") ||
          cats.some(c=>["국내전시회","해외전시회","전시회","마케팅"].includes(c))) return true;
-      // exhibitions.json에 저장된 로컬 항목 → 포함
-      if(e.source === "local") return true;
-      // 둘 다 없으면 → 제외 (영업 기본값)
+      // SP에 저장된 전시회와 teamsEventId 또는 이름으로 매칭되면 포함
+      if(exhSchedule.some(x=>x.teamsEventId===e.id || x.name===title)) return true;
+      // 둘 다 없으면 → 제외
       return false;
     }).map(e=>{
       const loc = e.location?.displayName||"";
@@ -4634,7 +4634,7 @@ async function saveExhEvent() {
   }
 
   // 3. 담당자 이메일 초대장 발송
-  if(optEmail && evt.managerEmail) {
+  if(optEmail && evt.managerEmail && evt.managerEmail.includes("@")) {
     try {
       await sendCalendarInvite(evt);
       $("exhSchedUpd","이메일 초대장 발송 완료");
@@ -4693,7 +4693,8 @@ async function createTeamsCalEvent(evt) {
     categories: [evt.region==="국내" ? "국내전시회" : "해외전시회"],
   };
 
-  if(evt.managerEmail) {
+  // 유효한 이메일(@ 포함)만 attendees에 추가 - 잘못된 이메일은 400 에러 유발
+  if(evt.managerEmail && evt.managerEmail.includes("@")) {
     body.attendees = [{
       emailAddress:{ address:evt.managerEmail, name:evt.manager||evt.managerEmail },
       type:"required"
