@@ -1939,18 +1939,22 @@
           </div>
           <div class="cb" style="padding:10px 14px">
             <div style="overflow-x:auto">
-              <table class="tbl" style="min-width:850px">
+              <table class="tbl" style="min-width:1200px">
                 <thead><tr>
-                  <th style="min-width:280px">할 일 제목</th>
-                  <th style="min-width:130px">버킷 (고객사-코드)</th>
-                  <th style="min-width:90px">생성일</th>
-                  <th style="min-width:90px">마감일</th>
-                  <th style="min-width:80px">담당자</th>
-                  <th style="min-width:80px">상태</th>
-                  <th style="min-width:60px;text-align:center">Planner</th>
+                  <th style="min-width:240px">할 일 제목</th>
+                  <th style="min-width:120px">버킷(고객사)</th>
+                  <th style="min-width:85px">생성일</th>
+                  <th style="min-width:110px">마감일</th>
+                  <th style="min-width:100px">담당자</th>
+                  <th style="min-width:110px">협의부서</th>
+                  <th style="min-width:90px">상태</th>
+                  <th style="min-width:80px;text-align:center">📝 회의록</th>
+                  <th style="min-width:80px;text-align:center">📎 자료</th>
+                  <th style="min-width:80px;text-align:center">Planner</th>
+                  <th style="min-width:50px;text-align:center">삭제</th>
                 </tr></thead>
                 <tbody id="todoBody">
-                  <tr><td colspan="7"><div class="empty">
+                  <tr><td colspan="11"><div class="empty">
                     <div class="ei">✅</div>
                     <div class="et">Todo 없음</div>
                     <div style="font-size:13px;color:var(--t3);margin-top:6px">회의록 저장 시 자동 생성 · 또는 [🔄 동기화]</div>
@@ -6888,21 +6892,21 @@ async function saveSLMtgResult() {
 
 // 회의록 파일 삭제/이름변경
 async function _deleteMtgFile(fileId, fileName, actId) {
-  if(!confirm('"'+fileName+'" 파일을 삭제할까요?')) return;
+  if(!confirm('"'+fileName+'" 파일을 SharePoint에서 삭제할까요?\n\n⚠️ 회의록DB에 등록된 항목은 별도로 관리됩니다.')) return;
   try {
     await getIds();
     const t = await getToken();
     await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
       {method:"DELETE", headers:{"Authorization":"Bearer "+t}});
 
-    // slData의 files.minutes에서도 제거
+    // slData.files.minutes에서 제거 → 건수 갱신
     const act = slData.find(x=>x.id===actId);
     if(act?.files?.minutes) {
-      act.files.minutes = act.files.minutes.filter(f=>f.name!==fileName);
+      act.files.minutes = act.files.minutes.filter(f=>f.name!==fileName && f.fileId!==fileId);
       await saveSLToSP();
-      renderSLAll(); // 목록 건수 갱신
+      renderSLAll();
     }
-    await loadSLMinutesFiles(actId); // 모달 파일 목록 갱신
+    await loadSLMinutesFiles(actId);
   } catch(e) { alert("삭제 실패: "+e.message); }
 }
 
@@ -10565,7 +10569,7 @@ async function saveMtgDBEntry() {
         );
         if(r.ok) {
           const d = await r.json();
-          entry.files.push({name:f.name, url:d.webUrl, size:f.size});
+          entry.files.push({name:f.name, url:d.webUrl, size:f.size, fileId:d.id});
         }
       }
     } catch(e) { console.warn("파일 업로드 실패:", e.message); }
@@ -10753,12 +10757,28 @@ function viewMtgContent(mtgId) {
   alert(header + m.content);
 }
 
-// 삭제
+// 삭제 (DB에서만 숨김 처리 - SP 파일 보존)
 async function deleteMtgEntry(mtgId) {
   const m = (window._mtgLogs||[]).find(x=>x.id===mtgId);
-  if(!m || !confirm(`"${m.date} ${m.company||"미확정"}" 회의록을 삭제할까요?`)) return;
+  if(!m) return;
+  if(!confirm(`"${m.date} ${m.company||"미확정"}" 회의록을 목록에서 삭제할까요?\n\n📁 SharePoint 파일은 보존됩니다.`)) return;
+
+  // DB에서만 제거 (SP 파일 유지)
   window._mtgLogs = (window._mtgLogs||[]).filter(x=>x.id!==mtgId);
   await saveMtgLogsToSP();
+
+  // 연결된 영업활동의 files.minutes는 유지 (파일 보존이므로)
+  // 단, mtgId 연결 참조만 해제
+  if(m.actId) {
+    const act = slData.find(x=>x.id===m.actId);
+    if(act?.files?.minutes) {
+      act.files.minutes = act.files.minutes.map(f=>
+        f.mtgId===mtgId ? {...f, mtgId:null} : f
+      );
+      saveSLToSP().catch(()=>{});
+    }
+  }
+
   renderMtgLog(window._mtgLogs);
 }
 
@@ -10995,6 +11015,8 @@ async function loadTodoFromPlanner(force=false) {
 
     _todoItems = tasks.map(task=>{
       const assignee = Object.keys(task.assignments||{}).map(uid=>userMap[uid]||uid.substring(0,8)).join(", ");
+      // 기존 로컬 캐시에서 dept/attachments 보존
+      const existing = _todoItems.find(x=>x.id===task.id);
       return {
         id: task.id,
         title: task.title||"(제목없음)",
@@ -11005,8 +11027,12 @@ async function loadTodoFromPlanner(force=false) {
         assignee,
         percentComplete: task.percentComplete||0,
         completed: task.percentComplete===100,
+        status: task.percentComplete===100?"완료":task.percentComplete>0?"진행중":"대기",
         completedAt: task.completedDateTime||"",
         plannerUrl: `https://tasks.office.com/enjetco.onmicrosoft.com/en-US/Home/Task/${task.id}`,
+        // 로컬 확장 필드 보존
+        dept: existing?.dept||"",
+        attachments: existing?.attachments||[],
       };
     });
 
@@ -11025,8 +11051,6 @@ async function loadTodoFromPlanner(force=false) {
 function renderTodo(data) {
   const now = new Date();
   const todayStr = now.toISOString().split("T")[0];
-  const weekAgo = new Date(now); weekAgo.setDate(now.getDate()-7);
-  const weekAgoStr = weekAgo.toISOString().split("T")[0];
   const thisWeekStart = new Date(now); thisWeekStart.setDate(now.getDate()-now.getDay()+1);
   const thisMonthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
 
@@ -11044,102 +11068,279 @@ function renderTodo(data) {
   $("todo-kpi-month", monthCreated.length);
   $("todo-kpi-done", done.length);
 
-  // 뱃지 (사이드바)
-  const overdueCount = overdue.length;
+  // 사이드바 뱃지
   const badge = document.getElementById("badge-todo");
-  if(badge) {
-    badge.textContent = open.length;
-    badge.style.background = overdueCount>0 ? "var(--r)" : "var(--p)";
-    badge.style.color = "#fff";
-  }
+  if(badge){ badge.textContent=open.length; badge.style.background=overdue.length>0?"var(--r)":"var(--p)"; badge.style.color="#fff"; }
 
   // 버킷 필터 갱신
   const bSel = document.getElementById("todoBucketFilter");
-  if(bSel) {
-    const buckets = [...new Set(all.map(t=>t.bucketName).filter(Boolean))].sort();
-    const cur = bSel.value;
-    bSel.innerHTML = `<option value="">전체 버킷(고객사)</option>` +
-      buckets.map(b=>`<option value="${b}"${b===cur?" selected":""}>${b}</option>`).join("");
+  if(bSel){
+    const buckets=[...new Set(all.map(t=>t.bucketName).filter(Boolean))].sort();
+    const cur=bSel.value;
+    bSel.innerHTML=`<option value="">전체 버킷(고객사)</option>`+buckets.map(b=>`<option value="${b}"${b===cur?" selected":""}>${b}</option>`).join("");
   }
 
-  // 필터 적용
-  const q = (document.getElementById("todoSrch")?.value||"").toLowerCase();
-  const sf = document.getElementById("todoStatusFilter")?.value||"";
-  const bf = document.getElementById("todoBucketFilter")?.value||"";
-  let filtered = all.filter(t=>{
-    if(bf && t.bucketName!==bf) return false;
-    if(sf==="open" && t.completed) return false;
-    if(sf==="done" && !t.completed) return false;
-    if(sf==="overdue" && (!t.dueDate || t.dueDate>=todayStr || t.completed)) return false;
-    if(q) return [t.title,t.bucketName,t.assignee].some(v=>String(v||"").toLowerCase().includes(q));
+  // 필터
+  const q=(document.getElementById("todoSrch")?.value||"").toLowerCase();
+  const sf=document.getElementById("todoStatusFilter")?.value||"";
+  const bf=document.getElementById("todoBucketFilter")?.value||"";
+  let filtered=all.filter(t=>{
+    if(bf&&t.bucketName!==bf) return false;
+    if(sf==="open"&&t.completed) return false;
+    if(sf==="done"&&!t.completed) return false;
+    if(sf==="overdue"&&(!t.dueDate||t.dueDate>=todayStr||t.completed)) return false;
+    if(q) return[t.title,t.bucketName,t.assignee,t.dept].some(v=>String(v||"").toLowerCase().includes(q));
     return true;
   });
 
-  // 정렬: 지연 → 미완료(마감임박) → 완료
+  // 정렬: 지연→미완료→완료
   filtered.sort((a,b)=>{
-    const aOver = !a.completed && a.dueDate && a.dueDate<todayStr;
-    const bOver = !b.completed && b.dueDate && b.dueDate<todayStr;
-    if(aOver !== bOver) return aOver?-1:1;
-    if(a.completed !== b.completed) return a.completed?1:-1;
-    return (a.dueDate||"9999").localeCompare(b.dueDate||"9999");
+    const aO=!a.completed&&a.dueDate&&a.dueDate<todayStr;
+    const bO=!b.completed&&b.dueDate&&b.dueDate<todayStr;
+    if(aO!==bO) return aO?-1:1;
+    if(a.completed!==b.completed) return a.completed?1:-1;
+    return(a.dueDate||"9999").localeCompare(b.dueDate||"9999");
   });
 
-  const body = document.getElementById("todoBody");
+  const body=document.getElementById("todoBody");
   if(!body) return;
-  if(!filtered.length) {
-    body.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="ei">✅</div><div class="et">Todo 없음</div></div></td></tr>`;
+  if(!filtered.length){
+    body.innerHTML=`<tr><td colspan="11"><div class="empty"><div class="ei">✅</div><div class="et">Todo 없음</div></div></td></tr>`;
     return;
   }
 
-  body.innerHTML = filtered.map(t=>{
-    const isOverdue = !t.completed && t.dueDate && t.dueDate < todayStr;
-    const daysDiff = t.dueDate ? Math.floor((new Date(todayStr)-new Date(t.dueDate))/86400000) : 0;
-    const isLongOverdue = isOverdue && daysDiff >= 7; // 7일 이상 지연 → 깜빡
-    const createdStr = (t.createdAt||"").substring(0,10);
+  const STATUS_OPTIONS=["대기","진행중","완료"];
+  const DEPT_OPTIONS=["","경영전략본부","ES사업부","기술연구소","미래성장전략팀","전체"];
+
+  body.innerHTML=filtered.map(t=>{
+    const isOverdue=!t.completed&&t.dueDate&&t.dueDate<todayStr;
+    const daysDiff=t.dueDate?Math.floor((new Date(todayStr)-new Date(t.dueDate))/86400000):0;
+    const isLongOverdue=isOverdue&&daysDiff>=7;
+    const createdStr=(t.createdAt||"").substring(0,10);
 
     // 상태 뱃지
     let statusBadge;
-    if(t.completed) {
-      statusBadge = `<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:#dcfce7;color:#166534;font-weight:700">✅ 완료</span>`;
-    } else if(isLongOverdue) {
-      statusBadge = `<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:#fee2e2;color:#991b1b;font-weight:700;animation:pulse 1s infinite">🚨 ${daysDiff}일 지연</span>`;
-    } else if(isOverdue) {
-      statusBadge = `<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:#fef9c3;color:#854d0e;font-weight:700">⚠️ ${daysDiff}일 지연</span>`;
+    if(t.completed||t.status==="완료"){
+      statusBadge=`<span style="font-size:12px;padding:2px 7px;border-radius:8px;background:#dcfce7;color:#166534;font-weight:700">✅ 완료</span>`;
+    } else if(isLongOverdue){
+      statusBadge=`<span style="font-size:12px;padding:2px 7px;border-radius:8px;background:#fee2e2;color:#991b1b;font-weight:700;animation:pulse 1s infinite">🚨 ${daysDiff}일 지연</span>`;
+    } else if(isOverdue){
+      statusBadge=`<span style="font-size:12px;padding:2px 7px;border-radius:8px;background:#fef9c3;color:#854d0e;font-weight:700">⚠️ ${daysDiff}일 지연</span>`;
     } else {
-      const pct = t.percentComplete;
-      statusBadge = pct>0
-        ? `<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:#dbeafe;color:#1e40af;font-weight:700">🔄 ${pct}%</span>`
-        : `<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:var(--bg3);color:var(--t3);font-weight:700">📋 대기</span>`;
+      statusBadge=`<span style="font-size:12px;padding:2px 7px;border-radius:8px;background:var(--pd);color:var(--p);font-weight:700">${t.status||"대기"}</span>`;
     }
 
     // 진행률 바
-    const pctBar = `<div style="height:3px;background:var(--bg3);border-radius:2px;margin-top:4px">
-      <div style="height:100%;width:${t.percentComplete}%;background:${t.completed?"var(--g)":isOverdue?"var(--r)":"var(--p)"};border-radius:2px;transition:width .5s"></div>
-    </div>`;
+    const pct=t.percentComplete||0;
+    const pctBar=`<div style="height:3px;background:var(--bg3);border-radius:2px;margin-top:4px"><div style="height:100%;width:${pct}%;background:${t.completed?"var(--g)":isOverdue?"var(--r)":"var(--p)"};border-radius:2px"></div></div>`;
 
-    return `<tr style="${isLongOverdue?"background:rgba(239,68,68,.04)":""}">
+    // 첨부파일 표시
+    const minutes=(t.attachments||[]).filter(a=>a.type==="minutes");
+    const materials=(t.attachments||[]).filter(a=>a.type==="material");
+    const minBtn=minutes.length>0
+      ?`<button onclick="viewTodoAttachments('${t.id}','minutes')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:12px;cursor:pointer;font-weight:700">📝 ${minutes.length}개</button>`
+      :`<button onclick="attachTodoFile('${t.id}','minutes')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:12px;cursor:pointer">⬆</button>`;
+    const matBtn=materials.length>0
+      ?`<button onclick="viewTodoAttachments('${t.id}','material')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer;font-weight:700">📎 ${materials.length}개</button>`
+      :`<button onclick="attachTodoFile('${t.id}','material')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:12px;cursor:pointer">⬆</button>`;
+
+    const rowBg=isLongOverdue?"background:rgba(239,68,68,.04)":"";
+    return `<tr style="${rowBg}">
       <td>
         <div style="font-size:14px;font-weight:${t.completed?"400":"700"};color:${t.completed?"var(--t3)":"var(--t)"};${t.completed?"text-decoration:line-through":""}${isLongOverdue?";animation:pulse 2s infinite":""}">${t.title}</div>
         ${pctBar}
       </td>
-      <td>
-        <span style="font-size:13px;padding:2px 8px;border-radius:6px;background:var(--pd);color:var(--p);font-weight:600">${t.bucketName}</span>
-      </td>
+      <td><span style="font-size:12px;padding:2px 7px;border-radius:5px;background:var(--pd);color:var(--p);font-weight:600">${t.bucketName}</span></td>
       <td style="font-size:13px;color:var(--t3)">${createdStr}</td>
-      <td style="font-size:13px;color:${isOverdue?"var(--r)":"var(--t3)"};font-weight:${isOverdue?"700":"400"}">${t.dueDate||"-"}</td>
-      <td style="font-size:13px">${t.assignee||"-"}</td>
-      <td>${statusBadge}</td>
+      <td>
+        <input type="date" value="${t.dueDate||""}"
+          onchange="updateTodoField('${t.id}','dueDate',this.value)"
+          style="width:100%;padding:2px 4px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--s);background:transparent;cursor:pointer;color:${isOverdue?"var(--r)":"var(--t)"}"
+          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'">
+      </td>
+      <td>
+        <input type="text" value="${(t.assignee||"").replace(/"/g,"&quot;")}" placeholder="담당자"
+          onkeydown="if(event.key==='Enter')this.blur()"
+          onblur="updateTodoField('${t.id}','assignee',this.value)"
+          style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--s);background:transparent;cursor:text"
+          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
+          onblur2="this.style.borderColor='transparent';this.style.background='transparent'">
+      </td>
+      <td>
+        <select onchange="updateTodoField('${t.id}','dept',this.value)"
+          style="width:100%;padding:2px 4px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--s);background:transparent;cursor:pointer"
+          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'">
+          ${DEPT_OPTIONS.map(d=>`<option value="${d}"${(t.dept||"")==d?" selected":""}>${d||"부서 선택"}</option>`).join("")}
+        </select>
+      </td>
+      <td>
+        <select onchange="updateTodoField('${t.id}','status',this.value)"
+          style="width:100%;padding:2px 4px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--s);background:transparent;cursor:pointer"
+          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'">
+          ${STATUS_OPTIONS.map(s=>`<option value="${s}"${(t.status||"대기")===s?" selected":""}>${s}</option>`).join("")}
+        </select>
+      </td>
+      <td style="text-align:center">${minBtn}</td>
+      <td style="text-align:center">${matBtn}</td>
       <td style="text-align:center">
         <a href="${t.plannerUrl}" target="_blank"
           style="font-size:12px;padding:2px 8px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);text-decoration:none;font-weight:700;white-space:nowrap">
           열기 ↗
         </a>
       </td>
+      <td style="text-align:center">
+        <span style="cursor:pointer;font-size:16px;color:var(--r)" onclick="deleteTodoItem('${t.id}')" title="삭제">🗑️</span>
+      </td>
     </tr>`;
   }).join("");
 }
 
 function filterTodo() { renderTodo(); }
+
+// ── Todo 필드 업데이트 (로컬 + Planner PATCH) ──
+async function updateTodoField(taskId, field, value) {
+  const t = _todoItems.find(x=>x.id===taskId);
+  if(!t) return;
+
+  // 로컬 업데이트
+  t[field] = value;
+  if(field==="status") t.completed = value==="완료";
+
+  // Planner PATCH
+  try {
+    const token = await getToken();
+    // 태스크 상세 가져오기 (etag 필요)
+    const tR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}`,
+      {headers:{"Authorization":"Bearer "+token}});
+    const taskData = await tR.json();
+    const etag = taskData["@odata.etag"];
+
+    const patch = {};
+    if(field==="dueDate") patch.dueDateTime = value ? new Date(value+"T23:59:00Z").toISOString() : null;
+    if(field==="status") patch.percentComplete = value==="완료"?100:value==="진행중"?50:0;
+
+    if(Object.keys(patch).length>0) {
+      await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}`, {
+        method:"PATCH",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":etag},
+        body:JSON.stringify(patch)
+      });
+    }
+
+    // 협의부서/담당자는 태스크 details에 저장
+    if(field==="dept"||field==="assignee") {
+      const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,
+        {headers:{"Authorization":"Bearer "+token}});
+      const det = await dR.json();
+      const detEtag = det["@odata.etag"];
+      const desc = det.description||"";
+      // description에 메타데이터 보존
+      let lines = desc.split("\n").filter(l=>!l.startsWith("[담당자]")&&!l.startsWith("[협의부서]"));
+      if(field==="assignee"&&value) lines.unshift(`[담당자] ${value}`);
+      if(field==="dept"&&value) lines.unshift(`[협의부서] ${value}`);
+      await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`, {
+        method:"PATCH",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":detEtag},
+        body:JSON.stringify({description: lines.join("\n").substring(0,1000)})
+      });
+    }
+    console.log("✅ Planner 업데이트:", field, "=", value);
+  } catch(e) { console.warn("Planner 업데이트 실패:", e.message); }
+
+  renderTodo();
+}
+
+// ── Todo 삭제 ──
+async function deleteTodoItem(taskId) {
+  const t = _todoItems.find(x=>x.id===taskId);
+  if(!t||!confirm(`"${t.title}"\n\nPlanner에서도 삭제할까요?`)) return;
+  try {
+    const token = await getToken();
+    const tR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}`,
+      {headers:{"Authorization":"Bearer "+token}});
+    const taskData = await tR.json();
+    await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}`, {
+      method:"DELETE",
+      headers:{"Authorization":"Bearer "+token,"If-Match":taskData["@odata.etag"]}
+    });
+    _todoItems = _todoItems.filter(x=>x.id!==taskId);
+    console.log("✅ Planner 태스크 삭제:", taskId);
+  } catch(e) {
+    console.warn("Planner 삭제 실패:", e.message);
+    _todoItems = _todoItems.filter(x=>x.id!==taskId); // 로컬만
+  }
+  renderTodo();
+}
+
+// ── 첨부파일 추가 (SP 업로드 → Planner 링크 첨부) ──
+async function attachTodoFile(taskId, type) {
+  const t = _todoItems.find(x=>x.id===taskId);
+  if(!t) return;
+  const input = document.createElement("input");
+  input.type="file"; input.multiple=true;
+  input.accept = type==="minutes"
+    ? ".txt,.pdf,.doc,.docx,.hwp,*/*"
+    : "application/pdf,.pdf,.ppt,.pptx,.xlsx,.doc,.docx,.hwp,.zip,image/*,*/*";
+  input.onchange = async()=>{
+    const files = Array.from(input.files);
+    if(!files.length) return;
+    try {
+      await getIds();
+      const token = await getToken();
+      const folder = `📦영업/99.Dashboard(real-time)/todo-attachments/${taskId}`;
+      await ensureSPFolder(folder);
+      const enc = folder.split("/").map(encodeURIComponent).join("/");
+      if(!t.attachments) t.attachments=[];
+      for(const f of files) {
+        const r = await fetch(
+          `https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(f.name)}:/content`,
+          {method:"PUT",headers:{"Content-Type":f.type||"application/octet-stream","Authorization":"Bearer "+token},body:f}
+        );
+        if(r.ok) {
+          const d = await r.json();
+          t.attachments.push({type, name:f.name, url:d.webUrl, fileId:d.id, uploadedAt:new Date().toISOString()});
+
+          // Planner 태스크 details에 링크 첨부
+          try {
+            const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,
+              {headers:{"Authorization":"Bearer "+token}});
+            const det = await dR.json();
+            const detEtag = det["@odata.etag"];
+            const refs = det.references||{};
+            const encUrl = encodeURIComponent(d.webUrl);
+            refs[encUrl] = {alias:f.name, type:"other", previewPriority:" !"};
+            await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,{
+              method:"PATCH",
+              headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":detEtag},
+              body:JSON.stringify({references:refs})
+            });
+          } catch(e2){ console.warn("Planner 링크 첨부 실패:", e2.message); }
+        }
+      }
+      alert(`✅ ${files.length}개 파일 첨부 완료!\nPlanner에도 링크가 추가됩니다.`);
+      renderTodo();
+    } catch(e) { alert("첨부 실패: "+e.message); }
+  };
+  document.body.appendChild(input); input.click();
+  setTimeout(()=>input.remove(),5000);
+}
+
+// ── 첨부파일 보기 ──
+function viewTodoAttachments(taskId, type) {
+  const t = _todoItems.find(x=>x.id===taskId);
+  if(!t) return;
+  const atts = (t.attachments||[]).filter(a=>a.type===type);
+  if(!atts.length) return;
+  const label = type==="minutes"?"회의록":"자료";
+  // 간단한 목록 팝업
+  const list = atts.map(a=>`• ${a.name}\n  ${a.url}`).join("\n\n");
+  if(confirm(`📎 ${label} 첨부파일 ${atts.length}개\n\n${list}\n\n첫 번째 파일을 열까요?`)) {
+    window.open(atts[0].url, "_blank");
+  }
+}
 
 function go(id, el) {
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
