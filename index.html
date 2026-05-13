@@ -6549,25 +6549,56 @@ async function createPlannerFromMtgItems(actId, items, mtgDate, company, pjcode,
 
   const patchDetails = async(taskId, taskAssignee) => {
     try {
+      await new Promise(r=>setTimeout(r,600));
       const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,
         {headers:{"Authorization":"Bearer "+token}});
+      if(!dR.ok) { console.warn("details GET 실패:", dR.status); return; }
       const det = await dR.json();
-      const refs = {...(det.references||{})};
-      if(minutesUrl) refs[encodeURIComponent(minutesUrl)] = {alias:minutesName||"회의록", type:"other", previewPriority:" !"};
-      const metaLines = [
-        taskAssignee ? `[담당자] ${taskAssignee}` : "",  // 태스크별 담당자
+      const etag = det["@odata.etag"];
+
+      // description: plain text (Planner는 plain text OK)
+      const descLines = [
+        taskAssignee ? `[담당자] ${taskAssignee}` : "",
         dept         ? `[협의부서] ${dept}`        : "",
         custAtts     ? `[고객참석자] ${custAtts}`  : "",
         minutesUrl   ? `[회의록URL] ${minutesUrl}` : "",
         minutesName  ? `[회의록명] ${minutesName}` : "",
       ].filter(Boolean).join("\n");
-      await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,{
-        method:"PATCH",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":det["@odata.etag"]},
-        body:JSON.stringify({references:refs, description:metaLines.substring(0,1000)})
+
+      // references: URL을 key로, 값은 {alias, type, previewPriority}
+      const refs = {};
+      if(minutesUrl) {
+        // Planner references key: encodeURIComponent(url).replace(/\./g,'%2E')
+        const refKey = encodeURIComponent(minutesUrl).replace(/\./g, "%2E");
+        refs[refKey] = {
+          "@odata.type": "microsoft.graph.plannerExternalReference",
+          alias: (minutesName||"회의록").substring(0, 255),
+          type: "Other",
+          previewPriority: " !"
+        };
+      }
+
+      const body = { description: descLines };
+      if(Object.keys(refs).length > 0) body.references = refs;
+
+      const pR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token,
+          "If-Match": etag,
+          "Prefer": "return=representation"
+        },
+        body: JSON.stringify(body)
       });
-      console.log("✅ details 저장:", taskAssignee, dept, custAtts, minutesName);
-    } catch(e){ console.warn("details 저장 실패:", e.message); }
+
+      if(pR.ok || pR.status === 204) {
+        console.log("✅ details 저장:", taskAssignee||"-", dept||"-", custAtts||"-", minutesName||"-");
+      } else {
+        const errText = await pR.text().catch(()=>"");
+        console.warn("❌ details PATCH 실패:", pR.status, errText.substring(0, 200));
+      }
+    } catch(e) { console.warn("details 저장 예외:", e.message); }
   };
 
   let created = 0;
@@ -6739,6 +6770,7 @@ async function saveMtgDirectAsFile() {
 
   // ✅ 액션아이템 검증
   const actionItems = getActionItemsFromUI("slActionItemList3");
+  console.log("📋 액션아이템 수집:", actionItems.length, "개", JSON.stringify(actionItems));
 
   // 제목 비어있는 행 강조
   const allRows = document.querySelectorAll("#slActionItemList3 div[id^='ai_']");
