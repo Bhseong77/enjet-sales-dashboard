@@ -15994,7 +15994,7 @@ async function parseOrderPdf(file) {
       if(!res.ok){const e=await res.json();throw new Error("Gemini 오류: "+(e.error?.message||res.status));}
       const data=await res.json();
       const text=data.candidates?.[0]?.content?.parts?.[0]?.text||"";
-      resultJson=JSON.parse(text.replace(/```json|```/g,"").trim());
+      resultJson=extractJsonFromAIResponse(text);
     } else if(engine==="openai"){
       const key=document.getElementById("orderOpenAIKey")?.value.trim()||localStorage.getItem("oai_key")||"";
       if(!key) throw new Error("OpenAI API Key를 입력해주세요.");
@@ -16005,7 +16005,7 @@ async function parseOrderPdf(file) {
       });
       if(!res.ok){const e=await res.json();throw new Error("OpenAI 오류: "+(e.error?.message||res.status));}
       const data=await res.json();
-      resultJson=JSON.parse((data.choices?.[0]?.message?.content||"").replace(/```json|```/g,"").trim());
+      resultJson=extractJsonFromAIResponse(data.choices?.[0]?.message?.content||"");
     } else if(engine==="copilot"){
       if(statusEl) statusEl.textContent="✨ Copilot이 발주서 분석 중...";
       const pdfText=await extractPdfText(base64);
@@ -16021,7 +16021,7 @@ async function parseOrderPdf(file) {
       const chatData=await chatRes.json();
       const msgs=chatData.messages||[];
       let text="";for(let i=msgs.length-1;i>=0;i--){if(msgs[i].text){text=msgs[i].text;break;}}
-      resultJson=JSON.parse(text.replace(/```json|```/g,"").replace(/<[^>]+>/g,"").trim());
+      resultJson=extractJsonFromAIResponse(text);
     }
     if(resultJson){
       console.log("🤖 발주서 AI 파싱 결과:", JSON.stringify(resultJson));
@@ -16249,8 +16249,8 @@ async function parsePdfWithAI(file, docType, statusElId, fillFn) {
   const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
   const engine=document.querySelector(`input[name="${docType==="dlv"?"docAiEngine":"taxAiEngine"}"]:checked`)?.value||"gemini";
   const prompt=docType==="dlv"
-    ?`이 거래명세서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. JSON만 출력(마크다운 없이):\n{"date":"YYYY-MM-DD","company":"공급받는자 회사명","item":"품목명","qty":"수량+단위","supply":공급가액숫자,"tax":세액숫자,"total":합계금액숫자,"po":"PO번호","pjcode":"프로젝트코드","note":"비고"}`
-    :`이 전자세금계산서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. JSON만 출력(마크다운 없이):\n{"date":"YYYY-MM-DD","company":"공급받는자 회사명","item":"품목명","supply":공급가액숫자,"vat":세액숫자,"total":합계금액숫자,"approval":"승인번호","mgmt":"관리번호","note":"기타"}`;
+    ?`이 거래명세서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. 반드시 JSON만 출력(설명 없이, 마크다운 없이):\n{"date":"YYYY-MM-DD","company":"공급받는자 회사명","item":"품목명","qty":"수량+단위","supply":공급가액숫자,"tax":세액숫자(공급가액의10%),"total":합계금액숫자,"po":"PO번호","pjcode":"프로젝트코드","note":"비고"}`
+    :`이 전자세금계산서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. 반드시 JSON만 출력(설명 없이, 마크다운 없이):\n{"date":"YYYY-MM-DD(작성일)","company":"공급받는자 회사명","item":"품목명","supply":공급가액숫자,"vat":세액숫자(공급가액의10%,없으면0),"total":합계금액숫자(공급가액+세액),"approval":"승인번호(영숫자)","mgmt":"관리번호","note":"기타"}`;
   try {
     let resultJson=null;
     if(engine==="gemini"){
@@ -16264,7 +16264,7 @@ async function parsePdfWithAI(file, docType, statusElId, fillFn) {
       if(!res.ok){const e=await res.json();throw new Error("Gemini 오류: "+(e.error?.message||res.status));}
       const data=await res.json();
       const text=data.candidates?.[0]?.content?.parts?.[0]?.text||"";
-      resultJson=JSON.parse(text.replace(/```json|```/g,"").trim());
+      resultJson=extractJsonFromAIResponse(text);
     } else if(engine==="openai"){
       const key=document.getElementById(docType==="dlv"?"dlvOpenAIKey":"taxOpenAIKey")?.value.trim()||localStorage.getItem("oai_key")||"";
       if(!key) throw new Error("OpenAI API Key를 입력해주세요.");
@@ -16275,7 +16275,7 @@ async function parsePdfWithAI(file, docType, statusElId, fillFn) {
       });
       if(!res.ok){const e=await res.json();throw new Error("OpenAI 오류: "+(e.error?.message||res.status));}
       const data=await res.json();
-      resultJson=JSON.parse((data.choices?.[0]?.message?.content||"").replace(/```json|```/g,"").trim());
+      resultJson=extractJsonFromAIResponse(data.choices?.[0]?.message?.content||"");
     } else if(engine==="copilot"){
       if(statusEl) statusEl.textContent="✨ Copilot이 PDF 분석 중...";
       const pdfText=await extractPdfText(base64);
@@ -16291,13 +16291,32 @@ async function parsePdfWithAI(file, docType, statusElId, fillFn) {
       const chatData=await chatRes.json();
       const msgs=chatData.messages||[];
       let text="";for(let i=msgs.length-1;i>=0;i--){if(msgs[i].text){text=msgs[i].text;break;}}
-      resultJson=JSON.parse(text.replace(/```json|```/g,"").replace(/<[^>]+>/g,"").trim());
+      resultJson=extractJsonFromAIResponse(text);
     }
     if(resultJson){
       console.log("🤖 AI 파싱 결과:", JSON.stringify(resultJson));
       fillFn(resultJson);
       if(statusEl){statusEl.textContent="✅ 추출 완료! 내용 확인 후 저장하세요.";statusEl.style.color="var(--g)";}
     }  } catch(e){if(statusEl){statusEl.textContent="❌ "+e.message;statusEl.style.color="var(--r)";}}
+}
+
+// AI 응답에서 JSON 안전 추출 (Copilot이 설명 텍스트 붙이는 경우 처리)
+function extractJsonFromAIResponse(text) {
+  if(!text) throw new Error('AI 응답이 비어 있습니다');
+  // HTML 태그 제거
+  let clean = text.replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ');
+  // 마크다운 코드 블록 제거
+  clean = clean.replace(/```json/gi,'').replace(/```/g,'');
+  // { } 사이의 JSON만 추출
+  const m = clean.match(/\{[\s\S]*\}/);
+  if(!m) throw new Error('JSON을 찾을 수 없습니다. AI 응답: ' + clean.substring(0,100));
+  try {
+    return JSON.parse(m[0]);
+  } catch(e) {
+    // 숫자에 쉼표 포함된 경우 제거 시도
+    const fixed = m[0].replace(/: *([\d,]+)([,}])/g, (_, n, tail) => ': ' + n.replace(/,/g,'') + tail);
+    return JSON.parse(fixed);
+  }
 }
 
 async function extractPdfText(base64) {
