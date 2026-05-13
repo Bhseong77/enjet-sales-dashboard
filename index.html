@@ -1119,26 +1119,33 @@
             <div style="margin-bottom:8px">
               <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">📝 회의록 내용</label>
               <textarea id="slMtgDirectContent" class="si"
-                placeholder="회의 내용을 자유롭게 입력하세요.&#10;&#10;[안건]&#10;1. ...&#10;&#10;[주요 내용]&#10;- ...&#10;&#10;[결정 사항]&#10;- ...&#10;&#10;[다음 액션]&#10;- ..."
-                style="width:100%;height:260px;resize:vertical;font-size:14px;line-height:1.7"></textarea>
+                placeholder="회의 내용을 자유롭게 입력하세요.&#10;&#10;[안건]&#10;1. ...&#10;&#10;[주요 내용]&#10;- ...&#10;&#10;[결정 사항]&#10;- ..."
+                style="width:100%;height:200px;resize:vertical;font-size:14px;line-height:1.7"></textarea>
             </div>
+
+            <!-- ✅ 액션아이템 필수 입력 -->
+            <div style="margin-bottom:10px;border:1.5px solid var(--p);border-radius:10px;padding:12px;background:#fff">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:14px;font-weight:800;color:var(--p)">📋 액션아이템 <span style="color:var(--r);font-size:12px">* 1개 이상 필수</span></div>
+                <button onclick="addActionItemRow3()" type="button"
+                  style="padding:3px 10px;border-radius:6px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                  + 추가
+                </button>
+              </div>
+              <div id="slActionItemList3" style="display:flex;flex-direction:column;gap:6px"></div>
+              <div style="font-size:12px;color:var(--t3);margin-top:6px">💡 Planner에 그대로 Todo로 등록됩니다. 담당자와 기한을 꼭 입력하세요.</div>
+            </div>
+
             <div style="margin-bottom:8px">
               <label style="font-size:13px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">💾 파일명</label>
               <input class="si" type="text" id="slMtgFileName3" placeholder="예: 회의록_세종산업_20260512.txt"
                 style="width:100%;font-size:14px">
             </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;color:var(--t2)">
-                <input type="checkbox" id="slMtgDirectCreateTodo" checked
-                  style="width:16px;height:16px;accent-color:var(--p)">
-                <span>📋 액션아이템 추출 → Planner Todo 생성</span>
-              </label>
-              <div style="display:flex;gap:8px">
-                <button onclick="switchMtgTab(1)"
-                  style="padding:9px 16px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
-                <button id="slMtgDirectSaveBtn" onclick="saveMtgDirectAsFile()"
-                  style="padding:9px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 SP 저장 + Todo 생성</button>
-              </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px">
+              <button onclick="switchMtgTab(1)"
+                style="padding:9px 16px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+              <button id="slMtgDirectSaveBtn" onclick="saveMtgDirectAsFile()"
+                style="padding:9px 20px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 SP 저장 + Planner 전송</button>
             </div>
           </div>
 
@@ -1274,32 +1281,45 @@
               <div style="font-size:16px;font-weight:800;color:var(--t);margin-bottom:10px">📋 AI 요약 결과</div>
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                 <span style="font-size:13px;color:var(--t3)">✏️ 내용을 직접 수정한 후 저장하세요</span>
-                <button onclick="resetSLMtgResult()"
-                  style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:12px;cursor:pointer;font-family:var(--s)">
-                  🔄 원본 복원
-                </button>
+                <div style="display:flex;gap:6px">
+                  <button onclick="extractAndShowActionItems()"
+                    style="padding:4px 12px;border-radius:6px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer;font-family:var(--s);font-weight:700">
+                    🔍 액션아이템 추출
+                  </button>
+                  <button onclick="resetSLMtgResult()"
+                    style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;font-size:12px;cursor:pointer;font-family:var(--s)">
+                    🔄 원본 복원
+                  </button>
+                </div>
               </div>
               <textarea id="slMtgResultContent"
-                style="width:100%;padding:14px;background:var(--bg3);border-radius:10px;font-size:14px;line-height:1.7;min-height:280px;max-height:420px;resize:vertical;border:1.5px solid var(--border2);font-family:var(--s);box-sizing:border-box"
+                style="width:100%;padding:14px;background:var(--bg3);border-radius:10px;font-size:14px;line-height:1.7;min-height:200px;max-height:320px;resize:vertical;border:1.5px solid var(--border2);font-family:var(--s);box-sizing:border-box"
                 placeholder="AI 요약 결과가 여기에 표시됩니다. 직접 수정 가능합니다."></textarea>
-              <!-- Planner 옵션 -->
-              <div style="margin-top:10px;padding:10px 14px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;font-weight:700">
-                  <input type="checkbox" id="slMtgCreateTodo" checked style="accent-color:var(--p)">
-                  📋 Planner Todo 자동 생성
-                </label>
-                <span style="font-size:12px;color:var(--t3)">액션아이템 → 버킷(고객사-코드) 안에 태스크로 등록</span>
+
+              <!-- ✅ 액션아이템 편집 영역 -->
+              <div id="slActionItemPanel" style="display:none;margin-top:12px;border:1.5px solid var(--p);border-radius:10px;padding:14px;background:#fff">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <div style="font-size:15px;font-weight:800;color:var(--p)">📋 액션아이템 확정</div>
+                  <span style="font-size:12px;color:var(--t3)">아래 항목을 편집 후 Planner로 전송하세요</span>
+                </div>
+                <div id="slActionItemList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+                <!-- 추가 버튼 -->
+                <button onclick="addActionItemRow()"
+                  style="width:100%;padding:7px;border-radius:7px;border:1.5px dashed var(--p);background:var(--pd);color:var(--p);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                  + 액션아이템 추가
+                </button>
+              </div>
+
+              <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end;align-items:center">
                 <a href="https://teams.microsoft.com/l/entity/com.microsoft.teamspace.tab.planner/_djb2_msteams_prefix_2457438311?context=%7B%22channelId%22%3A%2219%3A15cae7e9dec84ce1ae4909e6f7c25634%40thread.tacv2%22%7D&tenantId=58b310e1-9278-47ab-8e49-792728818c9e" target="_blank"
                   style="font-size:12px;color:var(--p);text-decoration:none">🔗 Planner 열기</a>
-              </div>
-              <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end">
                 <button onclick="copySLMtgResult()"
                   style="padding:8px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">
                   📋 복사
                 </button>
                 <button id="slMtgSaveBtn" onclick="saveSLMtgResult()"
                   style="padding:8px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">
-                  💾 SP 저장 + Todo 생성
+                  💾 SP 저장 + Planner 전송
                 </button>
               </div>
             </div>
@@ -1775,12 +1795,11 @@
         <div style="background:#fff;border-radius:14px;width:1000px;max-width:98vw;position:relative;overflow:hidden">
           <!-- 모달 헤더 -->
           <div style="background:var(--p);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
-            <div style="font-size:15px;font-weight:800">📄 견적서 작성 — ENJET-QUO-02</div>
+            <div style="font-size:15px;font-weight:800" id="quoteModalTitle">📄 견적서 작성</div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
               <button onclick="uploadQuoteFile()" style="padding:5px 12px;border-radius:7px;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">📎 파일 올리기</button>
-              <button onclick="generateQuoteExcel()" style="padding:5px 12px;border-radius:7px;border:none;background:#00875a;color:#fff;font-size:13px;cursor:pointer;font-weight:800;font-family:var(--s)" title="실제 엑셀 양식으로 저장">📊 엑셀 저장</button>
-              <button onclick="printQuote()" style="padding:5px 12px;border-radius:7px;border:none;background:#fff;color:var(--p);font-size:13px;cursor:pointer;font-weight:800;font-family:var(--s)">🖨️ PDF 저장</button>
-              <button onclick="saveQuoteToDashboard()" style="padding:5px 12px;border-radius:7px;border:none;background:rgba(255,255,255,0.2);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 임시저장</button>
+              <button onclick="saveQuoteToDashboard()" id="quoteTempSaveBtn" style="padding:5px 12px;border-radius:7px;border:1px solid rgba(255,255,255,0.5);background:transparent;color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 임시저장</button>
+              <button onclick="finalSaveQuote()" id="quoteFinalSaveBtn" style="padding:5px 14px;border-radius:7px;border:none;background:#fff;color:var(--p);font-size:13px;cursor:pointer;font-weight:800;font-family:var(--s)">✅ 최종저장 (SP 자동업로드)</button>
               <button onclick="closeQuoteModal()" style="padding:5px 10px;border-radius:7px;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:20px;cursor:pointer;line-height:1">✕</button>
             </div>
           </div>
@@ -6489,6 +6508,53 @@ async function createPlannerTask(planId, bucketId, title, notes, assignee, dueDa
 }
 
 // 회의록 → Planner 태스크 생성 (메인)
+// UI에서 확정된 액션아이템 배열로 Planner 태스크 생성
+async function createPlannerFromMtgItems(actId, items, mtgDate, company, pjcode, minutesUrl, minutesName, extraMeta) {
+  const bucketName = company+(pjcode?"-"+pjcode:"");
+  const assignee  = extraMeta?.assignee||"";
+  const dept      = extraMeta?.dept||"";
+  const custAtts  = extraMeta?.custAttendees||"";
+
+  const planId = await getPlannerPlanId();
+  const bucketId = await getOrCreateBucket(planId, bucketName);
+  const token = await getToken();
+
+  const patchDetails = async(taskId) => {
+    try {
+      const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,
+        {headers:{"Authorization":"Bearer "+token}});
+      const det = await dR.json();
+      const refs = {...(det.references||{})};
+      if(minutesUrl) refs[encodeURIComponent(minutesUrl)] = {alias:minutesName||"회의록", type:"other", previewPriority:" !"};
+      const metaLines = [
+        assignee  ? `[담당자] ${assignee}`       : "",
+        dept      ? `[협의부서] ${dept}`          : "",
+        custAtts  ? `[고객참석자] ${custAtts}`    : "",
+        minutesUrl? `[회의록URL] ${minutesUrl}`   : "",
+        minutesName?`[회의록명] ${minutesName}`   : "",
+      ].filter(Boolean).join("\n");
+      await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,{
+        method:"PATCH",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":det["@odata.etag"]},
+        body:JSON.stringify({references:refs, description:metaLines.substring(0,1000)})
+      });
+    } catch(e){ console.warn("details 저장 실패:", e.message); }
+  };
+
+  let created = 0;
+  for(const item of items) {
+    const task = await createPlannerTask(planId, bucketId,
+      item.title,
+      "",
+      item.assignee||assignee,
+      item.dueDate
+    );
+    await patchDetails(task.id);
+    created++;
+  }
+  return {created, bucketName};
+}
+
 async function createPlannerFromMtg(actId, summaryText, mtgDate, company, pjcode, minutesUrl, minutesName, extraMeta) {
   // extraMeta: {assignee, dept, custAttendees}
   const bucketName = company+(pjcode?"-"+pjcode:"");
@@ -6614,7 +6680,12 @@ function switchMtgTab(n) {
       tab.style.borderBottomColor = n===i?"var(--p)":"transparent";
     }
   });
-  // 탭3: 날짜 기본값 + 파일명 기본값 자동 채우기
+  // 탭2: 액션아이템 패널 숨김
+  if(n===2) {
+    const panel = document.getElementById("slActionItemPanel");
+    if(panel) panel.style.display = "none";
+  }
+  // 탭3: 날짜 기본값 + 파일명 + 액션아이템 초기화
   if(n===3) {
     const d = document.getElementById("slMtgDateCommon");
     if(d && !d.value) d.value = new Date().toISOString().split("T")[0];
@@ -6624,6 +6695,9 @@ function switchMtgTab(n) {
       const dateStr = new Date().toISOString().split("T")[0].replace(/-/g,"");
       fn.value = `회의록_${act.company}_${dateStr}.txt`;
     }
+    // 액션아이템 빈 행 초기화
+    const list3 = document.getElementById("slActionItemList3");
+    if(list3 && !list3.children.length) initActionItemList3();
   }
 }
 
@@ -6633,6 +6707,14 @@ async function saveMtgDirectAsFile() {
   if(_slMtgSaving) return;
   const content = document.getElementById("slMtgDirectContent")?.value?.trim();
   if(!content) { alert("회의록 내용을 입력해주세요."); return; }
+
+  // ✅ 액션아이템 필수 검증
+  const actionItems = getActionItemsFromUI("slActionItemList3");
+  if(actionItems.length === 0) {
+    alert("❗ 액션아이템을 1개 이상 입력해야 저장할 수 있습니다.\n\n[+ 추가] 버튼으로 액션아이템을 추가하세요.");
+    document.getElementById("slActionItemList3")?.scrollIntoView({behavior:"smooth", block:"nearest"});
+    return;
+  }
 
   const actId = window._slMinutesActId;
   const act = slData.find(x=>x.id===actId);
@@ -6693,31 +6775,29 @@ async function saveMtgDirectAsFile() {
     renderSLAll();
     document.getElementById("slMtgDirectContent").value = "";
     document.getElementById("slMtgFileName3").value = "";
+    // 액션아이템 초기화
+    const list3 = document.getElementById("slActionItemList3");
+    if(list3) list3.innerHTML = "";
     await loadSLMinutesFiles(actId);
     switchMtgTab(1);
     _slMtgSaving = false;
-    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Todo 생성"; }
+    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Planner 전송"; }
 
-    // Planner Todo 생성 (체크박스 on이면)
-    const doTodo = document.getElementById("slMtgDirectCreateTodo")?.checked;
-    if(doTodo) {
-      try {
-        const plResult = await createPlannerFromMtg(
-          actId, content, date, act.company, act.pjcode,
-          d.webUrl, fileName,
-          {
-            assignee:    document.getElementById("slMtgInternalAttendees")?.value||"",
-            dept:        getSlMtgDepts(),
-            custAttendees: _slMtgCustTags.join(", ")
-          }
-        );
-        loadTodoFromPlanner(false).catch(()=>{});
-        alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n📋 Planner: "${plResult.bucketName}" 버킷에 ${plResult.created}개 Todo 생성`);
-      } catch(pe) {
-        alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n⚠️ Planner Todo 생성 실패: ${pe.message}`);
-      }
-    } else {
-      alert(`✅ 회의록 저장 완료!\n파일명: ${fileName}`);
+    // Planner Todo 생성 (UI 액션아이템 사용)
+    try {
+      const plResult = await createPlannerFromMtgItems(
+        actId, actionItems, date, act.company, act.pjcode,
+        d.webUrl, fileName,
+        {
+          assignee:    document.getElementById("slMtgInternalAttendees")?.value||"",
+          dept:        getSlMtgDepts(),
+          custAttendees: _slMtgCustTags.join(", ")
+        }
+      );
+      loadTodoFromPlanner(false).catch(()=>{});
+      alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n📋 Planner: "${plResult.bucketName}" 버킷에 ${plResult.created}개 Todo 생성`);
+    } catch(pe) {
+      alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n⚠️ Planner Todo 생성 실패: ${pe.message}`);
     }
   } catch(e) {
     _slMtgSaving = false;
@@ -7091,13 +7171,16 @@ async function saveSLMtgResult() {
       }
     } catch(ne){ console.warn("Teams 알림 실패:", ne.message); }
 
-    // Planner Todo 생성
-    const doTodo = document.getElementById("slMtgCreateTodo")?.checked;
-    if(doTodo) {
+    // Planner Todo 생성 - 액션아이템 패널에서 읽기
+    const uiItems = getActionItemsFromUI("slActionItemList");
+    const panelVisible = document.getElementById("slActionItemPanel")?.style.display !== "none";
+
+    if(panelVisible && uiItems.length > 0) {
+      // 패널에서 확정된 액션아이템으로 전송
       try {
         $("slUpd","Planner Todo 생성 중...");
-        const plResult = await createPlannerFromMtg(
-          _slMtgActId, txt, today, act.company, act.pjcode,
+        const plResult = await createPlannerFromMtgItems(
+          _slMtgActId, uiItems, today, act.company, act.pjcode,
           saved.webUrl||"", fileName,
           {
             assignee:    document.getElementById("slMtgInternalAttendees")?.value||"",
@@ -7107,22 +7190,21 @@ async function saveSLMtgResult() {
         );
         console.log("✅ Planner Todo:", plResult.created+"개 생성, 버킷:", plResult.bucketName);
         loadTodoFromPlanner(false).catch(()=>{});
-        const plannerMsg = "\n📋 Planner: "+plResult.bucketName+" 버킷에 "+plResult.created+"개 Todo 생성";
-        alert("✅ 저장 완료!\n"+spPath+"/"+fileName+plannerMsg);
+        alert("✅ 저장 완료!\n"+spPath+"/"+fileName+"\n\n📋 Planner: "+plResult.bucketName+" 버킷에 "+plResult.created+"개 Todo 생성");
       } catch(pe) {
         console.warn("Planner 생성 실패:", pe.message);
-        alert("✅ 회의록은 저장됐어요!\n"+spPath+"/"+fileName+"\n\n⚠️ Planner Todo 생성 실패:\n"+pe.message+"\n\n(로그아웃 후 재로그인 하면 해결될 수 있어요 - Tasks 권한 추가됨)");
+        alert("✅ 회의록은 저장됐어요!\n"+spPath+"/"+fileName+"\n\n⚠️ Planner Todo 생성 실패:\n"+pe.message);
       }
     } else {
-      alert("✅ 회의록 저장 완료!\n"+spPath+"/"+fileName);
+      alert("✅ 회의록 저장 완료!\n"+spPath+"/"+fileName+"\n\n💡 [🔍 액션아이템 추출] 버튼으로 Planner에 전송할 수 있어요.");
     }
     switchMtgTab(1);
     await loadSLMinutesFiles(_slMtgActId);
     _slMtgSaving = false;
-    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Todo 생성"; }
+    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Planner 전송"; }
   } catch(e) {
     _slMtgSaving = false;
-    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Todo 생성"; }
+    if(saveBtn) { saveBtn.disabled=false; saveBtn.textContent="💾 SP 저장 + Planner 전송"; }
     alert("저장 실패: "+e.message);
   }
 }
@@ -9043,9 +9125,13 @@ function openQuoteModal(actId) {
   document.getElementById("q-contact").value = "";
   document.getElementById("q-subject").value = act ? (act.company+(act.pjcode?" "+act.pjcode:"")) : "";
   document.getElementById("q-date").value = today.toISOString().split("T")[0];
-  document.getElementById("q-quoteNo").value = act
+  const quoteNoVal = act
     ? `Quo)${act.company.substring(0,3).toUpperCase()}_Q1_${today.toISOString().split("T")[0].replace(/-/g,"").substring(2)}`
     : "";
+  document.getElementById("q-quoteNo").value = quoteNoVal;
+  // 헤더 제목 동적
+  const titleEl = document.getElementById("quoteModalTitle");
+  if(titleEl) titleEl.textContent = act ? `📄 견적서 — ${act.company} ${quoteNoVal}` : "📄 견적서 작성 (DB 독립)";
   document.getElementById("q-delivery").value = "고객사 지정 장소";
   document.getElementById("q-leadtime").value = "발주 문서 접수 후 1 영업일";
   document.getElementById("q-validity").value = "제출일로부터 30일";
@@ -9355,8 +9441,38 @@ function printQuote() {
   setTimeout(()=>win.print(), 800);
 }
 
-async function saveQuoteToDashboard() {
-  // 현재 견적 데이터 JSON으로 SharePoint에 저장
+// ━━ 최종저장: 엑셀 SP 자동 업로드 + PDF 인쇄 ━━
+async function finalSaveQuote() {
+  const btn = document.getElementById("quoteFinalSaveBtn");
+  if(btn) { btn.disabled=true; btn.textContent="저장 중..."; }
+
+  try {
+    // 1. 엑셀 SP 자동 업로드
+    await generateQuoteExcel();
+
+    // 2. JSON 임시저장도 갱신 (silent)
+    await saveQuoteToDashboard(true);
+
+    // 3. PDF - 브라우저 인쇄 다이얼로그 (자동 SP 업로드 불가 - 보안 제약)
+    // 인쇄 창에서 "PDF로 저장" 선택 → 로컬 다운로드
+    setTimeout(()=>{
+      const ok = confirm(
+        "✅ 엑셀이 SharePoint에 자동 저장됐어요!\n\n" +
+        "📄 PDF 저장:\n" +
+        "• 확인 → 인쇄 창에서 'PDF로 저장' 선택\n" +
+        "• (보안 정책상 PDF는 브라우저에서 직접 저장해야 합니다)"
+      );
+      if(ok) printQuote();
+    }, 300);
+
+  } catch(e) {
+    alert("최종저장 실패: "+e.message);
+  }
+
+  if(btn) { btn.disabled=false; btn.textContent="✅ 최종저장 (SP 자동업로드)"; }
+}
+
+async function saveQuoteToDashboard(silent=false) {
   const act = slData.find(x=>x.id===_quoteActId);
   if(!act) return;
   const get = id => document.getElementById(id)?.value||"";
@@ -9380,21 +9496,22 @@ async function saveQuoteToDashboard() {
   try {
     await getIds();
     const t = await getToken();
-    // 견적서 JSON을 SharePoint에 저장
     const path = `📦영업/7.영업활동/${act.company}/${act.pjcode||"신규"}/견적서/${quoteData.quoteNo||"quote"}.json`;
     const enc = path.split("/").map(encodeURIComponent).join("/");
     await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+":/content",{
       method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
       body: JSON.stringify(quoteData,null,2)
     });
-    // 영업활동 이력에 기록
     if(!act.history) act.history=[];
-    act.history.unshift({date:quoteData.date, action:"📄 견적서 작성: "+quoteData.quoteNo, type:"file"});
+    // 중복 이력 방지
+    if(!act.history.find(h=>h.action?.includes(quoteData.quoteNo))) {
+      act.history.unshift({date:quoteData.date, action:"📄 견적서 임시저장: "+quoteData.quoteNo, type:"file"});
+    }
     await saveSLToSP();
     renderSLAll();
-    alert("✅ 견적서 저장 완료!\n파일: "+quoteData.quoteNo+".json\n📄 PDF는 [PDF 저장] 버튼으로 별도 저장하세요.");
+    if(!silent) alert("✅ 견적서 임시저장 완료!\n\n📁 SP 저장: "+path+"\n\n[최종저장] 버튼으로 엑셀을 SP에 자동 업로드하세요.");
   } catch(e) {
-    alert("저장 실패: "+e.message);
+    if(!silent) alert("임시저장 실패: "+e.message);
   }
 }
 
@@ -12142,6 +12259,79 @@ function getSlMtgDepts() {
 
 // openSLMinutesModal에서 초기화
 const _origOpenSLMinutesModal = typeof openSLMinutesModal === "function" ? openSLMinutesModal : null;
+
+// ━━ 액션아이템 편집 UI ━━
+let _actionItems = []; // [{title, assignee, dueDate}]
+
+function makeActionItemRow(item={}, listId="slActionItemList") {
+  const id = "ai_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);
+  const row = document.createElement("div");
+  row.id = id;
+  row.style.cssText = "display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;background:var(--bg3);border-radius:7px;padding:7px 10px;border:1px solid var(--border)";
+  row.innerHTML = `
+    <input type="text" placeholder="📌 액션아이템 제목 *" value="${(item.title||"").replace(/"/g,"&quot;")}"
+      style="padding:5px 8px;border:1px solid var(--border2);border-radius:5px;font-size:13px;font-family:var(--s);width:100%">
+    <input type="text" placeholder="담당자" value="${(item.assignee||"").replace(/"/g,"&quot;")}"
+      style="padding:5px 8px;border:1px solid var(--border2);border-radius:5px;font-size:13px;font-family:var(--s);width:90px">
+    <input type="date" value="${item.dueDate||""}"
+      style="padding:5px 8px;border:1px solid var(--border2);border-radius:5px;font-size:13px;font-family:var(--s);width:130px">
+    <button type="button" onclick="this.closest('div').remove()"
+      style="padding:4px 8px;border-radius:5px;border:none;background:var(--rd);color:var(--r);font-size:14px;cursor:pointer">✕</button>`;
+  return row;
+}
+
+// AI생성 탭 - 요약 후 액션아이템 추출해서 패널에 표시
+function extractAndShowActionItems() {
+  const txt = document.getElementById("slMtgResultContent")?.value||"";
+  if(!txt.trim()) { alert("먼저 AI 요약을 실행하세요."); return; }
+
+  const items = extractActionItems(txt);
+  const panel = document.getElementById("slActionItemPanel");
+  const list  = document.getElementById("slActionItemList");
+  panel.style.display = "block";
+  list.innerHTML = "";
+
+  if(items.length === 0) {
+    // 추출 못했으면 빈 행 하나
+    list.appendChild(makeActionItemRow({}, "slActionItemList"));
+  } else {
+    items.forEach(item => list.appendChild(makeActionItemRow(item, "slActionItemList")));
+  }
+  panel.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+
+function addActionItemRow() {
+  const list = document.getElementById("slActionItemList");
+  if(list) list.appendChild(makeActionItemRow({}, "slActionItemList"));
+}
+
+// 직접작성 탭 - 액션아이템 행 추가
+function addActionItemRow3() {
+  const list = document.getElementById("slActionItemList3");
+  if(list) list.appendChild(makeActionItemRow({}, "slActionItemList3"));
+}
+
+// 탭3 초기화 시 빈 행 1개
+function initActionItemList3() {
+  const list = document.getElementById("slActionItemList3");
+  if(!list) return;
+  list.innerHTML = "";
+  list.appendChild(makeActionItemRow({}, "slActionItemList3"));
+}
+
+// 액션아이템 수집 (listId 기준)
+function getActionItemsFromUI(listId) {
+  const list = document.getElementById(listId);
+  if(!list) return [];
+  return Array.from(list.querySelectorAll("div[id^='ai_']")).map(row=>{
+    const inputs = row.querySelectorAll("input");
+    return {
+      title:    inputs[0]?.value?.trim()||"",
+      assignee: inputs[1]?.value?.trim()||"",
+      dueDate:  inputs[2]?.value||"",
+    };
+  }).filter(i=>i.title);
+}
 
 function go(id, el) {
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
