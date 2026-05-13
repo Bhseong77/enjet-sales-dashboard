@@ -355,6 +355,7 @@
       <div class="ni" onclick="go('pipeline',this)">🔄 파이프라인 <span class="nb nbg" id="badge-pl">-</span></div>
       <div class="sb-sec">영업활동</div>
       <div class="ni" onclick="go('sales-log',this)">📋 영업활동 <span class="nb nbg" id="badge-sl">-</span></div>
+      <div class="ni" onclick="go('sales-todo',this)">✅ 영업Todo <span class="nb nbg" id="badge-todo" style="background:var(--r);color:#fff">0</span></div>
       <div class="ni" onclick="go('quote-db',this)">📄 견적서 DB <span class="nb nbg" id="badge-qdb">0</span></div>
       <div class="ni" onclick="go('sales-meeting',this)">📝 회의록 DB <span class="nb nbg" id="badge-sm">0</span></div>
       <div class="ni" onclick="go('customer',this)">🏭 고객사 DB <span class="nb nbg" id="badge-ct">-</span></div>
@@ -1884,6 +1885,84 @@
     </div>
 
     <!-- 미팅 -->
+      <!-- ✅ 영업 Todo 탭 -->
+      <div class="page" id="tab-sales-todo">
+
+        <!-- KPI -->
+        <div class="kr" style="grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:9px">
+          <div class="kpi" style="border-top:3px solid var(--r)">
+            <div class="kl">🔴 미완료</div>
+            <div class="kv" id="todo-kpi-open" style="color:var(--r)">-</div>
+            <div class="ks">건</div>
+          </div>
+          <div class="kpi" style="border-top:3px solid var(--a)">
+            <div class="kl">⚠️ 지연 (7일↑)</div>
+            <div class="kv" id="todo-kpi-overdue" style="color:var(--a)">-</div>
+            <div class="ks">건</div>
+          </div>
+          <div class="kpi" style="border-top:3px solid var(--p)">
+            <div class="kl">📅 금주 생성</div>
+            <div class="kv" id="todo-kpi-week">-</div>
+            <div class="ks">건</div>
+          </div>
+          <div class="kpi" style="border-top:3px solid var(--p)">
+            <div class="kl">📆 금월 생성</div>
+            <div class="kv" id="todo-kpi-month">-</div>
+            <div class="ks">건</div>
+          </div>
+          <div class="kpi" style="border-top:3px solid var(--g)">
+            <div class="kl">✅ 완료</div>
+            <div class="kv" id="todo-kpi-done" style="color:var(--g)">-</div>
+            <div class="ks">건</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ch">
+            <div class="ct"><div class="ci c1">✅</div>영업 Todo 목록
+              <span id="todoSyncBadge" style="font-size:13px;padding:1px 7px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Planner 연동</span>
+            </div>
+            <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+              <input class="si" type="text" id="todoSrch" placeholder="🔍 제목/고객사/버킷..." oninput="filterTodo()" style="width:180px">
+              <select class="ss" id="todoStatusFilter" onchange="filterTodo()">
+                <option value="">전체 상태</option>
+                <option value="open">🔴 미완료</option>
+                <option value="overdue">⚠️ 지연</option>
+                <option value="done">✅ 완료</option>
+              </select>
+              <select class="ss" id="todoBucketFilter" onchange="filterTodo()" style="min-width:130px">
+                <option value="">전체 버킷(고객사)</option>
+              </select>
+              <span style="font-size:13px;color:var(--t3)" id="todoUpd">-</span>
+              <button onclick="loadTodoFromPlanner(true)" style="padding:4px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">🔄 동기화</button>
+            </div>
+          </div>
+          <div class="cb" style="padding:10px 14px">
+            <div style="overflow-x:auto">
+              <table class="tbl" style="min-width:850px">
+                <thead><tr>
+                  <th style="min-width:280px">할 일 제목</th>
+                  <th style="min-width:130px">버킷 (고객사-코드)</th>
+                  <th style="min-width:90px">생성일</th>
+                  <th style="min-width:90px">마감일</th>
+                  <th style="min-width:80px">담당자</th>
+                  <th style="min-width:80px">상태</th>
+                  <th style="min-width:60px;text-align:center">Planner</th>
+                </tr></thead>
+                <tbody id="todoBody">
+                  <tr><td colspan="7"><div class="empty">
+                    <div class="ei">✅</div>
+                    <div class="et">Todo 없음</div>
+                    <div style="font-size:13px;color:var(--t3);margin-top:6px">회의록 저장 시 자동 생성 · 또는 [🔄 동기화]</div>
+                    <div style="margin-top:10px"><button onclick="loadTodoFromPlanner(true)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">🔄 Planner 동기화</button></div>
+                  </div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 견적서 DB 탭 -->
       <div class="page" id="tab-quote-db">
         <!-- KPI -->
@@ -6115,11 +6194,10 @@ async function getPlannerPlanId() {
   return _plannerPlanId;
 }
 
-// 버킷 가져오기 또는 생성 (영업활동 고객사-코드명과 동일)
+// 버킷 가져오기 또는 생성 - 버킷 1개 → Todo 여러 개 구조
 async function getOrCreateBucket(planId, bucketName) {
   const t = await getToken();
 
-  // 기존 버킷 목록 조회
   const r = await fetch(
     "https://graph.microsoft.com/v1.0/planner/plans/"+planId+"/buckets",
     {headers:{"Authorization":"Bearer "+t}}
@@ -6127,26 +6205,23 @@ async function getOrCreateBucket(planId, bucketName) {
   const data = await r.json();
   const buckets = data.value||[];
 
-  // 같은 이름 버킷 찾기
-  const existing = buckets.find(b=>b.name===bucketName);
+  // 이름 정규화 비교 (공백/대소문자 무시)
+  const normalize = s => (s||"").trim().toLowerCase();
+  const existing = buckets.find(b=>normalize(b.name)===normalize(bucketName));
   if(existing) {
-    console.log("기존 버킷 사용:", bucketName, existing.id);
+    console.log("✅ 기존 버킷 재사용:", bucketName, existing.id);
     return existing.id;
   }
 
-  // 새 버킷 생성
+  // 새 버킷 생성 (맨 앞)
   const cr = await fetch("https://graph.microsoft.com/v1.0/planner/buckets", {
     method:"POST",
     headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-    body:JSON.stringify({
-      name: bucketName,
-      planId: planId,
-      orderHint: " !"  // 맨 앞에 배치
-    })
+    body:JSON.stringify({ name: bucketName, planId: planId, orderHint: " !" })
   });
   if(!cr.ok) { const e=await cr.json(); throw new Error("버킷 생성 실패: "+e.error?.message); }
   const bucket = await cr.json();
-  console.log("새 버킷 생성:", bucketName, bucket.id);
+  console.log("✅ 새 버킷 생성:", bucketName, bucket.id);
   return bucket.id;
 }
 
@@ -6691,6 +6766,20 @@ async function saveSLMtgResult() {
        body: new Blob([txt], {type:"text/plain;charset=utf-8"})}
     );
     if(!r.ok) throw new Error(r.status);
+    const saved = await r.json();
+
+    // ✅ files.minutes에 추가 (목록 건수 반영)
+    if(!act.files) act.files = {};
+    if(!act.files.minutes) act.files.minutes = [];
+    // 중복 제거 후 추가
+    act.files.minutes = act.files.minutes.filter(f=>f.name!==fileName);
+    act.files.minutes.push({
+      name: fileName,
+      url: saved.webUrl||"",
+      fileId: saved.id||"",
+      size: txt.length,
+      uploadedAt: new Date().toISOString()
+    });
 
     // 히스토리 기록
     if(!act.history) act.history=[];
@@ -6775,6 +6864,8 @@ async function saveSLMtgResult() {
           _slMtgActId, txt, today, act.company, act.pjcode
         );
         console.log("✅ Planner Todo:", plResult.created+"개 생성, 버킷:", plResult.bucketName);
+        // Todo 탭 뱃지 갱신 (백그라운드)
+        loadTodoFromPlanner(false).catch(()=>{});
         const plannerMsg = "\n📋 Planner: "+plResult.bucketName+" 버킷에 "+plResult.created+"개 Todo 생성";
         alert("✅ 저장 완료!\n"+spPath+"/"+fileName+plannerMsg);
       } catch(pe) {
@@ -6803,7 +6894,15 @@ async function _deleteMtgFile(fileId, fileName, actId) {
     const t = await getToken();
     await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+fileId,
       {method:"DELETE", headers:{"Authorization":"Bearer "+t}});
-    await loadSLMinutesFiles(actId);
+
+    // slData의 files.minutes에서도 제거
+    const act = slData.find(x=>x.id===actId);
+    if(act?.files?.minutes) {
+      act.files.minutes = act.files.minutes.filter(f=>f.name!==fileName);
+      await saveSLToSP();
+      renderSLAll(); // 목록 건수 갱신
+    }
+    await loadSLMinutesFiles(actId); // 모달 파일 목록 갱신
   } catch(e) { alert("삭제 실패: "+e.message); }
 }
 
@@ -9863,7 +9962,7 @@ async function deleteSLActivity(id) {
 // 영업활동 탭 자동로드 → 통합 go 함수에서 처리
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB","sales-log":"📋 영업활동","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
 
 // ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -10853,6 +10952,195 @@ function linkExhFile(type, fileId) {
   alert(`✅ "${exh.name}"에 연결됐습니다.`);
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅ 영업 Todo 시스템 (Planner 연동)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let _todoItems = [];   // [{id, title, bucketName, createdAt, dueDate, assignee, completed, completedAt, percentComplete}]
+let _todoBuckets = {}; // {bucketId: bucketName}
+let _todoLoading = false;
+
+async function loadTodoFromPlanner(force=false) {
+  if(_todoLoading) return;
+  _todoLoading = true;
+  const badge = document.getElementById("todoSyncBadge");
+  if(badge) { badge.textContent="동기화 중..."; badge.style.background="var(--yd)"; badge.style.color="var(--y)"; }
+
+  try {
+    const planId = await getPlannerPlanId();
+    const t = await getToken();
+
+    // 1. 버킷 목록
+    const bR = await fetch(`https://graph.microsoft.com/v1.0/planner/plans/${planId}/buckets`,
+      {headers:{"Authorization":"Bearer "+t}});
+    const bData = await bR.json();
+    _todoBuckets = {};
+    (bData.value||[]).forEach(b=>{ _todoBuckets[b.id]=b.name; });
+
+    // 2. 태스크 전체 조회
+    const tR = await fetch(`https://graph.microsoft.com/v1.0/planner/plans/${planId}/tasks?$top=200`,
+      {headers:{"Authorization":"Bearer "+t}});
+    const tData = await tR.json();
+    const tasks = tData.value||[];
+
+    // 3. 담당자 표시명 (userId → displayName)
+    const userIds = [...new Set(tasks.flatMap(t2=>Object.keys(t2.assignments||{})))].filter(Boolean);
+    const userMap = {};
+    await Promise.allSettled(userIds.map(async uid=>{
+      try {
+        const uR = await fetch(`https://graph.microsoft.com/v1.0/users/${uid}?$select=displayName`,
+          {headers:{"Authorization":"Bearer "+t}});
+        if(uR.ok) { const u=await uR.json(); userMap[uid]=u.displayName||uid.substring(0,8); }
+      } catch(e){}
+    }));
+
+    _todoItems = tasks.map(task=>{
+      const assignee = Object.keys(task.assignments||{}).map(uid=>userMap[uid]||uid.substring(0,8)).join(", ");
+      return {
+        id: task.id,
+        title: task.title||"(제목없음)",
+        bucketId: task.bucketId,
+        bucketName: _todoBuckets[task.bucketId]||"기타",
+        createdAt: task.createdDateTime,
+        dueDate: task.dueDateTime ? task.dueDateTime.split("T")[0] : "",
+        assignee,
+        percentComplete: task.percentComplete||0,
+        completed: task.percentComplete===100,
+        completedAt: task.completedDateTime||"",
+        plannerUrl: `https://tasks.office.com/enjetco.onmicrosoft.com/en-US/Home/Task/${task.id}`,
+      };
+    });
+
+    console.log(`✅ Planner 태스크 로드: ${_todoItems.length}건`);
+    if(badge) { badge.textContent="✅ Planner 연동"; badge.style.background="var(--gd)"; badge.style.color="var(--g)"; }
+    $("todoUpd", "동기화: "+new Date().toLocaleTimeString("ko-KR"));
+    renderTodo();
+  } catch(e) {
+    console.error("Planner 로드 실패:", e.message);
+    if(badge) { badge.textContent="⚠️ 연동 실패"; badge.style.background="var(--rd)"; badge.style.color="var(--r)"; }
+    $("todoUpd", "실패: "+e.message.substring(0,40));
+  }
+  _todoLoading = false;
+}
+
+function renderTodo(data) {
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+  const weekAgo = new Date(now); weekAgo.setDate(now.getDate()-7);
+  const weekAgoStr = weekAgo.toISOString().split("T")[0];
+  const thisWeekStart = new Date(now); thisWeekStart.setDate(now.getDate()-now.getDay()+1);
+  const thisMonthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
+
+  const all = data || _todoItems;
+
+  // KPI
+  const open = all.filter(t=>!t.completed);
+  const overdue = open.filter(t=>t.dueDate && t.dueDate < todayStr);
+  const weekCreated = all.filter(t=>(t.createdAt||"").split("T")[0] >= thisWeekStart.toISOString().split("T")[0]);
+  const monthCreated = all.filter(t=>(t.createdAt||"").split("T")[0] >= thisMonthStart);
+  const done = all.filter(t=>t.completed);
+  $("todo-kpi-open", open.length);
+  $("todo-kpi-overdue", overdue.length);
+  $("todo-kpi-week", weekCreated.length);
+  $("todo-kpi-month", monthCreated.length);
+  $("todo-kpi-done", done.length);
+
+  // 뱃지 (사이드바)
+  const overdueCount = overdue.length;
+  const badge = document.getElementById("badge-todo");
+  if(badge) {
+    badge.textContent = open.length;
+    badge.style.background = overdueCount>0 ? "var(--r)" : "var(--p)";
+    badge.style.color = "#fff";
+  }
+
+  // 버킷 필터 갱신
+  const bSel = document.getElementById("todoBucketFilter");
+  if(bSel) {
+    const buckets = [...new Set(all.map(t=>t.bucketName).filter(Boolean))].sort();
+    const cur = bSel.value;
+    bSel.innerHTML = `<option value="">전체 버킷(고객사)</option>` +
+      buckets.map(b=>`<option value="${b}"${b===cur?" selected":""}>${b}</option>`).join("");
+  }
+
+  // 필터 적용
+  const q = (document.getElementById("todoSrch")?.value||"").toLowerCase();
+  const sf = document.getElementById("todoStatusFilter")?.value||"";
+  const bf = document.getElementById("todoBucketFilter")?.value||"";
+  let filtered = all.filter(t=>{
+    if(bf && t.bucketName!==bf) return false;
+    if(sf==="open" && t.completed) return false;
+    if(sf==="done" && !t.completed) return false;
+    if(sf==="overdue" && (!t.dueDate || t.dueDate>=todayStr || t.completed)) return false;
+    if(q) return [t.title,t.bucketName,t.assignee].some(v=>String(v||"").toLowerCase().includes(q));
+    return true;
+  });
+
+  // 정렬: 지연 → 미완료(마감임박) → 완료
+  filtered.sort((a,b)=>{
+    const aOver = !a.completed && a.dueDate && a.dueDate<todayStr;
+    const bOver = !b.completed && b.dueDate && b.dueDate<todayStr;
+    if(aOver !== bOver) return aOver?-1:1;
+    if(a.completed !== b.completed) return a.completed?1:-1;
+    return (a.dueDate||"9999").localeCompare(b.dueDate||"9999");
+  });
+
+  const body = document.getElementById("todoBody");
+  if(!body) return;
+  if(!filtered.length) {
+    body.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="ei">✅</div><div class="et">Todo 없음</div></div></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = filtered.map(t=>{
+    const isOverdue = !t.completed && t.dueDate && t.dueDate < todayStr;
+    const daysDiff = t.dueDate ? Math.floor((new Date(todayStr)-new Date(t.dueDate))/86400000) : 0;
+    const isLongOverdue = isOverdue && daysDiff >= 7; // 7일 이상 지연 → 깜빡
+    const createdStr = (t.createdAt||"").substring(0,10);
+
+    // 상태 뱃지
+    let statusBadge;
+    if(t.completed) {
+      statusBadge = `<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:#dcfce7;color:#166534;font-weight:700">✅ 완료</span>`;
+    } else if(isLongOverdue) {
+      statusBadge = `<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:#fee2e2;color:#991b1b;font-weight:700;animation:pulse 1s infinite">🚨 ${daysDiff}일 지연</span>`;
+    } else if(isOverdue) {
+      statusBadge = `<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:#fef9c3;color:#854d0e;font-weight:700">⚠️ ${daysDiff}일 지연</span>`;
+    } else {
+      const pct = t.percentComplete;
+      statusBadge = pct>0
+        ? `<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:#dbeafe;color:#1e40af;font-weight:700">🔄 ${pct}%</span>`
+        : `<span style="font-size:12px;padding:2px 8px;border-radius:10px;background:var(--bg3);color:var(--t3);font-weight:700">📋 대기</span>`;
+    }
+
+    // 진행률 바
+    const pctBar = `<div style="height:3px;background:var(--bg3);border-radius:2px;margin-top:4px">
+      <div style="height:100%;width:${t.percentComplete}%;background:${t.completed?"var(--g)":isOverdue?"var(--r)":"var(--p)"};border-radius:2px;transition:width .5s"></div>
+    </div>`;
+
+    return `<tr style="${isLongOverdue?"background:rgba(239,68,68,.04)":""}">
+      <td>
+        <div style="font-size:14px;font-weight:${t.completed?"400":"700"};color:${t.completed?"var(--t3)":"var(--t)"};${t.completed?"text-decoration:line-through":""}${isLongOverdue?";animation:pulse 2s infinite":""}">${t.title}</div>
+        ${pctBar}
+      </td>
+      <td>
+        <span style="font-size:13px;padding:2px 8px;border-radius:6px;background:var(--pd);color:var(--p);font-weight:600">${t.bucketName}</span>
+      </td>
+      <td style="font-size:13px;color:var(--t3)">${createdStr}</td>
+      <td style="font-size:13px;color:${isOverdue?"var(--r)":"var(--t3)"};font-weight:${isOverdue?"700":"400"}">${t.dueDate||"-"}</td>
+      <td style="font-size:13px">${t.assignee||"-"}</td>
+      <td>${statusBadge}</td>
+      <td style="text-align:center">
+        <a href="${t.plannerUrl}" target="_blank"
+          style="font-size:12px;padding:2px 8px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);text-decoration:none;font-weight:700;white-space:nowrap">
+          열기 ↗
+        </a>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function filterTodo() { renderTodo(); }
+
 function go(id, el) {
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
   document.querySelectorAll(".ni").forEach(n=>n.classList.remove("on"));
@@ -10897,6 +11185,9 @@ function go(id, el) {
   }
   // 영업활동 Log 탭
   // 견적서 DB 탭
+  if(id==="sales-todo") {
+    loadTodoFromPlanner();
+  }
   if(id==="quote-db") {
     loadQuoteDB();
   }
