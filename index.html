@@ -1335,23 +1335,25 @@
             </div>
 
             <!-- 파일 업로드 존 -->
-            <div id="slMtgDropZone"
-              style="border:2px dashed var(--border2);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;background:var(--bg3)"
+            <input type="file" id="slMtgFileInput" style="display:none"
+              accept="audio/*,video/*,text/*,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.mp3,.mp4,.m4a,.wav,.webm,.txt,.vtt,.srt,.docx"
+              onchange="handleSLMtgFile(this.files[0])">
+            <label for="slMtgFileInput" id="slMtgDropZone"
+              style="border:2px dashed var(--border2);border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;background:var(--bg3);display:block"
               ondragover="event.preventDefault();this.style.borderColor='var(--p)';this.style.background='var(--pd)'"
               ondragleave="this.style.borderColor='var(--border2)';this.style.background='var(--bg3)'"
-              ondrop="handleSLMtgDrop(event)"
-              onclick="document.getElementById('slMtgFileInput').click()">
+              ondrop="handleSLMtgDrop(event)">
               <div style="font-size:36px;margin-bottom:10px">🎙️</div>
-              <div style="font-size:17px;font-weight:700;color:var(--t);margin-bottom:6px">파일을 드래그하거나 클릭해서 업로드</div>
-              <div style="font-size:13px;color:var(--t3)">🎵 오디오: mp3, mp4, m4a, wav, webm → STT → AI 요약</div>
-              <div style="font-size:13px;color:var(--t3)">📄 텍스트: txt, vtt, srt, docx → AI 직접 요약</div>
-              <div id="copilotAudioHint" style="font-size:12px;color:#1e40af;margin-top:6px;display:none">
+              <div style="font-size:17px;font-weight:700;color:var(--t);margin-bottom:8px">탭해서 파일 선택</div>
+              <div style="font-size:13px;color:var(--t3);margin-bottom:4px">🎵 오디오: mp3, m4a, wav → Whisper STT → AI 요약</div>
+              <div style="font-size:13px;color:var(--t3);margin-bottom:10px">📄 텍스트: txt, vtt, srt, docx → AI 직접 요약</div>
+              <div style="display:inline-block;padding:10px 28px;background:var(--p);color:#fff;border-radius:9px;font-size:15px;font-weight:700;font-family:var(--s)">
+                📂 파일 선택
+              </div>
+              <div id="copilotAudioHint" style="font-size:12px;color:#1e40af;margin-top:8px;display:none">
                 ✨ Copilot 엔진: 텍스트 파일은 바로 요약. 음성 파일은 OpenAI Key 있으면 자동변환, 없으면 SP 저장 후 안내
               </div>
-            </div>
-            <input type="file" id="slMtgFileInput" style="display:none"
-              accept=".mp3,.mp4,.m4a,.wav,.webm,.txt,.vtt,.srt,.docx"
-              onchange="handleSLMtgFile(this.files[0])">
+            </label>
 
             <!-- 직접 입력 -->
             <div style="margin-bottom:16px">
@@ -5916,7 +5918,9 @@ async function uploadExhFile(exhId, fileType) {
       alert("업로드 실패: "+e.message);
     }
   };
-  input.click();
+  input.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px";
+  document.body.appendChild(input);
+  setTimeout(() => input.click(), 0);
 }
 
 // SP 파일 목록 실시간 조회 + 파일 관리 모달
@@ -6733,7 +6737,9 @@ async function uploadSLFileToSubfolder(actId, subfolderName) {
       $("slUpd","-");
     }
   };
-  input.click();
+  input.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px";
+  document.body.appendChild(input);
+  setTimeout(() => input.click(), 0);
 }
 
 
@@ -6900,6 +6906,7 @@ async function _createProposalSubfolder(actId) {
 // 영업활동 회의록 AI 요약 시스템
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 let _slMtgActId = null;
+let _slActionItems = []; // AI 추출 액션아이템 (저장 시 copilotActionItems로 포함)
 
 // 회의록 모달 열기
 
@@ -7505,6 +7512,32 @@ async function saveMtgDirectAsFile() {
     act.lastActivity = date;
     await saveSLToSP();
     renderSLAll();
+
+    // ✅ 회의록 DB에도 추가 (회의록DB 탭에 표시)
+    const directEntry = {
+      id: "mtg_"+Date.now(),
+      type: document.getElementById("slMtgType")?.value || "영업미팅",
+      company: act.company,
+      pjcode: act.pjcode||"",
+      date: date,
+      place: location,
+      location: location,
+      attendees: getSlMtgAllAttendees(),
+      salesMgr: act.salesMgr || "",
+      content: content,
+      summary: content,
+      fileName: fileName,
+      spPath: `${spPath}/${fileName}`,
+      actId: actId,
+      createdAt: new Date().toISOString(),
+      copilotSummary: "",
+      copilotActionItems: [],
+    };
+    if(!window._mtgLogs) window._mtgLogs = [];
+    window._mtgLogs.unshift(directEntry);
+    try { await saveMtgLogsToSP(); } catch(e){ console.warn("회의록DB 저장 실패:", e); }
+    renderMtgLog(window._mtgLogs);
+    $("badge-sm", window._mtgLogs.length);
     document.getElementById("slMtgDirectContent").value = "";
     document.getElementById("slMtgFileName3").value = "";
     // 액션아이템 초기화
@@ -7914,21 +7947,28 @@ async function saveSLMtgResult() {
     }
 
     // 미팅 로그 탭에 자동 추가
+    // AI 요약 결과도 함께 저장 (회의록DB ✨AI요약 컬럼에 표시)
+    const isCopilotEngine = document.querySelector('input[name="slMtgEngine"]:checked')?.value === "copilot";
     const mtgEntry = {
       id: "mtg_"+Date.now(),
-      type: "영업미팅",
+      type: document.getElementById("slMtgType")?.value || "영업미팅",
       company: act.company,
       pjcode: act.pjcode||"",
       date: today,
-      place: location,        // renderMtgLog 호환
-      location: location,     // 구버전 호환
+      place: location,
+      location: location,
       attendees: getSlMtgAllAttendees(),
-      content: txt,           // renderMtgLog 호환
-      summary: txt,           // 구버전 호환
+      salesMgr: act.salesMgr || "",
+      content: txt,
+      summary: txt,
       fileName: fileName,
       spPath: spPath+"/"+fileName,
       actId: _slMtgActId,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      // ✨ AI 요약 필드 (Copilot 엔진으로 요약한 경우)
+      copilotSummary: isCopilotEngine ? txt : "",
+      copilotActionItems: isCopilotEngine ? (_slActionItems||[]) : [],
+      copilotFetchedAt: isCopilotEngine ? new Date().toISOString() : "",
     };
     // 미팅 로그 저장
     if(!window._mtgLogs) window._mtgLogs = [];
@@ -11010,7 +11050,7 @@ async function uploadQuoteFile() {
       alert(`✅ ${uploaded.length}개 파일 업로드 완료!`);
     } catch(e){ alert("업로드 실패: "+e.message); }
   };
-  document.body.appendChild(input); input.click();
+  document.body.appendChild(input); setTimeout(() => input.click(), 0);
   setTimeout(()=>input.remove(),5000);
 }
 
@@ -12192,8 +12232,12 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
     tax:      "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,*/*",
   };
   input.accept = ACCEPT_MAP[fileType] || "*/*";
+  // 안드로이드에서 파일 앱이 열리도록 body에 붙인 뒤 click
+  input.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px";
+  document.body.appendChild(input);
   input.onchange = async()=>{
     const files=Array.from(input.files);
+    document.body.removeChild(input);
     if(!files.length) return;
     $("slUpd","업로드 중...");
     try {
@@ -12224,7 +12268,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
       alert(alertMsg);
     } catch(e){ alert("업로드 실패: "+e.message); $("slUpd","-"); }
   };
-  input.click();
+  setTimeout(() => input.click(), 0);
 }
 
 async function openSLFileModal(actId, fileType) {
@@ -13641,7 +13685,7 @@ function openExhFileDBUpload(type) {
       alert(`✅ ${files.length}개 파일 등록 완료!${selectedExh?` (${selectedExh.name}에 연결)`:" (미연결 — DB에서 나중에 연결 가능)"}`);
     } catch(e) { alert("업로드 실패: "+e.message); }
   };
-  document.body.appendChild(input); input.click();
+  document.body.appendChild(input); setTimeout(() => input.click(), 0);
   setTimeout(()=>input.remove(),5000);
 }
 
@@ -14176,7 +14220,7 @@ async function attachTodoFile(taskId, type) {
       renderTodo();
     } catch(e) { alert("첨부 실패: "+e.message); }
   };
-  document.body.appendChild(input); input.click();
+  document.body.appendChild(input); setTimeout(() => input.click(), 0);
   setTimeout(()=>input.remove(),5000);
 }
 
