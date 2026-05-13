@@ -3079,9 +3079,10 @@
 <div class="mob-nav-more" id="mobMore">
   <div class="mob-more-item" onclick="go('quote-db',this);closeMobMore()"><span class="mob-icon">📄</span>견적서 DB</div>
   <div class="mob-more-item" onclick="go('sales-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>회의록 DB</div>
+  <div class="mob-more-item" onclick="go('delivery-db',this);closeMobMore()"><span class="mob-icon">🚚</span>거래명세서 DB</div>
+  <div class="mob-more-item" onclick="go('tax-db',this);closeMobMore()"><span class="mob-icon">🧾</span>세금계산서 DB</div>
   <div class="mob-more-item" onclick="go('marketing',this);closeMobMore()"><span class="mob-icon">📣</span>마케팅</div>
   <div class="mob-more-item" onclick="go('cashflow',this);closeMobMore()"><span class="mob-icon">💰</span>현금흐름</div>
-
   <div class="mob-more-item" onclick="go('exh-prep-db',this);closeMobMore()"><span class="mob-icon">📁</span>자료 DB</div>
   <div class="mob-more-item" onclick="go('exh-result-db',this);closeMobMore()"><span class="mob-icon">📊</span>전시회결과 DB</div>
   <div class="mob-more-item" onclick="go('exhibition',this);closeMobMore()"><span class="mob-icon">🎪</span>전시회고객 DB</div>
@@ -12774,6 +12775,35 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
       await saveSLToSP();
       renderSLAll();
       $("slUpd","✅ "+uploaded.length+"개 업로드 완료 ("+subFolder+")");
+
+      // 🆕 세금계산서 업로드 시 AI 파싱 모달 자동 오픈
+      if(fileType === "tax" && uploaded.length > 0 && files.length > 0) {
+        const pdfFile = files.find(f=>f.name.toLowerCase().endsWith(".pdf"));
+        if(pdfFile) {
+          const doAI = confirm(
+            `✅ 세금계산서 업로드 완료!\n\n` +
+            `📄 파일: ${pdfFile.name}\n\n` +
+            `🤖 AI로 내용을 자동 추출해서\n세금계산서 DB에 등록할까요?`
+          );
+          if(doAI) {
+            // 영업활동 정보 미리 채워서 모달 오픈
+            openTaxModal(null);
+            // 거래처/프로젝트 자동 채우기
+            setTimeout(()=>{
+              const co = document.getElementById("tax-company");
+              const pj = document.getElementById("tax-mgmt");
+              if(co && !co.value) co.value = act.company||"";
+              // SP URL 설정
+              const fu = document.getElementById("tax-file-url");
+              if(fu) fu.value = uploaded[0]?.url||"";
+              // AI 파싱 자동 실행
+              parseTaxPdf(pdfFile);
+            }, 300);
+            return; // alert 스킵
+          }
+        }
+      }
+
       let alertMsg = "✅ "+uploaded.length+"개 파일 업로드 완료!\n폴더: "+spPath;
       if(advancedFile) {
         alertMsg += `\n\n🔄 진행상태 자동 변경: ${advancedFile.oldStatus} → ${advancedFile.newStatus}`;
