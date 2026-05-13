@@ -2854,7 +2854,18 @@ const SP_FOLDER = "📦영업/99.Dashboard(real-time)";
 const PX_SALES   = "[매출자료]";
 const PX_CONTACT = "[연락처]";
 const PX_PROJECT = "[프로젝트List]";
-const SCOPES = ["User.Read","Files.Read.All","Sites.Read.All","Calendars.ReadWrite","Group.ReadWrite.All","ChannelMessage.Send","Mail.Send","Team.ReadBasic.All","Channel.ReadBasic.All","Chat.ReadWrite","Tasks.ReadWrite","Tasks.Read"];
+const SCOPES = [
+  "User.Read","Files.Read.All","Sites.Read.All",
+  "Calendars.ReadWrite","Group.ReadWrite.All",
+  "ChannelMessage.Send","ChannelMessage.Read.All",
+  "Mail.Send","Mail.Read",
+  "Team.ReadBasic.All","Channel.ReadBasic.All",
+  "Chat.ReadWrite","Chat.Read",
+  "Tasks.ReadWrite","Tasks.Read",
+  "People.Read.All",
+  "OnlineMeetingTranscript.Read.All",
+  "ExternalItem.Read.All",
+];
 let msal_, acct, spSite, spDrive;
 const N = x => { try { const v=parseFloat(x); return isNaN(v)?0:v; } catch{return 0;} };
 const $ = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
@@ -4308,11 +4319,31 @@ ${transcript.substring(0, 12000)}${transcript.length > 12000 ? "\n...(이하 생
   const t = await getToken();
 
   // Step 1: Conversation 생성
-  const convRes = await fetch("https://graph.microsoft.com/beta/copilot/conversations", {
+  let convRes = await fetch("https://graph.microsoft.com/beta/copilot/conversations", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + t },
     body: JSON.stringify({})
   });
+  
+  // 403 + 스코프 부족 시 → 토큰 재발급 시도
+  if(convRes.status === 403) {
+    const errData = await convRes.json().catch(()=>({}));
+    const errMsg = errData?.error?.message || "";
+    if(errMsg.includes("scopes") || errMsg.includes("Required")) {
+      // 새 스코프로 interactive 토큰 재발급
+      try {
+        const newToken = await msal_.acquireTokenPopup({ scopes: SCOPES, account: acct });
+        convRes = await fetch("https://graph.microsoft.com/beta/copilot/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + newToken.accessToken },
+          body: JSON.stringify({})
+        });
+      } catch(e2) {
+        throw new Error(`Copilot 권한 부족 - 재로그인 필요\n\n필요한 권한: Mail.Read, People.Read.All, OnlineMeetingTranscript.Read.All, ChannelMessage.Read.All, ExternalItem.Read.All\n\n[로그아웃] 후 다시 로그인하면 새 권한이 적용됩니다.`);
+      }
+    }
+  }
+  
   if(!convRes.ok) {
     const err = await convRes.json().catch(()=>({}));
     throw new Error(`Copilot 대화 생성 실패 (${convRes.status}): ${err?.error?.message || convRes.statusText}`);
