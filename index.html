@@ -4203,7 +4203,7 @@ async function handleFile(file) {
       transcript = await readTextFile(file);
     }
 
-    showProgress(60, "🤖 Claude AI가 요약 중...");
+    showProgress(60, "✨ M365 Copilot 요약 중...");
     const summary = await autoSummarize(transcript, {
       title: document.getElementById("mtg-title").value,
       company: document.getElementById("mtg-co").value,
@@ -7700,7 +7700,7 @@ async function handleSLMtgFile(file) {
       transcript = await readTextFile(file);
     }
 
-    slMtgShowProgress(60, engine === "copilot" ? "✨ Claude AI 회의록 요약 중..." : "🤖 AI 요약 중...");
+    slMtgShowProgress(60, engine === "copilot" ? "✨ M365 Copilot 회의록 요약 중..." : "🤖 AI 요약 중...");
     const act = slData.find(x=>x.id===_slMtgActId)||{};
     const summary = await autoSummarize(transcript, {
       title: act.company+" 회의",
@@ -7766,7 +7766,7 @@ async function processSLMtgDirect() {
   const txt = document.getElementById("slMtgDirectInput")?.value.trim();
   if(!txt) { alert("내용을 입력해주세요."); return; }
   const engine = document.querySelector('input[name="slMtgEngine"]:checked')?.value || "ollama";
-  const label = engine === "copilot" ? "✨ Claude AI 요약 중..." : engine === "openai" ? "🤖 GPT 요약 중..." : "🦙 Ollama 요약 중...";
+  const label = engine === "copilot" ? "✨ M365 Copilot 요약 중..." : engine === "openai" ? "🤖 GPT 요약 중..." : "🦙 Ollama 요약 중...";
   slMtgShowProgress(30, label);
   try {
     const act = slData.find(x=>x.id===_slMtgActId)||{};
