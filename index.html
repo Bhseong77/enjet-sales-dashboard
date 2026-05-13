@@ -2122,7 +2122,7 @@
             <div style="font-size:15px;font-weight:800" id="quoteModalTitle">📄 견적서 작성</div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
               <button onclick="uploadQuoteFile()" style="padding:5px 12px;border-radius:7px;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">📎 파일 올리기</button>
-              <button onclick="saveQuoteToDashboard()" id="quoteTempSaveBtn" style="padding:5px 12px;border-radius:7px;border:1px solid rgba(255,255,255,0.5);background:transparent;color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 임시저장</button>
+              <button onclick="saveDraftQuote()" id="quoteTempSaveBtn" style="padding:5px 12px;border-radius:7px;border:1px solid rgba(255,255,255,0.5);background:transparent;color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 임시저장</button>
               <button onclick="finalSaveQuote()" id="quoteFinalSaveBtn" style="padding:5px 14px;border-radius:7px;border:none;background:#fff;color:var(--p);font-size:13px;cursor:pointer;font-weight:800;font-family:var(--s)">✅ 최종저장 (SP 자동업로드)</button>
               <button onclick="closeQuoteModal()" style="padding:5px 10px;border-radius:7px;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:20px;cursor:pointer;line-height:1">✕</button>
             </div>
@@ -10457,7 +10457,7 @@ let _quoteActId = null;
 let _quoteItems = []; // [{name, unitPrice, qty, unit, note, isDiscount}]
 
 // ━━ 엑셀 견적서 생성 (ENJET-QUO-02 실제 양식) ━━
-async function generateQuoteExcel() {
+async function generateQuoteExcel(isDraft=false) {
   const get = id => document.getElementById(id)?.value || "";
   const recipient = get("q-recipient");
   const subject   = get("q-subject");
@@ -10477,10 +10477,12 @@ async function generateQuoteExcel() {
   // ── SEQ / REV 자동 계산 ──
   const act = slData.find(x=>x.id===_quoteActId);
   // 같은 고객사+프로젝트의 견적서 횟수 = SEQ (01, 02, 03...) - 한글+영문 통합
+  // 임시저장은 SEQ 카운트 올리지 않음 (기존 SEQ 유지)
   const quoteHistory = (act?.history||[]).filter(h=>
     h.action && (h.action.includes("견적서 엑셀") || h.action.includes("견적서 작성") || h.action.includes("견적서 생성") || h.action.includes("Quotation generated"))
   );
-  const seq = String(quoteHistory.length + 1).padStart(2, "0");
+  const seqNum = isDraft ? Math.max(1, quoteHistory.length) : quoteHistory.length + 1;
+  const seq = String(seqNum).padStart(2, "0");
   // REV: 같은 SEQ에서 수정 횟수 (일단 00으로 시작, 나중에 수동 조정)
   const rev = "00";
   // 문서번호: ENJET-QUO-{SEQ} REV({REV})
@@ -10655,9 +10657,10 @@ async function generateQuoteExcel() {
   // 문서번호 (자동 SEQ/REV) - 언어별
   setCell("A57", docNoFinal);
 
-  // 파일명 (언어별)
+  // 파일명 (언어별) - 임시저장은 [임시] 접미사
   const filePrefix = isEN ? "Quotation" : "견적서";
-  const fileName = `${filePrefix}_${recipient}_${quoteNo||"Q1"}_${docNoFinal.replace(/[\s\/\\:*?"<>|]/g,"_")}.xlsx`;
+  const draftSuffix = isDraft ? "_[임시]" : "";
+  const fileName = `${filePrefix}_${recipient}_${quoteNo||"Q1"}_${docNoFinal.replace(/[\s\/\\:*?"<>|]/g,"_")}${draftSuffix}.xlsx`;
 
   // ── 로컬 다운로드 제거 → SP에만 자동 저장 ──
   // XLSX.writeFile(wb, fileName);  // ← 다운로드 다이얼로그 제거
@@ -10683,32 +10686,51 @@ async function generateQuoteExcel() {
         const d = await r.json();
         if(!act.files) act.files={};
         if(!act.files.estimate) act.files.estimate=[];
-        act.files.estimate.push({name:fileName, url:d.webUrl, size:blob.size, uploadedAt:new Date().toISOString(), docNo:docNoFinal, lang:_quoteLang});
+        // 임시저장: files.estimate에 draft 플래그 붙여서 저장
+        if(isDraft) {
+          // 기존 임시 파일 제거 후 새 임시 덮어쓰기
+          act.files.estimate = act.files.estimate.filter(f => !f.isDraft);
+          act.files.estimate.push({name:fileName, url:d.webUrl, size:blob.size, uploadedAt:new Date().toISOString(), docNo:docNoFinal, lang:_quoteLang, isDraft:true});
+        } else {
+          act.files.estimate.push({name:fileName, url:d.webUrl, size:blob.size, uploadedAt:new Date().toISOString(), docNo:docNoFinal, lang:_quoteLang});
+        }
         if(!act.history) act.history=[];
-        const histLabel = isEN ? "📊 Quotation generated" : "📊 견적서 생성";
-        act.history.unshift({
-          date: dateVal||new Date().toISOString().split("T")[0],
-          action: `${histLabel}: ${docNoFinal} (${fileName})`,
-          type: "file"
-        });
-        // ✅ 견적서 업로드 → 진행상태 자동 변경
-        const advanced = autoAdvanceStatusByFile(act, "estimate");
-        // 견적서 DB 저장
-        const totalAmt = _quoteItems.reduce((s,it)=>
-          it.isDiscount ? s+(it.unitPrice||0) : s+(it.unitPrice||0)*(it.qty||1), 0);
-        await addToQuoteDB({
-          docNo:docNoFinal, quoteNo,
-          company: recipient,
-          subject: get("q-subject"),
-          items: _quoteItems.filter(x=>!x.isDiscount).map(x=>x.name).filter(Boolean).join(", "),
-          amount: totalAmt,
-          date: dateVal||new Date().toISOString().split("T")[0],
-          manager,
-          fileName,
-          fileUrl: d.webUrl,
-          actId: _quoteActId,
-          lang: _quoteLang,
-        });
+        if(isDraft) {
+          // 임시저장: 이력은 덮어쓰기 (스팸 방지)
+          act.history = act.history.filter(h => !h.action?.includes("[임시]"));
+          act.history.unshift({
+            date: dateVal||new Date().toISOString().split("T")[0],
+            action: `📝 견적서 임시저장: ${docNoFinal} [임시] (${fileName})`,
+            type: "file",
+            isDraft: true
+          });
+        } else {
+          const histLabel = isEN ? "📊 Quotation generated" : "📊 견적서 생성";
+          act.history.unshift({
+            date: dateVal||new Date().toISOString().split("T")[0],
+            action: `${histLabel}: ${docNoFinal} (${fileName})`,
+            type: "file"
+          });
+        }
+        if(!isDraft) {
+          // 최종저장만: 진행상태 자동 변경 + QuoteDB 등록
+          const advanced = autoAdvanceStatusByFile(act, "estimate");
+          const totalAmt = _quoteItems.reduce((s,it)=>
+            it.isDiscount ? s+(it.unitPrice||0) : s+(it.unitPrice||0)*(it.qty||1), 0);
+          await addToQuoteDB({
+            docNo:docNoFinal, quoteNo,
+            company: recipient,
+            subject: get("q-subject"),
+            items: _quoteItems.filter(x=>!x.isDiscount).map(x=>x.name).filter(Boolean).join(", "),
+            amount: totalAmt,
+            date: dateVal||new Date().toISOString().split("T")[0],
+            manager,
+            fileName,
+            fileUrl: d.webUrl,
+            actId: _quoteActId,
+            lang: _quoteLang,
+          });
+        }
         await saveSLToSP();
         renderSLAll();
         renderQuoteFileList();
@@ -10729,8 +10751,18 @@ async function generateQuoteExcel() {
     alert(`✅ 견적서 저장 완료 (로컬)\n\n📋 ${docNoFinal}\n📁 ${fileName}\n\n⚠️ 영업활동 연결 후 SP 자동 저장 가능`);
     return;
   }
-  // finalSaveQuote에서 호출 시 alert는 거기서 처리 (중복 방지)
-  if(!window._quoteSavingFromFinal) {
+  // 알림 (임시/최종 분기)
+  if(isDraft) {
+    // 임시저장 완료: 모달 닫지 않고 배너만 표시
+    const btn = document.getElementById("quoteTempSaveBtn");
+    if(btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = "✅ 임시저장 완료!";
+      btn.style.background = "rgba(34,197,94,0.3)";
+      setTimeout(() => { btn.innerHTML = orig; btn.style.background = ""; }, 2000);
+    }
+    console.log("✅ 임시저장 완료:", fileName);
+  } else if(!window._quoteSavingFromFinal) {
     alert(`✅ 견적서 SP 저장 완료!\n\n📋 ${docNoFinal}\n📁 SP: 📦영업/.../견적서/${fileName}`);
   }
 }
@@ -11298,7 +11330,20 @@ async function finalSaveQuote() {
   if(btn) { btn.disabled=false; btn.textContent="✅ 최종저장 (SP 자동업로드)"; }
 }
 
+async function saveDraftQuote() {
+  const btn = document.getElementById("quoteTempSaveBtn");
+  if(btn?._saving) return;
+  if(btn) { btn._saving = true; btn.innerHTML = "⏳ 저장 중..."; btn.disabled = true; }
+  try {
+    await saveQuoteToDashboard(false);
+  } finally {
+    if(btn) { btn._saving = false; btn.innerHTML = "💾 임시저장"; btn.disabled = false; }
+  }
+}
+
 async function saveQuoteToDashboard(silent=false) {
+  // 💾 임시저장: JSON + 실제 xlsx(템플릿 채워서) SP 동시 저장
+  // JSON 백업 (기존 로직 유지)
   const act = slData.find(x=>x.id===_quoteActId);
   if(!act) return;
   const get = id => document.getElementById(id)?.value||"";
@@ -11318,26 +11363,29 @@ async function saveQuoteToDashboard(silent=false) {
     spec: get("q-spec"),
     note: get("q-note"),
     savedAt: new Date().toISOString(),
+    lang: _quoteLang,
   };
   try {
     await getIds();
     const t = await getToken();
-    const path = `📦영업/7.영업활동/${act.company}/${act.pjcode||"신규"}/견적서/${quoteData.quoteNo||"quote"}.json`;
+    const path = `📦영업/7.영업활동/${act.company}/${act.pjcode||"신규"}/견적서/${quoteData.quoteNo||"quote"}_draft.json`;
     const enc = path.split("/").map(encodeURIComponent).join("/");
     await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+":/content",{
       method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
       body: JSON.stringify(quoteData,null,2)
     });
-    if(!act.history) act.history=[];
-    // 중복 이력 방지
-    if(!act.history.find(h=>h.action?.includes(quoteData.quoteNo))) {
-      act.history.unshift({date:quoteData.date, action:"📄 견적서 임시저장: "+quoteData.quoteNo, type:"file"});
-    }
-    await saveSLToSP();
-    renderSLAll();
-    if(!silent) alert("✅ 견적서 임시저장 완료!\n\n📁 SP 저장: "+path+"\n\n[최종저장] 버튼으로 엑셀을 SP에 자동 업로드하세요.");
   } catch(e) {
-    if(!silent) alert("임시저장 실패: "+e.message);
+    console.warn("JSON 백업 임시저장 실패:", e.message);
+  }
+  
+  // 실제 xlsx 템플릿에 채워서 저장 (모바일에서 바로 볼 수 있게)
+  if(!silent) {
+    try {
+      await generateQuoteExcel(true);  // isDraft=true
+    } catch(e) {
+      console.warn("xlsx 임시저장 실패:", e.message);
+      alert("임시저장 실패: " + e.message);
+    }
   }
 }
 
