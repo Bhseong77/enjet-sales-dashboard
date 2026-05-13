@@ -4175,8 +4175,8 @@ function getOaiKey() { return sessionStorage.getItem("oai_key") || document.getE
 // 파일 드롭/선택
 function handleDrop(e) {
   e.preventDefault();
-  document.getElementById("dropZone").style.borderColor = "var(--border2)";
-  document.getElementById("dropZone").style.background = "var(--bg3)";
+  const _dz=document.getElementById("dropZone"); if(_dz) _dz.style.borderColor="var(--border2)";
+  if(_dz) _dz.style.background="var(--bg3)";
   const f = e.dataTransfer.files[0];
   if(f) handleFile(f);
 }
@@ -4189,7 +4189,7 @@ async function handleFile(file) {
   if(!isAudio && !isText) { alert("지원하지 않는 파일 형식이에요.\n오디오: mp3, mp4, m4a, wav, webm\n텍스트: txt, vtt, srt, docx"); return; }
 
   showProgress(10, isAudio ? "🎙️ 오디오 파일 확인 중..." : "📄 텍스트 파일 읽는 중...");
-  document.getElementById("summaryBox").style.display = "none";
+  const _sb=document.getElementById("summaryBox"); if(_sb) _sb.style.display="none";
 
   try {
     let transcript = "";
@@ -4426,17 +4426,17 @@ ${transcript.substring(0, 10000)}${transcript.length > 10000 ? "\n...(이하 생
 
 // UI 헬퍼
 function showProgress(pct, txt) {
-  document.getElementById("progressBox").style.display = "block";
+  const _pb=document.getElementById("progressBox"); if(_pb) _pb.style.display="block";
   document.getElementById("progressTxt").textContent = txt;
-  document.getElementById("progressBar").style.width = pct + "%";
+  const _pbar=document.getElementById("progressBar"); if(_pbar) _pbar.style.width=pct+"%";
   document.getElementById("mtg-status").textContent = txt;
 }
 function hideProgress() {
-  document.getElementById("progressBox").style.display = "none";
+  const _pb2=document.getElementById("progressBox"); if(_pb2) _pb2.style.display="none";
   document.getElementById("mtg-status").textContent = "AI 요약 완료";
 }
 function showSummary(text) {
-  document.getElementById("summaryBox").style.display = "block";
+  const _sb2=document.getElementById("summaryBox"); if(_sb2) _sb2.style.display="block";
   document.getElementById("summaryView").textContent = text;
   document.getElementById("summaryEdit").value = text;
 }
@@ -7354,7 +7354,7 @@ async function openSLMinutesModal(actId) {
   }
 
   // 초기화
-  document.getElementById("slMtgResult").style.display = "none";
+  const _r=document.getElementById("slMtgResult"); if(_r) _r.style.display="none";
   document.getElementById("slMtgProgress").style.display = "none";
   document.getElementById("slMtgDirectInput").value = "";
   // 기본값 설정
@@ -7844,7 +7844,7 @@ function slMtgShowProgress(pct, txt) {
   if(p) p.style.display = "block";
   if(bar) bar.style.width = pct+"%";
   if(label) label.textContent = txt;
-  document.getElementById("slMtgResult").style.display = "none";
+  const _r=document.getElementById("slMtgResult"); if(_r) _r.style.display="none";
 }
 
 function slMtgHideProgress() {
@@ -8008,7 +8008,7 @@ async function saveSLMtgResult() {
 
     // Planner Todo 생성 - 액션아이템 패널에서 읽기
     const uiItems = getActionItemsFromUI("slActionItemList");
-    const panelVisible = document.getElementById("slActionItemPanel")?.style.display !== "none";
+    const panelVisible = document.getElementById("slActionItemPanel").style.display !== "none";
 
     if(panelVisible && uiItems.length > 0) {
       // 패널에서 확정된 액션아이템으로 전송
