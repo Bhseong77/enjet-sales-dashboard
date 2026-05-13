@@ -4271,63 +4271,80 @@ async function readTextFile(file) {
   });
 }
 
-// Claude API 요약
+// ✨ M365 Copilot Chat API 요약 (graph.microsoft.com/beta/copilot/conversations)
 async function claudeSummarize(transcript, meta) {
   const metaStr = [
-    meta.title ? "회의명: " + meta.title : "",
     meta.company ? "거래처: " + meta.company : "",
-    meta.date ? "일자: " + meta.date : "",
+    meta.date    ? "일자: "   + meta.date    : "",
     meta.attendees ? "참석자: " + meta.attendees : "",
-    meta.type ? "유형: " + meta.type : "",
+    meta.type    ? "유형: "   + meta.type    : "",
   ].filter(Boolean).join(" | ");
 
-  const prompt = `다음은 ENJET 영업팀 회의록입니다.
+  const prompt = `다음은 ENJET 영업팀 회의 내용입니다.
 ${metaStr ? "회의 정보: " + metaStr : ""}
 
 [회의 내용]
-${transcript.substring(0, 15000)}
-${transcript.length > 15000 ? "\n... (이하 생략)" : ""}
+${transcript.substring(0, 12000)}${transcript.length > 12000 ? "\n...(이하 생략)" : ""}
 
-위 회의록을 다음 형식으로 요약해주세요:
+위 내용을 아래 형식으로 한국어 회의록으로 요약해주세요:
 
 ## 📋 회의 기본정보
-- 일자: ${meta.date || "-"}
-- 거래처: ${meta.company || "-"}
-- 참석자: ${meta.attendees || "-"}
-- 유형: ${meta.type || "-"}
+- 일자 / 거래처 / 참석자 / 유형
 
 ## 🎯 핵심 논의사항
-(가장 중요한 3-5가지 불릿으로)
+(중요 3-5가지)
 
 ## 💼 영업 관련 내용
 (가격/납기/계약/기술 이슈 등)
 
 ## ✅ 결정사항 및 합의
-(회의에서 확정된 것들)
 
-## 📌 후속 액션 아이템
+## 📌 후속 액션아이템
 | 담당자 | 내용 | 기한 |
 |--------|------|------|
-(담당자별 할일 표로)
 
-## 💡 특이사항 / 추가 메모
-(중요 메모, 리스크, 기회 등)`;
+## 💡 특이사항`;
 
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
+  const t = await getToken();
+
+  // Step 1: Conversation 생성
+  const convRes = await fetch("https://graph.microsoft.com/beta/copilot/conversations", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
-      messages: [{ role: "user", content: prompt }],
-    }),
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + t },
+    body: JSON.stringify({})
   });
-  if(!r.ok) {
-    const err = await r.json();
-    throw new Error("Claude API 오류: " + (err.error?.message || r.status));
+  if(!convRes.ok) {
+    const err = await convRes.json().catch(()=>({}));
+    throw new Error(`Copilot 대화 생성 실패 (${convRes.status}): ${err?.error?.message || convRes.statusText}`);
   }
-  const data = await r.json();
-  return data.content?.[0]?.text || "요약 실패";
+  const { id: convId } = await convRes.json();
+
+  // Step 2: 메시지 전송 (동기)
+  const chatRes = await fetch(`https://graph.microsoft.com/beta/copilot/conversations/${convId}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + t },
+    body: JSON.stringify({
+      message: { text: prompt },
+      locationHint: { timeZone: "Asia/Seoul" }
+    })
+  });
+  if(!chatRes.ok) {
+    const err = await chatRes.json().catch(()=>({}));
+    throw new Error(`Copilot Chat 요약 실패 (${chatRes.status}): ${err?.error?.message || chatRes.statusText}`);
+  }
+  const chatData = await chatRes.json();
+
+  // 응답 추출 (messages 배열의 마지막 bot 메시지)
+  const messages = chatData.messages || [];
+  const botMsg = [...messages].reverse().find(m => m.role === "assistant" || m.from?.user == null);
+  let answer = botMsg?.body?.content || botMsg?.body?.text || "";
+
+  // HTML 태그 제거 (응답이 HTML인 경우)
+  if(answer.startsWith("<") || answer.includes("</")) {
+    answer = answer.replace(/<[^>]+>/g, "").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&nbsp;/g," ").trim();
+  }
+
+  return answer || "요약 결과를 받지 못했습니다. 다시 시도해주세요.";
 }
 
 // UI 헬퍼
