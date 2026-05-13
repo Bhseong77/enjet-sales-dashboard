@@ -359,13 +359,14 @@
       <div class="ni" onclick="go('quote-db',this)">📄 견적서 DB <span class="nb nbg" id="badge-qdb">0</span></div>
       <div class="ni" onclick="go('sales-meeting',this)">📝 회의록 DB <span class="nb nbg" id="badge-sm">0</span></div>
       <div class="ni" onclick="go('customer',this)">🏭 고객사 DB <span class="nb nbg" id="badge-ct">-</span></div>
-      <div class="ni" onclick="go('orgchart',this)">🏢 조직도</div>
       <div class="sb-sec">마케팅</div>
       <div class="ni" onclick="go('marketing',this)">📣 마케팅 활동</div>
       <div class="ni" onclick="go('mkt-meeting',this)">📝 미팅 로그 (마케팅)</div>
       <div class="ni" onclick="go('exh-prep-db',this)">📁 자료 DB <span class="nb nbg" id="badge-exhprep">0</span></div>
       <div class="ni" onclick="go('exh-result-db',this)">📊 전시회결과 DB <span class="nb nbg" id="badge-exhresult">0</span></div>
       <div class="ni" onclick="go('exhibition',this)">🎪 전시회고객 DB <span class="nb nbg" id="badge-exh">-</span></div>
+      <div class="sb-sec">인사DB</div>
+      <div class="ni" onclick="go('orgchart',this)">🏢 조직도</div>
     </nav>
     <div class="sb-foot">
       <div style="font-size:14px;color:var(--t3);font-family:var(--m)" id="clock">--:--:--</div>
@@ -887,7 +888,13 @@
             </div>
             <div>
               <label style="font-size:14px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">영업담당자</label>
-              <input class="si" type="text" id="sl-f-salesmgr" placeholder="성백훈" style="width:100%">
+              <div style="display:flex;gap:5px">
+                <input class="si" type="text" id="sl-f-salesmgr" placeholder="성백훈" style="flex:1">
+                <button onclick="openHRPicker('sl-f-salesmgr')" type="button"
+                  style="padding:6px 10px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s);white-space:nowrap">
+                  👤 선택
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1026,19 +1033,37 @@
               </div>
               <div>
                 <label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:3px">🏢 내부 참석자 (ENJET)</label>
-                <input class="si" type="text" id="slMtgInternalAttendees" placeholder="예: 성백훈, 김팀장" style="width:100%;font-size:14px">
+                <div style="display:flex;gap:5px">
+                  <input class="si" type="text" id="slMtgInternalAttendees" placeholder="예: 성백훈, 김팀장" style="flex:1;font-size:14px">
+                  <button onclick="openHRPicker('slMtgInternalAttendees','multi')" type="button"
+                    style="padding:5px 8px;border-radius:6px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s);white-space:nowrap">
+                    👤 선택
+                  </button>
+                </div>
               </div>
               <div>
                 <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📍 장소</label>
                 <input class="si" type="text" id="slMtgLocationCommon" placeholder="예: 고객사 회의실" style="width:100%;font-size:14px">
               </div>
             </div>
+
+            <!-- 협의부서 -->
+            <div style="margin-bottom:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                <label style="font-size:12px;font-weight:700;color:var(--a)">🤝 협의부서</label>
+                <button onclick="openHRDeptPicker()" type="button"
+                  style="padding:2px 9px;border-radius:5px;border:1px solid var(--a);background:var(--ad);color:var(--a);font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                  🏢 부서 선택
+                </button>
+              </div>
+              <div class="mtg-tag-box" id="slMtgDeptTags" style="border-color:var(--a);min-height:30px"></div>
+            </div>
+
             <div>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
                 <label style="font-size:12px;font-weight:700;color:var(--g)">🏭 고객사 참석자</label>
                 <button onclick="openSlMtgCustPicker()" style="padding:2px 9px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">👤 고객사DB에서 선택</button>
               </div>
-              <!-- 태그 박스 -->
               <div class="mtg-tag-box" id="slMtgCustTags" style="border-color:var(--g);min-height:32px"></div>
               <div style="display:flex;gap:5px;margin-top:5px">
                 <input class="si" type="text" id="slMtgCustInput" placeholder="이름 직접 입력 후 Enter"
@@ -1507,7 +1532,10 @@
 
               <!-- 작성자 -->
               <div>
-                <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px">✍️ 작성자 <span style="font-weight:400;color:var(--t3)">(회의록 작성한 사람)</span></label>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                  <label style="font-size:12px;font-weight:700;color:var(--t2)">✍️ 작성자 <span style="font-weight:400;color:var(--t3)">(회의록 작성한 사람)</span></label>
+                  <button onclick="openHRPickerForTag('author')" type="button" style="padding:1px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--t2);font-size:12px;cursor:pointer;font-family:var(--s)">👤 선택</button>
+                </div>
                 <div class="mtg-tag-box" id="mtg-author-tags" style="border-color:var(--border2)"></div>
                 <div style="display:flex;gap:6px;margin-top:5px">
                   <input class="si" type="text" id="mtg-author-input" placeholder="이름 입력 후 Enter"
@@ -1520,7 +1548,10 @@
 
               <!-- 영업담당자 -->
               <div>
-                <label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:5px">🏢 영업담당자 <span style="font-weight:400;color:var(--t3)">(ENJET 내부)</span></label>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                  <label style="font-size:12px;font-weight:700;color:var(--p)">🏢 영업담당자 <span style="font-weight:400;color:var(--t3)">(ENJET 내부)</span></label>
+                  <button onclick="openHRPickerForTag('sales')" type="button" style="padding:1px 7px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer;font-family:var(--s)">👤 선택</button>
+                </div>
                 <div class="mtg-tag-box" id="mtg-sales-tags" style="border-color:var(--p)"></div>
                 <div style="display:flex;gap:6px;margin-top:5px">
                   <input class="si" type="text" id="mtg-sales-input" placeholder="이름 입력 후 Enter"
@@ -1578,6 +1609,35 @@
           <div id="mtgActLinkBody" style="max-height:55vh;overflow-y:auto"></div>
           <div style="padding:10px 16px;border-top:1px solid var(--border);text-align:right">
             <button onclick="closeMtgActLinkModal()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:13px;cursor:pointer;font-family:var(--s)">나중에 연결</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 인사DB 담당자 선택 모달 -->
+      <div id="hrPickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10500;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div style="background:#fff;border-radius:14px;width:520px;max-width:96vw;max-height:88vh;overflow:hidden;display:flex;flex-direction:column">
+          <div style="padding:16px 20px 10px;border-bottom:1px solid var(--border);flex-shrink:0">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div style="font-size:17px;font-weight:900;color:var(--t)">👤 ENJET 임직원 선택</div>
+              <button onclick="document.getElementById('hrPickerModal').style.display='none'" style="border:none;background:transparent;font-size:22px;cursor:pointer;color:var(--t3)">✕</button>
+            </div>
+            <div style="font-size:12px;color:var(--t3);margin-bottom:8px">인사현황DB에서 조회 · 신규 입력 불가</div>
+            <div style="display:flex;gap:6px">
+              <input class="si" type="text" id="hrPickerSrch" placeholder="🔍 이름 / 부서 / 직급 검색..."
+                oninput="renderHRPickerList(this.value)" style="flex:1;font-size:15px">
+              <select class="ss" id="hrPickerDept" onchange="renderHRPickerList(document.getElementById('hrPickerSrch').value)" style="min-width:120px">
+                <option value="">전체 부서</option>
+              </select>
+            </div>
+          </div>
+          <div id="hrPickerBody" style="flex:1;overflow-y:auto;max-height:60vh">
+            <div class="empty" style="padding:30px"><div class="ei">👥</div><div class="et">인사DB 동기화 후 선택 가능</div>
+              <div style="margin-top:10px"><button onclick="loadOrgData(true)" style="padding:6px 14px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700">🔄 동기화</button></div>
+            </div>
+          </div>
+          <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:6px;flex-shrink:0">
+            <button onclick="document.getElementById('hrPickerModal').style.display='none'"
+              style="padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:13px;cursor:pointer;font-family:var(--s)">취소</button>
           </div>
         </div>
       </div>
@@ -2047,22 +2107,23 @@
           </div>
           <div class="cb" style="padding:10px 14px">
             <div style="overflow-x:auto">
-              <table class="tbl" style="min-width:1200px">
+              <table class="tbl" style="min-width:1300px">
                 <thead><tr>
-                  <th style="min-width:240px">할 일 제목</th>
-                  <th style="min-width:120px">버킷(고객사)</th>
+                  <th style="min-width:220px">할 일 제목</th>
+                  <th style="min-width:110px">버킷(고객사)</th>
                   <th style="min-width:85px">생성일</th>
-                  <th style="min-width:110px">마감일</th>
-                  <th style="min-width:100px">담당자</th>
-                  <th style="min-width:110px">협의부서</th>
-                  <th style="min-width:90px">상태</th>
+                  <th style="min-width:100px">마감일</th>
+                  <th style="min-width:90px">담당자</th>
+                  <th style="min-width:100px">고객참석자</th>
+                  <th style="min-width:100px">협의부서</th>
+                  <th style="min-width:80px">상태</th>
                   <th style="min-width:80px;text-align:center">📝 회의록</th>
-                  <th style="min-width:80px;text-align:center">📎 자료</th>
-                  <th style="min-width:80px;text-align:center">Planner</th>
-                  <th style="min-width:50px;text-align:center">삭제</th>
+                  <th style="min-width:70px;text-align:center">📎 자료</th>
+                  <th style="min-width:60px;text-align:center">Planner</th>
+                  <th style="min-width:40px;text-align:center">삭제</th>
                 </tr></thead>
                 <tbody id="todoBody">
-                  <tr><td colspan="11"><div class="empty">
+                  <tr><td colspan="12"><div class="empty">
                     <div class="ei">✅</div>
                     <div class="et">Todo 없음</div>
                     <div style="font-size:13px;color:var(--t3);margin-top:6px">회의록 저장 시 자동 생성 · 또는 [🔄 동기화]</div>
@@ -6190,6 +6251,7 @@ function buildMtgPrompt(transcript, meta) {
   const date = document.getElementById("slMtgDateCommon")?.value || meta.date || new Date().toISOString().split("T")[0];
   const attendees = getSlMtgAllAttendees() || meta.attendees || "";
   const location = document.getElementById("slMtgLocationCommon")?.value || "";
+  const depts = getSlMtgDepts();
   return `다음은 "${meta.company||""}" 관련 영업 회의/미팅 내용입니다.
 아래 형식으로 한국어 회의록을 작성해주세요:
 
@@ -6198,6 +6260,7 @@ function buildMtgPrompt(transcript, meta) {
 - 장소: ${location||"-"}
 - 회사/거래처: ${meta.company||""}
 - 참석자: ${attendees||"-"}
+${depts?`- 협의부서: ${depts}`:""}
 
 ## 주요 안건
 (회의에서 다룬 주요 내용 요약)
@@ -6426,8 +6489,12 @@ async function createPlannerTask(planId, bucketId, title, notes, assignee, dueDa
 }
 
 // 회의록 → Planner 태스크 생성 (메인)
-async function createPlannerFromMtg(actId, summaryText, mtgDate, company, pjcode, minutesUrl, minutesName) {
+async function createPlannerFromMtg(actId, summaryText, mtgDate, company, pjcode, minutesUrl, minutesName, extraMeta) {
+  // extraMeta: {assignee, dept, custAttendees}
   const bucketName = company+(pjcode?"-"+pjcode:"");
+  const assignee  = extraMeta?.assignee||"";
+  const dept      = extraMeta?.dept||"";
+  const custAtts  = extraMeta?.custAttendees||"";
 
   try {
     const planId = await getPlannerPlanId();
@@ -6435,30 +6502,43 @@ async function createPlannerFromMtg(actId, summaryText, mtgDate, company, pjcode
     const items = extractActionItems(summaryText);
     const token = await getToken();
 
-    // 회의록 파일을 Planner 태스크 references에 추가하는 헬퍼
-    const attachMinutes = async(taskId) => {
-      if(!minutesUrl) return;
+    // 태스크 details에 회의록 링크 + 메타(담당자/협의부서/고객참석자) 저장
+    const patchDetails = async(taskId) => {
       try {
         const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`,
           {headers:{"Authorization":"Bearer "+token}});
         const det = await dR.json();
-        const refs = det.references||{};
-        const encUrl = encodeURIComponent(minutesUrl);
-        refs[encUrl] = {alias: minutesName||"회의록", type:"other", previewPriority:" !"};
+        const refs = {...(det.references||{})};
+        if(minutesUrl) {
+          refs[encodeURIComponent(minutesUrl)] = {alias: minutesName||"회의록", type:"other", previewPriority:" !"};
+        }
+        // description에 메타 저장 (동기화 시 복원용)
+        const metaLines = [
+          assignee  ? `[담당자] ${assignee}`       : "",
+          dept      ? `[협의부서] ${dept}`          : "",
+          custAtts  ? `[고객참석자] ${custAtts}`    : "",
+          minutesUrl? `[회의록URL] ${minutesUrl}`   : "",
+          minutesName?`[회의록명] ${minutesName}`   : "",
+        ].filter(Boolean);
+        const existDesc = (det.description||"").split("\n").filter(l=>
+          !l.startsWith("[담당자]")&&!l.startsWith("[협의부서]")&&
+          !l.startsWith("[고객참석자]")&&!l.startsWith("[회의록URL]")&&!l.startsWith("[회의록명]")
+        );
+        const newDesc = [...metaLines, ...existDesc].join("\n").substring(0,1000);
         await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${taskId}/details`, {
           method:"PATCH",
           headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,"If-Match":det["@odata.etag"]},
-          body:JSON.stringify({references: refs})
+          body:JSON.stringify({references: refs, description: newDesc})
         });
-      } catch(e2){ console.warn("회의록 첨부 실패:", e2.message); }
+      } catch(e2){ console.warn("details 저장 실패:", e2.message); }
     };
 
     if(items.length===0) {
       const task = await createPlannerTask(planId, bucketId,
         "["+mtgDate+"] "+company+" 미팅 결과 확인",
-        summaryText.substring(0,500), "", ""
+        summaryText.substring(0,300), assignee, ""
       );
-      await attachMinutes(task.id);
+      await patchDetails(task.id);
       return {created:1, bucketName};
     }
 
@@ -6466,10 +6546,10 @@ async function createPlannerFromMtg(actId, summaryText, mtgDate, company, pjcode
     for(const item of items) {
       const task = await createPlannerTask(planId, bucketId,
         item.title,
-        "["+mtgDate+"] "+company+" 미팅 액션아이템\n"+summaryText.substring(0,300),
-        item.assignee, item.dueDate
+        summaryText.substring(0,300),
+        item.assignee||assignee, item.dueDate
       );
-      await attachMinutes(task.id);
+      await patchDetails(task.id);
       created++;
     }
     return {created, bucketName};
@@ -6513,8 +6593,10 @@ async function openSLMinutesModal(actId) {
   document.getElementById("slMtgInternalAttendees").value = acct?.name||"";
   // 고객 담당자를 고객참석자 태그로
   _slMtgCustTags = [];
+  _slMtgDeptTags = [];
   if(act?.custMgr) _slMtgCustTags.push(act.custMgr.split(" <")[0]);
   renderSlMtgCustTags();
+  renderSlMtgDeptTags();
   document.getElementById("slMtgLocationCommon").value = "";
 
   switchMtgTab(1);
@@ -6569,12 +6651,14 @@ async function saveMtgDirectAsFile() {
   if(!fileName.includes(".")) fileName += ".txt";
 
   // 파일 내용 구성
+  const depts = getSlMtgDepts();
   const header = [
     `=== 회의록 ===`,
     `고객사: ${act.company}${act.pjcode?" / "+act.pjcode:""}`,
     `일시: ${date}`,
     attendees ? `참석자: ${attendees}` : "",
     location ? `장소: ${location}` : "",
+    depts ? `협의부서: ${depts}` : "",
     `작성자: ${acct?.name||"성백훈"}`,
     `작성일시: ${new Date().toLocaleString("ko-KR")}`,
     `─────────────────────────────────`,
@@ -6620,7 +6704,12 @@ async function saveMtgDirectAsFile() {
       try {
         const plResult = await createPlannerFromMtg(
           actId, content, date, act.company, act.pjcode,
-          d.webUrl, fileName  // 회의록 파일 URL 전달
+          d.webUrl, fileName,
+          {
+            assignee:    document.getElementById("slMtgInternalAttendees")?.value||"",
+            dept:        getSlMtgDepts(),
+            custAttendees: _slMtgCustTags.join(", ")
+          }
         );
         loadTodoFromPlanner(false).catch(()=>{});
         alert(`✅ 회의록 저장 완료!\n파일: ${fileName}\n\n📋 Planner: "${plResult.bucketName}" 버킷에 ${plResult.created}개 Todo 생성`);
@@ -7009,8 +7098,12 @@ async function saveSLMtgResult() {
         $("slUpd","Planner Todo 생성 중...");
         const plResult = await createPlannerFromMtg(
           _slMtgActId, txt, today, act.company, act.pjcode,
-          saved.webUrl||"",  // ← 회의록 파일 URL 전달
-          fileName
+          saved.webUrl||"", fileName,
+          {
+            assignee:    document.getElementById("slMtgInternalAttendees")?.value||"",
+            dept:        getSlMtgDepts(),
+            custAttendees: _slMtgCustTags.join(", ")
+          }
         );
         console.log("✅ Planner Todo:", plResult.created+"개 생성, 버킷:", plResult.bucketName);
         loadTodoFromPlanner(false).catch(()=>{});
@@ -11170,16 +11263,33 @@ async function loadTodoFromPlanner(force=false) {
     _todoItems = tasks.map(task=>{
       const assignee = Object.keys(task.assignments||{}).map(uid=>userMap[uid]||uid.substring(0,8)).join(", ");
       const existing = _todoItems.find(x=>x.id===task.id);
-      // details에서 첨부파일 복원
       const det = detailsMap[task.id];
       const refs = det?.references||{};
+      const desc = det?.description||"";
+
+      // description에서 저장된 메타 파싱
+      const getMeta = (key) => {
+        const line = desc.split("\n").find(l=>l.startsWith(`[${key}]`));
+        return line ? line.replace(`[${key}] `,"").trim() : "";
+      };
+      const savedAssignee    = getMeta("담당자");
+      const savedDept        = getMeta("협의부서");
+      const savedCustAtts    = getMeta("고객참석자");
+      const savedMinutesUrl  = getMeta("회의록URL");
+      const savedMinutesName = getMeta("회의록명");
+
+      // 첨부파일: references 파싱
       const attachments = existing?.attachments || Object.entries(refs).map(([encUrl, ref])=>{
         const url = decodeURIComponent(encUrl);
         const name = ref.alias||url.split("/").pop()||"파일";
-        // 회의록 파일 판별 (파일명에 '회의록' 포함 or alias에 포함)
-        const type = name.includes("회의록") ? "minutes" : "material";
+        const type = (name.includes("회의록")||url===savedMinutesUrl) ? "minutes" : "material";
         return {type, name, url};
       });
+      // 저장된 회의록 URL이 refs에 없으면 추가
+      if(savedMinutesUrl && !attachments.find(a=>a.url===savedMinutesUrl)) {
+        attachments.unshift({type:"minutes", name:savedMinutesName||"회의록", url:savedMinutesUrl});
+      }
+
       return {
         id: task.id,
         title: task.title||"(제목없음)",
@@ -11187,14 +11297,14 @@ async function loadTodoFromPlanner(force=false) {
         bucketName: _todoBuckets[task.bucketId]||"기타",
         createdAt: task.createdDateTime,
         dueDate: task.dueDateTime ? task.dueDateTime.split("T")[0] : "",
-        assignee,
+        assignee: savedAssignee||assignee,
+        dept: savedDept||existing?.dept||"",
+        custAttendees: savedCustAtts||existing?.custAttendees||"",
         percentComplete: task.percentComplete||0,
         completed: task.percentComplete===100,
         status: task.percentComplete===100?"완료":task.percentComplete>0?"진행중":"대기",
-        completedAt: task.completedDateTime||"",
         plannerUrl: `https://tasks.office.com/enjetco.onmicrosoft.com/en-US/Home/Task/${task.id}`,
-        dept: existing?.dept||"",
-        attachments,  // references에서 복원
+        attachments,
       };
     });
 
@@ -11267,7 +11377,7 @@ function renderTodo(data) {
   const body=document.getElementById("todoBody");
   if(!body) return;
   if(!filtered.length){
-    body.innerHTML=`<tr><td colspan="11"><div class="empty"><div class="ei">✅</div><div class="et">Todo 없음</div></div></td></tr>`;
+    body.innerHTML=`<tr><td colspan="12"><div class="empty"><div class="ei">✅</div><div class="et">Todo 없음</div></div></td></tr>`;
     return;
   }
 
@@ -11319,6 +11429,19 @@ function renderTodo(data) {
          </div>`
       : `<button onclick="attachTodoFile('${t.id}','material')" style="padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:12px;cursor:pointer">⬆ 업로드</button>`;
 
+    // 고객참석자 표시 (대표 1명 + 나머지 hover)
+    const custList = (t.custAttendees||"").split(",").map(s=>s.trim()).filter(Boolean);
+    const custCell = custList.length === 0
+      ? `<span style="color:var(--t3);font-size:12px">-</span>`
+      : custList.length === 1
+        ? `<span style="font-size:13px">${custList[0]}</span>`
+        : `<span style="font-size:13px;cursor:pointer" title="${custList.join(', ')}"
+            onclick="this.closest('td').querySelector('.cust-rest').style.display=this.closest('td').querySelector('.cust-rest').style.display==='none'?'block':'none'">
+            ${custList[0]}
+            <span style="font-size:11px;background:var(--pd);color:var(--p);padding:1px 5px;border-radius:8px;font-weight:700">+${custList.length-1}</span>
+          </span>
+          <div class="cust-rest" style="display:none;font-size:12px;color:var(--t3);margin-top:3px">${custList.slice(1).join(", ")}</div>`;
+
     const rowBg=isLongOverdue?"background:rgba(239,68,68,.04)":"";
     return `<tr style="${rowBg}">
       <td>
@@ -11339,9 +11462,9 @@ function renderTodo(data) {
           onkeydown="if(event.key==='Enter')this.blur()"
           onblur="updateTodoField('${t.id}','assignee',this.value)"
           style="width:100%;padding:2px 5px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--s);background:transparent;cursor:text"
-          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
-          onblur2="this.style.borderColor='transparent';this.style.background='transparent'">
+          onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'">
       </td>
+      <td>${custCell}</td>
       <td>
         <select onchange="updateTodoField('${t.id}','dept',this.value)"
           style="width:100%;padding:2px 4px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--s);background:transparent;cursor:pointer"
@@ -11827,6 +11950,198 @@ function renderOrgTable() {
   }).join("");
   $("orgTableCnt", `총 ${filtered.length}명`);
 }
+
+// ━━ 인사DB 담당자 피커 (신규 입력 불가, 검색만) ━━
+let _hrPickerTargetId = "";   // 결과를 넣을 input id
+let _hrPickerMode = "single"; // single | multi (콤마 구분 추가)
+let _hrPickerTagType = "";    // 태그 박스용 타입 (author|sales)
+
+function openHRPicker(inputId, mode="single") {
+  _hrPickerTargetId = inputId;
+  _hrPickerMode = mode;
+  _hrPickerTagType = "";
+  _openHRPickerModal();
+}
+
+function openHRPickerForTag(tagType) {
+  _hrPickerTargetId = "";
+  _hrPickerTagType = tagType;
+  _hrPickerMode = "tag";
+  _openHRPickerModal();
+}
+
+function _openHRPickerModal() {
+  // 부서 필터 갱신
+  const deptSel = document.getElementById("hrPickerDept");
+  if(deptSel && _hrData.length) {
+    const depts = [...new Set(_hrData.filter(r=>r["field_4"]&&r["field_12"]==="재직").map(r=>r["field_1"]).filter(Boolean))].sort();
+    deptSel.innerHTML = `<option value="">전체 부서</option>`+depts.map(d=>`<option value="${d}">${d}</option>`).join("");
+  }
+  const srch = document.getElementById("hrPickerSrch");
+  if(srch) srch.value = "";
+  renderHRPickerList("");
+  document.getElementById("hrPickerModal").style.display = "flex";
+}
+
+function renderHRPickerList(q) {
+  const el = document.getElementById("hrPickerBody");
+  if(!el) return;
+
+  if(!_hrData.length) {
+    el.innerHTML=`<div class="empty" style="padding:30px"><div class="ei">👥</div><div class="et">인사DB 동기화 후 사용 가능</div><div style="margin-top:10px"><button onclick="loadOrgData(true)" style="padding:6px 14px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700">🔄 동기화</button></div></div>`;
+    return;
+  }
+
+  const deptF = document.getElementById("hrPickerDept")?.value||"";
+  // 재직 중인 인원만
+  let list = _hrData.filter(r=>r["field_4"]&&r["field_12"]==="재직");
+  if(deptF) list = list.filter(r=>r["field_1"]===deptF);
+  if((q||"").trim()) {
+    const ql = q.toLowerCase();
+    list = list.filter(r=>[r["field_4"],r["field_1"],r["field_3"],r["field_2"]].some(v=>String(v||"").toLowerCase().includes(ql)));
+  }
+
+  const RANK_ORDER=["대표","부사장","전무","이사","부장","차장","과장","대리","사원"];
+  list.sort((a,b)=>{
+    const da=a["field_1"]||""; const db=b["field_1"]||"";
+    if(da!==db) return da.localeCompare(db);
+    return (RANK_ORDER.indexOf(a["field_3"]||"")||99)-(RANK_ORDER.indexOf(b["field_3"]||"")||99);
+  });
+
+  if(!list.length){ el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--t3)">검색 결과 없음</div>`; return; }
+
+  const DEPT_COLOR={"경영전략본부":"#0f4c81","ES사업부":"#1a6bb5","기술연구소":"#00b4d8","미래성장전략팀":"#10b981"};
+
+  el.innerHTML = list.map(r=>{
+    const name = r["field_4"]||"";
+    const rank = r["field_3"]||"";
+    const dept = r["field_1"]||"";
+    const team = r["field_2"]||"";
+    const color = DEPT_COLOR[dept]||"var(--p)";
+    const label = `${name} ${rank}`;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''"
+      onclick="selectHRPerson('${name.replace(/'/g,"\\'")}','${rank.replace(/'/g,"\\'")}','${dept.replace(/'/g,"\\'")}')">
+      <div style="width:36px;height:36px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0">${name.substring(0,1)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:var(--t)">${name} <span style="font-size:13px;font-weight:500;color:var(--t3)">${rank}</span></div>
+        <div style="font-size:12px;color:var(--t3)">${dept}${team?" · "+team:""}</div>
+      </div>
+      <div style="font-size:12px;padding:2px 8px;border-radius:6px;background:${color}18;color:${color};font-weight:600">${dept}</div>
+    </div>`;
+  }).join("");
+}
+
+function selectHRPerson(name, rank, dept) {
+  const display = name; // 이름만 (직급 제외 - 필드에 간결하게)
+
+  if(_hrPickerMode === "tag" && _hrPickerTagType) {
+    // mtg 태그 박스에 추가
+    addMtgTag(_hrPickerTagType, {key:{code:"Enter"}}, display);
+    if(typeof _mtgTags !== "undefined") {
+      if(!_mtgTags[_hrPickerTagType]) _mtgTags[_hrPickerTagType]=[];
+      if(!_mtgTags[_hrPickerTagType].includes(display)) {
+        _mtgTags[_hrPickerTagType].push(display);
+        renderMtgTagBox(_hrPickerTagType);
+      }
+    }
+    document.getElementById("hrPickerModal").style.display = "none";
+    return;
+  }
+
+  if(_hrPickerTargetId) {
+    const input = document.getElementById(_hrPickerTargetId);
+    if(input) {
+      if(_hrPickerMode === "multi") {
+        // 기존 값에 콤마로 추가
+        const cur = input.value.trim();
+        input.value = cur ? cur + ", " + display : display;
+      } else {
+        input.value = display;
+      }
+    }
+  }
+
+  document.getElementById("hrPickerModal").style.display = "none";
+}
+
+// ━━ 협의부서 태그 + 피커 ━━
+let _slMtgDeptTags = [];
+
+// 부서 피커 (인사DB 기반)
+const ENJET_DEPTS = ["경영전략본부","ES사업부","기술연구소","미래성장전략팀"];
+
+function openHRDeptPicker() {
+  // 인사DB가 있으면 실제 부서 목록, 없으면 기본값
+  const depts = _hrData.length
+    ? [...new Set(_hrData.filter(r=>r["field_1"]).map(r=>r["field_1"]))]
+    : ENJET_DEPTS;
+
+  // 간단한 팝업 (부서 4개이므로 모달 대신 인라인 드롭다운)
+  const existing = document.getElementById("slMtgDeptQuickPicker");
+  if(existing) { existing.remove(); return; }
+
+  const tagBox = document.getElementById("slMtgDeptTags");
+  if(!tagBox) return;
+
+  const picker = document.createElement("div");
+  picker.id = "slMtgDeptQuickPicker";
+  picker.style.cssText = "position:absolute;z-index:9999;background:#fff;border:1.5px solid var(--a);border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:4px;min-width:200px;margin-top:4px";
+
+  depts.forEach(dept=>{
+    const btn = document.createElement("button");
+    const isAdded = _slMtgDeptTags.includes(dept);
+    btn.type = "button";
+    btn.style.cssText = `padding:7px 12px;border-radius:7px;border:1px solid ${isAdded?"var(--a)":"var(--border2)"};background:${isAdded?"var(--ad)":"#fff"};color:${isAdded?"var(--a)":"var(--t)"};font-size:13px;cursor:pointer;text-align:left;font-family:var(--s);font-weight:${isAdded?"700":"400"}`;
+    btn.innerHTML = `${isAdded?"✅ ":""}${dept}`;
+    btn.onclick = () => {
+      if(isAdded) {
+        _slMtgDeptTags = _slMtgDeptTags.filter(d=>d!==dept);
+      } else {
+        _slMtgDeptTags.push(dept);
+      }
+      renderSlMtgDeptTags();
+      picker.remove();
+    };
+    picker.appendChild(btn);
+  });
+
+  // 닫기 버튼
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.innerHTML = "✕ 닫기";
+  closeBtn.style.cssText = "padding:5px;border:none;background:transparent;color:var(--t3);font-size:12px;cursor:pointer;text-align:right;font-family:var(--s)";
+  closeBtn.onclick = () => picker.remove();
+  picker.appendChild(closeBtn);
+
+  tagBox.parentElement.style.position = "relative";
+  tagBox.parentElement.appendChild(picker);
+
+  // 외부 클릭 시 닫기
+  setTimeout(()=>{
+    const closeHandler = (e)=>{
+      if(!picker.contains(e.target)) { picker.remove(); document.removeEventListener("click",closeHandler); }
+    };
+    document.addEventListener("click", closeHandler);
+  }, 100);
+}
+
+function renderSlMtgDeptTags() {
+  const box = document.getElementById("slMtgDeptTags");
+  if(!box) return;
+  box.innerHTML = _slMtgDeptTags.map((dept,i)=>`
+    <span class="mtg-tag" style="color:#92400e;background:#fef3c7;border-color:var(--a)">
+      🤝 ${dept}
+      <span class="mtg-tag-x" onclick="_slMtgDeptTags.splice(${i},1);renderSlMtgDeptTags()">×</span>
+    </span>`).join("");
+}
+
+function getSlMtgDepts() {
+  return _slMtgDeptTags.join(", ");
+}
+
+// openSLMinutesModal에서 초기화
+const _origOpenSLMinutesModal = typeof openSLMinutesModal === "function" ? openSLMinutesModal : null;
 
 function go(id, el) {
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
