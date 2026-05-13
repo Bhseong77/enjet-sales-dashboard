@@ -15987,7 +15987,7 @@ async function parseOrderPdf(file) {
       const key=document.getElementById("orderGeminiKey")?.value.trim()||localStorage.getItem("gemini_key")||"";
       if(!key) throw new Error("Gemini API Key를 입력해주세요.");
       if(statusEl) statusEl.textContent="🟢 Gemini가 발주서 분석 중...";
-      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:"application/pdf",data:base64}},{text:prompt}]}]})
       });
@@ -16009,21 +16009,39 @@ async function parseOrderPdf(file) {
       const data=await res.json();
       resultJson=extractJsonFromAIResponse(data.choices?.[0]?.message?.content||"");
     } else if(engine==="copilot"){
-      if(statusEl) statusEl.textContent="✨ Copilot이 발주서 분석 중...";
+      if(statusEl) statusEl.textContent="✨ PDF 텍스트 추출 중...";
       const pdfText=await extractPdfText(base64);
-      const t=await getToken();
-      const convRes=await fetch("https://graph.microsoft.com/beta/copilot/conversations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:"{}"});
-      if(!convRes.ok) throw new Error("Copilot 연결 실패");
-      const {id:convId}=await convRes.json();
-      const chatRes=await fetch(`https://graph.microsoft.com/beta/copilot/conversations/${convId}/chat`,{
-        method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-        body:JSON.stringify({message:{text:prompt+"\n\n[문서 내용]\n"+pdfText.substring(0,5000)},locationHint:{timeZone:"Asia/Seoul"}})
-      });
-      if(!chatRes.ok) throw new Error("Copilot 오류");
-      const chatData=await chatRes.json();
-      const msgs=chatData.messages||[];
-      let text="";for(let i=msgs.length-1;i>=0;i--){if(msgs[i].text){text=msgs[i].text;break;}}
-      resultJson=extractJsonFromAIResponse(text);
+      const hasText = pdfText && pdfText.length > 30 && !pdfText.includes("추출 실패");
+      if(!hasText) {
+        const geminiKey=localStorage.getItem("gemini_key")||"";
+        if(geminiKey) {
+          if(statusEl) statusEl.textContent="✨ 텍스트 추출 실패 → 🟢 Gemini로 자동 전환 중...";
+          const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:"application/pdf",data:base64}},{text:prompt}]}]})
+          });
+          if(!res.ok){const e=await res.json();throw new Error("Gemini 폴백 실패: "+(e.error?.message||res.status));}
+          const data2=await res.json();
+          resultJson=extractJsonFromAIResponse(data2.candidates?.[0]?.content?.parts?.[0]?.text||"");
+        } else {
+          throw new Error("Copilot은 이 PDF에서 텍스트를 추출하지 못했습니다.\n\nGemini 키 등록 시 자동 전환됩니다 (aistudio.google.com 무료)");
+        }
+      } else {
+        if(statusEl) statusEl.textContent="✨ Copilot이 발주서 분석 중...";
+        const t=await getToken();
+        const convRes=await fetch("https://graph.microsoft.com/beta/copilot/conversations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:"{}"});
+        if(!convRes.ok) throw new Error("Copilot 연결 실패");
+        const {id:convId}=await convRes.json();
+        const chatRes=await fetch(`https://graph.microsoft.com/beta/copilot/conversations/${convId}/chat`,{
+          method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+          body:JSON.stringify({message:{text:prompt+"\n\n아래는 PDF에서 추출한 텍스트입니다. 이 내용만 보고 JSON을 추출하세요:\n\n"+pdfText.substring(0,6000)},locationHint:{timeZone:"Asia/Seoul"}})
+        });
+        if(!chatRes.ok) throw new Error("Copilot 오류");
+        const chatData=await chatRes.json();
+        const msgs=chatData.messages||[];
+        let text="";for(let i=msgs.length-1;i>=0;i--){if(msgs[i].text){text=msgs[i].text;break;}}
+        resultJson=extractJsonFromAIResponse(text);
+      }
     }
     if(resultJson){
       console.log("🤖 발주서 AI 파싱 결과:", JSON.stringify(resultJson));
@@ -16259,7 +16277,7 @@ async function parsePdfWithAI(file, docType, statusElId, fillFn) {
       const key=document.getElementById(docType==="dlv"?"dlvGeminiKey":"taxGeminiKey")?.value.trim()||localStorage.getItem("gemini_key")||"";
       if(!key) throw new Error("Gemini API Key를 입력해주세요. (aistudio.google.com 무료 발급)");
       if(statusEl) statusEl.textContent="🟢 Gemini가 PDF 분석 중...";
-      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:"application/pdf",data:base64}},{text:prompt}]}]})
       });
@@ -16281,21 +16299,55 @@ async function parsePdfWithAI(file, docType, statusElId, fillFn) {
       const data=await res.json();
       resultJson=extractJsonFromAIResponse(data.choices?.[0]?.message?.content||"");
     } else if(engine==="copilot"){
-      if(statusEl) statusEl.textContent="✨ Copilot이 PDF 분석 중...";
-      const pdfText=await extractPdfText(base64);
-      const t=await getToken();
-      const convRes=await fetch("https://graph.microsoft.com/beta/copilot/conversations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:"{}"});
-      if(!convRes.ok) throw new Error("Copilot 연결 실패 ("+convRes.status+")");
-      const {id:convId}=await convRes.json();
-      const chatRes=await fetch(`https://graph.microsoft.com/beta/copilot/conversations/${convId}/chat`,{
-        method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-        body:JSON.stringify({message:{text:`${prompt}\n\n[문서 내용]\n${pdfText.substring(0,5000)}`},locationHint:{timeZone:"Asia/Seoul"}})
-      });
-      if(!chatRes.ok) throw new Error("Copilot 오류 ("+chatRes.status+")");
-      const chatData=await chatRes.json();
-      const msgs=chatData.messages||[];
-      let text="";for(let i=msgs.length-1;i>=0;i--){if(msgs[i].text){text=msgs[i].text;break;}}
-      resultJson=extractJsonFromAIResponse(text);
+      if(statusEl) statusEl.textContent="✨ PDF 텍스트 추출 중...";
+      const pdfText = await extractPdfText(base64);
+      const hasText = pdfText && pdfText.length > 30 && !pdfText.includes("추출 실패");
+
+      if(!hasText) {
+        // 텍스트 추출 실패 → Gemini로 자동 폴백 (PDF 네이티브 지원)
+        const geminiKey = localStorage.getItem("gemini_key")||"";
+        if(geminiKey) {
+          if(statusEl) statusEl.textContent="✨ 텍스트 추출 실패 → 🟢 Gemini로 자동 전환 중...";
+          const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:"application/pdf",data:base64}},{text:prompt}]}]})
+          });
+          if(!res.ok){const e=await res.json();throw new Error("Gemini 폴백 실패: "+(e.error?.message||res.status));}
+          const data=await res.json();
+          const txt=data.candidates?.[0]?.content?.parts?.[0]?.text||"";
+          resultJson=extractJsonFromAIResponse(txt);
+          if(statusEl&&resultJson){statusEl.textContent="✅ Gemini로 추출 완료!";statusEl.style.color="var(--g)";}
+        } else {
+          // Gemini 키도 없으면 PNG→Copilot 시도
+          if(statusEl) statusEl.textContent="✨ PDF→이미지 변환 후 Copilot 분석 중...";
+          const imgBase64 = await pdfToImageBase64(base64);
+          const t=await getToken();
+          const convRes=await fetch("https://graph.microsoft.com/beta/copilot/conversations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:"{}"});
+          if(!convRes.ok) throw new Error("Copilot 연결 실패");
+          const {id:convId}=await convRes.json();
+          // 이미지를 base64로 인코딩하여 텍스트에 포함 (Copilot은 이미지 직접 지원 안 함)
+          throw new Error("Copilot은 이 PDF에서 텍스트를 추출하지 못했습니다.\n\n해결 방법:\n1. Gemini 키 등록 (aistudio.google.com 무료) → 자동 전환됩니다\n2. OpenAI 엔진으로 전환\n3. PDF를 열어서 내용을 직접 입력란에 붙여넣기");
+        }
+      } else {
+        // 텍스트 추출 성공 → Copilot으로 분석
+        if(statusEl) statusEl.textContent="✨ Copilot이 분석 중...";
+        const t=await getToken();
+        const convRes=await fetch("https://graph.microsoft.com/beta/copilot/conversations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:"{}"});
+        if(!convRes.ok) throw new Error("Copilot 연결 실패 ("+convRes.status+")");
+        const {id:convId}=await convRes.json();
+        const chatRes=await fetch(`https://graph.microsoft.com/beta/copilot/conversations/${convId}/chat`,{
+          method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+          body:JSON.stringify({
+            message:{text:`${prompt}\n\n아래는 PDF에서 추출한 텍스트입니다. 이 내용만 보고 JSON을 추출하세요:\n\n${pdfText.substring(0,6000)}`},
+            locationHint:{timeZone:"Asia/Seoul"}
+          })
+        });
+        if(!chatRes.ok) throw new Error("Copilot 오류 ("+chatRes.status+")");
+        const chatData=await chatRes.json();
+        const msgs=chatData.messages||[];
+        let text="";for(let i=msgs.length-1;i>=0;i--){if(msgs[i].text){text=msgs[i].text;break;}}
+        resultJson=extractJsonFromAIResponse(text);
+      }
     }
     if(resultJson){
       console.log("🤖 AI 파싱 결과:", JSON.stringify(resultJson));
