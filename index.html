@@ -364,6 +364,7 @@
       <div class="ni" onclick="go('sales-meeting',this)">📝 회의록 DB <span class="nb nbg" id="badge-sm">0</span></div>
       <div class="ni" onclick="go('delivery-db',this)">🚚 거래명세서 DB <span class="nb nbg" id="badge-dlv">0</span></div>
       <div class="ni" onclick="go('tax-db',this)">🧾 세금계산서 DB <span class="nb nbg" id="badge-tax">0</span></div>
+      <div class="ni" onclick="go('order-db',this)">📦 발주서 DB <span class="nb nbg" id="badge-ord">0</span></div>
       <div class="ni" onclick="go('customer',this)">🏭 고객사 DB <span class="nb nbg" id="badge-ct">-</span></div>
       <div class="sb-sec">마케팅</div>
       <div class="ni" onclick="go('marketing',this)">📣 마케팅 활동</div>
@@ -847,7 +848,7 @@
           </div>
         </div>
         <div class="cb" style="padding:10px 14px">
-          <div style="overflow-x:auto"><table class="tbl" style="min-width:900px">
+          <div style="overflow-x:auto"><table class="tbl" style="min-width:980px">
             <thead><tr>
               <th style="min-width:130px">고객사</th>
               <th style="min-width:110px">프로젝트코드</th>
@@ -861,11 +862,12 @@
               <th style="text-align:center;min-width:55px;font-size:14px">📄 견적서</th>
               <th style="text-align:center;min-width:55px;font-size:14px">📦 발주서</th>
               <th style="text-align:center;min-width:55px;font-size:14px">📑 계약서</th>
+              <th style="text-align:center;min-width:60px;font-size:14px">🚚 거래명세서</th>
               <th style="text-align:center;min-width:75px;font-size:14px">🧾 세금계산서</th>
               <th style="min-width:45px"></th>
             </tr></thead>
             <tbody id="slBody">
-              <tr><td colspan="14"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
+              <tr><td colspan="15"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 첫 영업활동 추가</button></div></div></td></tr>
             </tbody>
           </table></div>
           <div style="font-size:14px;color:var(--t3);margin-top:6px;text-align:right" id="slCnt"></div>
@@ -2683,6 +2685,121 @@
       </div>
 
 
+    <!-- 📦 발주서 DB 탭 -->
+    <div class="page" id="tab-order-db">
+      <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
+        <div class="kpi"><div class="kl">📦 총 건수</div><div class="kv" id="ord-tot">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">💰 이번달 발주액</div><div class="kv" id="ord-month-amt" style="color:var(--p);font-size:18px">0</div><div class="ks">원</div></div>
+        <div class="kpi"><div class="kl">🏭 거래처 수</div><div class="kv" id="ord-co-cnt">0</div><div class="ks">곳</div></div>
+        <div class="kpi"><div class="kl">📅 최근 등록</div><div class="kv" id="ord-last-date" style="font-size:14px">-</div><div class="ks"></div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:16px;font-weight:800">📦 발주서 DB</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input class="si" type="text" id="ord-search" placeholder="🔍 거래처/품목/PO번호..." style="width:180px;font-size:13px" oninput="renderOrderDB()">
+            <button onclick="openOrderModal()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="tbl" style="min-width:820px">
+          <thead><tr>
+            <th style="min-width:80px">발주일</th>
+            <th style="min-width:120px">발주처(고객사)</th>
+            <th style="min-width:140px">품목</th>
+            <th style="min-width:60px">수량</th>
+            <th style="min-width:90px">발주금액</th>
+            <th style="min-width:100px">PO번호</th>
+            <th style="min-width:80px">프로젝트코드</th>
+            <th style="min-width:80px">납기요청일</th>
+            <th style="min-width:60px">상태</th>
+            <th style="min-width:60px">파일</th>
+            <th style="min-width:50px"></th>
+          </tr></thead>
+          <tbody id="ordBody"><tr><td colspan="11"><div class="empty"><div class="ei">📦</div><div class="et">발주서 없음</div><div style="font-size:13px;color:var(--t3);margin-top:6px">PDF 업로드하면 AI가 자동으로 항목을 추출합니다</div></div></td></tr></tbody>
+        </table></div>
+        <div style="font-size:13px;color:var(--t3);margin-top:8px;text-align:right" id="ord-cnt"></div>
+      </div>
+    </div>
+
+    <!-- 📦 발주서 입력 모달 -->
+    <div id="orderModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative">
+        <div style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:900" id="orderModalTitle">📦 발주서 등록</div>
+          <button onclick="document.getElementById('orderModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
+        </div>
+        <div style="padding:16px 18px">
+          <!-- AI 파싱 영역 -->
+          <div style="margin-bottom:14px;padding:12px;background:#f5f3ff;border-radius:10px;border:1.5px solid #c4b5fd">
+            <div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:8px">🤖 PDF 업로드 → AI 자동 추출</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px">
+                <input type="radio" name="orderAiEngine" value="gemini" checked style="accent-color:#10b981">
+                <span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">무료</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #bfdbfe;background:#eff6ff;font-size:12px">
+                <input type="radio" name="orderAiEngine" value="copilot" style="accent-color:#1e40af">
+                <span style="font-weight:700;color:#1e40af">✨ Copilot</span><span style="color:var(--t3)">M365</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px">
+                <input type="radio" name="orderAiEngine" value="openai" style="accent-color:#6366f1">
+                <span style="font-weight:700;color:#6366f1">🤖 OpenAI</span><span style="color:var(--t3)">gpt-4o</span>
+              </label>
+            </div>
+            <div id="orderGeminiKeyRow" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 Gemini Key</span>
+              <input class="si" type="password" id="orderGeminiKey" placeholder="AIza..." style="flex:1;font-size:12px">
+              <button onclick="localStorage.setItem('gemini_key',document.getElementById('orderGeminiKey').value);alert('저장됨')" style="padding:5px 10px;border-radius:6px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-family:var(--s)">저장</button>
+            </div>
+            <div id="orderOpenAIKeyRow" style="display:none;gap:6px;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 OpenAI Key</span>
+              <input class="si" type="password" id="orderOpenAIKey" placeholder="sk-..." style="flex:1;font-size:12px">
+            </div>
+            <script>
+              document.querySelectorAll('input[name="orderAiEngine"]').forEach(r=>{
+                r.addEventListener("change",()=>{
+                  const v=document.querySelector('input[name="orderAiEngine"]:checked')?.value;
+                  document.getElementById("orderGeminiKeyRow").style.display=v==="gemini"?"flex":"none";
+                  document.getElementById("orderOpenAIKeyRow").style.display=v==="openai"?"flex":"none";
+                });
+              });
+            </script>
+            <input type="file" id="orderPdfInput" style="display:none" accept="application/pdf,image/*,.pdf,.jpg,.jpeg,.png" onchange="parseOrderPdf(this.files[0])">
+            <label for="orderPdfInput" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:2px dashed #c4b5fd;border-radius:8px;cursor:pointer;background:#fff;font-size:13px;color:#7c3aed;font-weight:700">
+              📎 발주서 PDF 탭해서 선택
+            </label>
+            <div id="orderParseStatus" style="font-size:12px;color:var(--t2);margin-top:6px;display:none"></div>
+          </div>
+          <!-- 입력 폼 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 발주일 *</label><input class="si" type="date" id="order-date" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 발주처(고객사) *</label><input class="si" type="text" id="order-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📦 품목</label><input class="si" type="text" id="order-item" placeholder="EHD Nozzle Assy 외" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔢 수량</label><input class="si" type="text" id="order-qty" placeholder="8 EA" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:3px">💰 발주금액</label><input class="si" type="number" id="order-amount" placeholder="1584000" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 PO번호</label><input class="si" type="text" id="order-po" placeholder="2064522177" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="order-pjcode" placeholder="BM25999-M020" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--r);display:block;margin-bottom:3px">📅 납기요청일</label><input class="si" type="date" id="order-duedate" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔄 상태</label>
+              <select class="si" id="order-status" style="width:100%;font-size:13px">
+                <option value="수신">수신</option>
+                <option value="검토중">검토중</option>
+                <option value="납품준비">납품준비</option>
+                <option value="납품완료">납품완료</option>
+              </select>
+            </div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="order-note" placeholder="메모" style="width:100%;font-size:13px"></div>
+          </div>
+          <input type="hidden" id="order-edit-id">
+          <input type="hidden" id="order-file-url">
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button onclick="document.getElementById('orderModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+            <button onclick="saveOrderEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 🚚 거래명세서 DB 탭 -->
     <div class="page" id="tab-delivery-db">
       <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
@@ -3081,6 +3198,7 @@
   <div class="mob-more-item" onclick="go('sales-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>회의록 DB</div>
   <div class="mob-more-item" onclick="go('delivery-db',this);closeMobMore()"><span class="mob-icon">🚚</span>거래명세서 DB</div>
   <div class="mob-more-item" onclick="go('tax-db',this);closeMobMore()"><span class="mob-icon">🧾</span>세금계산서 DB</div>
+  <div class="mob-more-item" onclick="go('order-db',this);closeMobMore()"><span class="mob-icon">📦</span>발주서 DB</div>
   <div class="mob-more-item" onclick="go('marketing',this);closeMobMore()"><span class="mob-icon">📣</span>마케팅</div>
   <div class="mob-more-item" onclick="go('cashflow',this);closeMobMore()"><span class="mob-icon">💰</span>현금흐름</div>
   <div class="mob-more-item" onclick="go('exh-prep-db',this);closeMobMore()"><span class="mob-icon">📁</span>자료 DB</div>
@@ -9144,6 +9262,7 @@ function renderSLCards(data, container, FILE_TYPES) {
     {key:"estimate",label:"📄",col:"견적서"},
     {key:"order",label:"📦",col:"발주서"},
     {key:"contract",label:"📑",col:"계약서"},
+    {key:"delivery",label:"🚚",col:"거래명세서"},
     {key:"tax",label:"🧾",col:"세금계산서"},
   ];
 
@@ -9356,6 +9475,7 @@ function renderSLTable(data) {
     {key:"estimate", label:"📄",  col:"견적서"},
     {key:"order",    label:"📦",  col:"발주서"},
     {key:"contract", label:"📑",  col:"계약서"},
+    {key:"delivery", label:"🚚",  col:"거래명세서"},
     {key:"tax",      label:"🧾",  col:"세금계산서"},
   ];
   const PROPOSAL_DEFAULT_SUBS = ["제안서","교육","샘플test보고서"];
@@ -12722,7 +12842,7 @@ async function postSLTeamsMsg(act, action) {
 async function uploadSLFile(actId, fileType, subFolderOverride) {
   const act = slData.find(x=>x.id===actId);
   if(!act) return;
-  const FOLDER_MAP = {minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
+  const FOLDER_MAP = {minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",delivery:"거래명세서",tax:"세금계산서"};
 
   // 자료(proposal)이면 서브폴더 선택 팝업
   if(fileType==="proposal" && !subFolderOverride) {
@@ -12746,6 +12866,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
     estimate: "application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.xlsx,.xls,.hwp,.doc,.docx,*/*",
     order:    "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx,.xlsx,*/*",
     contract: "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx,*/*",
+    delivery: "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,*/*",
     tax:      "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,*/*",
   };
   input.accept = ACCEPT_MAP[fileType] || "*/*";
@@ -12786,21 +12907,59 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
             `🤖 AI로 내용을 자동 추출해서\n세금계산서 DB에 등록할까요?`
           );
           if(doAI) {
-            // 영업활동 정보 미리 채워서 모달 오픈
+            // 모달 먼저 초기화 오픈
             openTaxModal(null);
-            // 거래처/프로젝트 자동 채우기
-            setTimeout(()=>{
-              const co = document.getElementById("tax-company");
-              const pj = document.getElementById("tax-mgmt");
-              if(co && !co.value) co.value = act.company||"";
-              // SP URL 설정
-              const fu = document.getElementById("tax-file-url");
-              if(fu) fu.value = uploaded[0]?.url||"";
-              // AI 파싱 자동 실행
-              parseTaxPdf(pdfFile);
-            }, 300);
-            return; // alert 스킵
+            // 모달 렌더링 완료 후 값 채우기 + AI 실행
+            setTimeout(async ()=>{
+              // 거래처명 자동 채우기
+              const coEl = document.getElementById("tax-company");
+              if(coEl && !coEl.value) coEl.value = act.company||"";
+              // 프로젝트코드 → 관리번호에 참고로 입력
+              const mgmtEl = document.getElementById("tax-mgmt");
+              if(mgmtEl && !mgmtEl.value && act.pjcode) mgmtEl.value = act.pjcode;
+              // SP 파일 URL 설정
+              const fuEl = document.getElementById("tax-file-url");
+              if(fuEl) fuEl.value = uploaded[0]?.url||"";
+              // Gemini 키 자동 채우기
+              const gkEl = document.getElementById("taxGeminiKey");
+              if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+              // AI 파싱 실행
+              await parseTaxPdf(pdfFile);
+            }, 400);
+            return; // 아래 alert 스킵
           }
+        }
+      }
+
+      // 🆕 발주서 업로드 시 AI 파싱 → 발주서 DB 모달
+      if(fileType === "order" && uploaded.length > 0 && files.length > 0) {
+        const pdfFile = files.find(f => /\.(pdf|jpg|jpeg|png)$/i.test(f.name));
+        if(pdfFile && confirm(`✅ 발주서 업로드 완료!\n\n📄 ${pdfFile.name}\n\n🤖 AI로 내용 추출해서 발주서 DB에 등록할까요?`)) {
+          openOrderModal(null);
+          setTimeout(async () => {
+            const coEl = document.getElementById("order-company"); if(coEl && !coEl.value) coEl.value = act.company||"";
+            const pjEl = document.getElementById("order-pjcode"); if(pjEl && !pjEl.value) pjEl.value = act.pjcode||"";
+            const fuEl = document.getElementById("order-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
+            const gkEl = document.getElementById("orderGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+            await parseOrderPdf(pdfFile);
+          }, 400);
+          return;
+        }
+      }
+
+      // 🆕 거래명세서 업로드 시 AI 파싱 → 거래명세서 DB 모달
+      if(fileType === "delivery" && uploaded.length > 0 && files.length > 0) {
+        const pdfFile = files.find(f => /\.(pdf|jpg|jpeg|png)$/i.test(f.name));
+        if(pdfFile && confirm(`✅ 거래명세서 업로드 완료!\n\n📄 ${pdfFile.name}\n\n🤖 AI로 내용 추출해서 거래명세서 DB에 등록할까요?`)) {
+          openDeliveryModal(null);
+          setTimeout(async () => {
+            const coEl = document.getElementById("dlv-company"); if(coEl && !coEl.value) coEl.value = act.company||"";
+            const pjEl = document.getElementById("dlv-pjcode"); if(pjEl && !pjEl.value) pjEl.value = act.pjcode||"";
+            const fuEl = document.getElementById("dlv-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
+            const gkEl = document.getElementById("dlvGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+            await parseDlvPdf(pdfFile);
+          }, 400);
+          return;
         }
       }
 
@@ -12822,7 +12981,7 @@ async function openSLFileModal(actId, fileType) {
   if(fileType==="proposal") { await openSLProposalFiles(actId); return; }
   const act=slData.find(x=>x.id===actId);
   if(!act) return;
-  const FOLDER_MAP={minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",tax:"세금계산서"};
+  const FOLDER_MAP={minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",delivery:"거래명세서",tax:"세금계산서"};
   const LABEL_MAP ={minutes:"📝 회의록",proposal:"📁 자료",estimate:"📄 견적서",order:"📦 발주서",contract:"📑 계약서",tax:"🧾 세금계산서"};
   const modal=document.getElementById("slFileModal");
   const title=document.getElementById("slFileModalTitle");
@@ -12995,7 +13154,7 @@ async function deleteSLActivity(id) {
 // 영업활동 탭 자동로드 → 통합 go 함수에서 처리
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB","delivery-db":"🚚 거래명세서 DB","tax-db":"🧾 세금계산서 DB",marketing:"📣 마케팅 활동","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB","delivery-db":"🚚 거래명세서 DB","tax-db":"🧾 세금계산서 DB","order-db":"📦 발주서 DB",marketing:"📣 마케팅 활동","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
 
 // ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -15530,6 +15689,7 @@ function go(id, el) {
   }
   if(id==="delivery-db") { loadDeliveryDB(); }
   if(id==="tax-db") { loadTaxDB(); }
+  if(id==="order-db") { loadOrderDB(); }
   // 고객사 관리 탭
   if(id==="customer") {
     if(exhData.length === 0) loadCustContactsFromSP();
@@ -15704,6 +15864,204 @@ function renderMtgLogTable(data){
     <td><span class="badge info" style="font-size:12px">${m.type||"영업미팅"}</span></td>
   </tr>`).join("");
 }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📦 발주서 DB
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const ORD_SP_PATH = "📦영업/99.Dashboard(real-time)/order-db.json";
+let _ordData = [];
+
+async function saveOrderToSP() {
+  await getIds(); const t = await getToken();
+  const enc = ORD_SP_PATH.split("/").map(encodeURIComponent).join("/");
+  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
+    method:"PUT", headers:{"Authorization":"Bearer "+t,"Content-Type":"application/json"},
+    body: JSON.stringify(_ordData)
+  });
+  $("badge-ord", _ordData.length);
+}
+
+async function loadOrderDB() {
+  try {
+    await getIds(); const t = await getToken();
+    const enc = ORD_SP_PATH.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, { headers:{"Authorization":"Bearer "+t} });
+    if(r.ok) _ordData = await r.json();
+  } catch(e) { _ordData = []; }
+  renderOrderDB();
+}
+
+function renderOrderDB() {
+  const q = document.getElementById("ord-search")?.value?.toLowerCase()||"";
+  const filtered = _ordData.filter(d =>
+    !q || [d.company,d.item,d.po,d.pjcode,d.note].some(v=>String(v||"").toLowerCase().includes(q))
+  );
+  const body = document.getElementById("ordBody");
+  if(!body) return;
+  const SC = {"수신":"var(--p)","검토중":"var(--a)","납품준비":"#f59e0b","납품완료":"var(--g)"};
+  if(!filtered.length) {
+    body.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="ei">📦</div><div class="et">발주서 없음</div></div></td></tr>`;
+  } else {
+    body.innerHTML = filtered.map(d => `<tr>
+      <td style="font-size:13px;color:var(--t3)">${d.date||"-"}</td>
+      <td style="font-size:14px;font-weight:600">${d.company||"-"}</td>
+      <td style="font-size:13px">${d.item||"-"}</td>
+      <td style="font-size:13px;text-align:center">${d.qty||"-"}</td>
+      <td style="font-size:13px;text-align:right;font-weight:700;color:var(--p)">${d.amount?Number(d.amount).toLocaleString():"-"}</td>
+      <td style="font-size:12px;color:var(--p);font-family:var(--m)">${d.po||"-"}</td>
+      <td style="font-size:12px;color:var(--a)">${d.pjcode||"-"}</td>
+      <td style="font-size:12px;color:var(--r)">${d.duedate||"-"}</td>
+      <td><span style="font-size:11px;padding:2px 7px;border-radius:6px;background:var(--pd);color:${SC[d.status]||"var(--t2)"};font-weight:700">${d.status||"수신"}</span></td>
+      <td style="text-align:center">${d.fileUrl?`<a href="${d.fileUrl}" target="_blank" style="font-size:12px;color:var(--p)">📎</a>`:"-"}</td>
+      <td style="white-space:nowrap">
+        <span style="cursor:pointer;font-size:14px" onclick="openOrderModal('${d.id}')" title="수정">✏️</span>
+        <span style="cursor:pointer;font-size:14px;color:var(--r);margin-left:3px" onclick="deleteOrder('${d.id}')" title="삭제">🗑️</span>
+      </td>
+    </tr>`).join("");
+  }
+  const thisMonth = new Date().toISOString().substring(0,7);
+  const monthAmt = _ordData.filter(d=>(d.date||"").substring(0,7)===thisMonth).reduce((s,d)=>s+Number(d.amount||0),0);
+  const cos = [...new Set(_ordData.map(d=>d.company).filter(Boolean))];
+  $("ord-tot", _ordData.length);
+  $("ord-month-amt", monthAmt.toLocaleString());
+  $("ord-co-cnt", cos.length);
+  const sorted = [..._ordData].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+  $("ord-last-date", sorted[0]?.date||"-");
+  $("ord-cnt", `총 ${filtered.length}건`);
+}
+
+function openOrderModal(id) {
+  const modal = document.getElementById("orderModal"); if(!modal) return;
+  const gk = localStorage.getItem("gemini_key")||""; if(gk){const el=document.getElementById("orderGeminiKey");if(el)el.value=gk;}
+  const ok = localStorage.getItem("oai_key")||""; if(ok){const el=document.getElementById("orderOpenAIKey");if(el)el.value=ok;}
+  if(id) {
+    const d = _ordData.find(x=>x.id===id); if(!d) return;
+    $("orderModalTitle","📦 발주서 수정");
+    document.getElementById("order-edit-id").value = id;
+    document.getElementById("order-date").value = d.date||"";
+    document.getElementById("order-company").value = d.company||"";
+    document.getElementById("order-item").value = d.item||"";
+    document.getElementById("order-qty").value = d.qty||"";
+    document.getElementById("order-amount").value = d.amount||"";
+    document.getElementById("order-po").value = d.po||"";
+    document.getElementById("order-pjcode").value = d.pjcode||"";
+    document.getElementById("order-duedate").value = d.duedate||"";
+    document.getElementById("order-status").value = d.status||"수신";
+    document.getElementById("order-note").value = d.note||"";
+    document.getElementById("order-file-url").value = d.fileUrl||"";
+  } else {
+    $("orderModalTitle","📦 발주서 등록");
+    ["date","company","item","qty","amount","po","pjcode","duedate","note","file-url","edit-id"].forEach(f=>{
+      const el=document.getElementById("order-"+f); if(el) el.value="";
+    });
+    document.getElementById("order-date").value = new Date().toISOString().split("T")[0];
+    document.getElementById("order-status").value = "수신";
+    const st=document.getElementById("orderParseStatus"); if(st){st.style.display="none";st.style.color="";}
+  }
+  modal.style.display = "flex";
+}
+
+async function parseOrderPdf(file) {
+  if(!file) return;
+  try {
+    await getIds(); const t = await getToken();
+    const safeName = file.name.replace(/[^a-zA-Z0-9가-힣._-]/g,"_");
+    const spPath = `📦영업/9.거래문서/발주서/${new Date().toISOString().substring(0,7)}`;
+    await ensureSPFolder(spPath);
+    const enc = spPath.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(safeName)}:/content`,
+      {method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":"application/pdf"},body:file});
+    if(r.ok){const d=await r.json();const el=document.getElementById("order-file-url");if(el)el.value=d.webUrl||"";}
+  } catch(e){console.warn("발주서 SP 저장 실패:",e.message);}
+
+  const prompt = `이 발주서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. JSON만 출력(마크다운 없이):
+{"date":"YYYY-MM-DD(발주일)","company":"발주처(고객사)회사명","item":"품목명","qty":"수량+단위","amount":발주금액숫자,"po":"PO번호","pjcode":"프로젝트코드","duedate":"YYYY-MM-DD(납기요청일)","note":"비고"}`;
+
+  const engine = document.querySelector('input[name="orderAiEngine"]:checked')?.value || "gemini";
+  const base64 = await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+  const statusEl = document.getElementById("orderParseStatus");
+  if(statusEl){statusEl.style.display="block";statusEl.textContent="⏳ AI 분석 중...";}
+
+  try {
+    let resultJson = null;
+    if(engine==="gemini"){
+      const key=document.getElementById("orderGeminiKey")?.value.trim()||localStorage.getItem("gemini_key")||"";
+      if(!key) throw new Error("Gemini API Key를 입력해주세요.");
+      if(statusEl) statusEl.textContent="🟢 Gemini가 발주서 분석 중...";
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:"application/pdf",data:base64}},{text:prompt}]}]})
+      });
+      if(!res.ok){const e=await res.json();throw new Error("Gemini 오류: "+(e.error?.message||res.status));}
+      const data=await res.json();
+      const text=data.candidates?.[0]?.content?.parts?.[0]?.text||"";
+      resultJson=JSON.parse(text.replace(/```json|```/g,"").trim());
+    } else if(engine==="openai"){
+      const key=document.getElementById("orderOpenAIKey")?.value.trim()||localStorage.getItem("oai_key")||"";
+      if(!key) throw new Error("OpenAI API Key를 입력해주세요.");
+      if(statusEl) statusEl.textContent="🤖 GPT-4o가 발주서 분석 중...";
+      const res=await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+        body:JSON.stringify({model:"gpt-4o",messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:`data:application/pdf;base64,${base64}`}}]}],max_tokens:400})
+      });
+      if(!res.ok){const e=await res.json();throw new Error("OpenAI 오류: "+(e.error?.message||res.status));}
+      const data=await res.json();
+      resultJson=JSON.parse((data.choices?.[0]?.message?.content||"").replace(/```json|```/g,"").trim());
+    } else if(engine==="copilot"){
+      if(statusEl) statusEl.textContent="✨ Copilot이 발주서 분석 중...";
+      const pdfText=await extractPdfText(base64);
+      const t=await getToken();
+      const convRes=await fetch("https://graph.microsoft.com/beta/copilot/conversations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:"{}"});
+      if(!convRes.ok) throw new Error("Copilot 연결 실패");
+      const {id:convId}=await convRes.json();
+      const chatRes=await fetch(`https://graph.microsoft.com/beta/copilot/conversations/${convId}/chat`,{
+        method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+        body:JSON.stringify({message:{text:prompt+"\n\n[문서 내용]\n"+pdfText.substring(0,5000)},locationHint:{timeZone:"Asia/Seoul"}})
+      });
+      if(!chatRes.ok) throw new Error("Copilot 오류");
+      const chatData=await chatRes.json();
+      const msgs=chatData.messages||[];
+      let text="";for(let i=msgs.length-1;i>=0;i--){if(msgs[i].text){text=msgs[i].text;break;}}
+      resultJson=JSON.parse(text.replace(/```json|```/g,"").replace(/<[^>]+>/g,"").trim());
+    }
+    if(resultJson){
+      console.log("🤖 발주서 AI 파싱 결과:", JSON.stringify(resultJson));
+      const m={"date":"order-date","company":"order-company","item":"order-item","qty":"order-qty","amount":"order-amount","po":"order-po","pjcode":"order-pjcode","duedate":"order-duedate","note":"order-note"};
+      Object.entries(m).forEach(([k,elId])=>{if(resultJson[k]!==undefined){const el=document.getElementById(elId);if(el)el.value=resultJson[k];}});
+      if(statusEl){statusEl.textContent="✅ 추출 완료! 내용 확인 후 저장하세요.";statusEl.style.color="var(--g)";}
+    }
+  } catch(e){if(statusEl){statusEl.textContent="❌ "+e.message;statusEl.style.color="var(--r)";}}
+}
+
+async function saveOrderEntry() {
+  const date=document.getElementById("order-date")?.value;
+  const company=document.getElementById("order-company")?.value?.trim();
+  if(!date||!company){alert("발주일과 발주처는 필수입니다.");return;}
+  const editId=document.getElementById("order-edit-id")?.value;
+  const entry={
+    id:editId||"ord_"+Date.now(), date, company,
+    item:document.getElementById("order-item")?.value||"",
+    qty:document.getElementById("order-qty")?.value||"",
+    amount:Number(document.getElementById("order-amount")?.value||0),
+    po:document.getElementById("order-po")?.value||"",
+    pjcode:document.getElementById("order-pjcode")?.value||"",
+    duedate:document.getElementById("order-duedate")?.value||"",
+    status:document.getElementById("order-status")?.value||"수신",
+    note:document.getElementById("order-note")?.value||"",
+    fileUrl:document.getElementById("order-file-url")?.value||"",
+    createdAt:new Date().toISOString(),
+  };
+  if(editId){const idx=_ordData.findIndex(x=>x.id===editId);if(idx>=0)_ordData[idx]=entry;else _ordData.unshift(entry);}
+  else _ordData.unshift(entry);
+  try{await saveOrderToSP();renderOrderDB();document.getElementById("orderModal").style.display="none";alert("✅ 발주서 저장 완료!");}
+  catch(e){alert("저장 실패: "+e.message);}
+}
+
+function deleteOrder(id){
+  if(!confirm("이 발주서를 삭제할까요?")) return;
+  _ordData=_ordData.filter(x=>x.id!==id);
+  saveOrderToSP().then(()=>renderOrderDB());
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 🚚 거래명세서 DB + 🧾 세금계산서 DB
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -15935,8 +16293,11 @@ async function parsePdfWithAI(file, docType, statusElId, fillFn) {
       let text="";for(let i=msgs.length-1;i>=0;i--){if(msgs[i].text){text=msgs[i].text;break;}}
       resultJson=JSON.parse(text.replace(/```json|```/g,"").replace(/<[^>]+>/g,"").trim());
     }
-    if(resultJson){fillFn(resultJson);if(statusEl){statusEl.textContent="✅ 추출 완료! 내용 확인 후 저장하세요.";statusEl.style.color="var(--g)";}}
-  } catch(e){if(statusEl){statusEl.textContent="❌ "+e.message;statusEl.style.color="var(--r)";}}
+    if(resultJson){
+      console.log("🤖 AI 파싱 결과:", JSON.stringify(resultJson));
+      fillFn(resultJson);
+      if(statusEl){statusEl.textContent="✅ 추출 완료! 내용 확인 후 저장하세요.";statusEl.style.color="var(--g)";}
+    }  } catch(e){if(statusEl){statusEl.textContent="❌ "+e.message;statusEl.style.color="var(--r)";}}
 }
 
 async function extractPdfText(base64) {
