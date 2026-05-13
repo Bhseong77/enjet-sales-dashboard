@@ -15998,10 +15998,12 @@ async function parseOrderPdf(file) {
     } else if(engine==="openai"){
       const key=document.getElementById("orderOpenAIKey")?.value.trim()||localStorage.getItem("oai_key")||"";
       if(!key) throw new Error("OpenAI API Key를 입력해주세요.");
+      if(statusEl) statusEl.textContent="🤖 PDF→이미지 변환 중...";
+      const imgBase64 = await pdfToImageBase64(base64);
       if(statusEl) statusEl.textContent="🤖 GPT-4o가 발주서 분석 중...";
       const res=await fetch("https://api.openai.com/v1/chat/completions",{
         method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
-        body:JSON.stringify({model:"gpt-4o",messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:`data:application/pdf;base64,${base64}`}}]}],max_tokens:400})
+        body:JSON.stringify({model:"gpt-4o",messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:`data:image/png;base64,${imgBase64}`}}]}],max_tokens:400})
       });
       if(!res.ok){const e=await res.json();throw new Error("OpenAI 오류: "+(e.error?.message||res.status));}
       const data=await res.json();
@@ -16268,10 +16270,12 @@ async function parsePdfWithAI(file, docType, statusElId, fillFn) {
     } else if(engine==="openai"){
       const key=document.getElementById(docType==="dlv"?"dlvOpenAIKey":"taxOpenAIKey")?.value.trim()||localStorage.getItem("oai_key")||"";
       if(!key) throw new Error("OpenAI API Key를 입력해주세요.");
+      if(statusEl) statusEl.textContent="🤖 PDF→이미지 변환 중...";
+      const imgBase64 = await pdfToImageBase64(base64);
       if(statusEl) statusEl.textContent="🤖 GPT-4o가 PDF 분석 중...";
       const res=await fetch("https://api.openai.com/v1/chat/completions",{
         method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
-        body:JSON.stringify({model:"gpt-4o",messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:`data:application/pdf;base64,${base64}`}}]}],max_tokens:500})
+        body:JSON.stringify({model:"gpt-4o",messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:`data:image/png;base64,${imgBase64}`}}]}],max_tokens:500})
       });
       if(!res.ok){const e=await res.json();throw new Error("OpenAI 오류: "+(e.error?.message||res.status));}
       const data=await res.json();
@@ -16317,6 +16321,28 @@ function extractJsonFromAIResponse(text) {
     const fixed = m[0].replace(/: *([\d,]+)([,}])/g, (_, n, tail) => ': ' + n.replace(/,/g,'') + tail);
     return JSON.parse(fixed);
   }
+}
+
+async function pdfToImageBase64(pdfBase64) {
+  // PDF 첫 페이지를 PNG로 변환 (PDF.js + Canvas)
+  if(!window.pdfjsLib) {
+    await new Promise((res,rej)=>{
+      const s=document.createElement("script");
+      s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      s.onload=res; s.onerror=rej; document.head.appendChild(s);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+  const arr = new Uint8Array(atob(pdfBase64).split("").map(c=>c.charCodeAt(0)));
+  const pdf = await window.pdfjsLib.getDocument({data:arr}).promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({scale: 2.0}); // 고해상도
+  const canvas = document.createElement("canvas");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({canvasContext: canvas.getContext("2d"), viewport}).promise;
+  // PNG base64 반환
+  return canvas.toDataURL("image/png").split(",")[1];
 }
 
 async function extractPdfText(base64) {
