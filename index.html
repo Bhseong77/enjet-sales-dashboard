@@ -6066,9 +6066,34 @@ async function fetchTeamsMeetingInsights(callId) {
 async function getPlannerPlanId() {
   if(_plannerPlanId) return _plannerPlanId;
   const t = await getToken();
-  if(!teamsGroupId) await findTeamsGroup();
-  const gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
-  if(!gid) throw new Error("Teams 그룹 없음");
+
+  // TEAMS_CHANNEL_ID로 그룹 탐색 (경영회의/영업 채널이 속한 그룹)
+  // 채널 ID: 19:15cae7e9dec84ce1ae4909e6f7c25634@thread.tacv2
+  let gid = null;
+
+  // 1순위: 내가 속한 Teams 팀에서 채널 ID로 탐색
+  try {
+    const teamsR = await fetch("https://graph.microsoft.com/v1.0/me/joinedTeams",
+      {headers:{"Authorization":"Bearer "+t}});
+    const teams = (await teamsR.json()).value||[];
+    for(const team of teams) {
+      try {
+        const chR = await fetch(
+          "https://graph.microsoft.com/v1.0/teams/"+team.id+"/channels/"+encodeURIComponent(TEAMS_CHANNEL_ID),
+          {headers:{"Authorization":"Bearer "+t}}
+        );
+        if(chR.ok) { gid = team.id; console.log("✅ Planner 그룹 찾음:", team.displayName, gid); break; }
+      } catch(e){}
+    }
+  } catch(e){ console.warn("팀 탐색 실패:", e.message); }
+
+  // 2순위: futresales 그룹 (영업 그룹)
+  if(!gid) {
+    if(!teamsGroupId) await findTeamsGroup();
+    gid = teamsGroupId || sessionStorage.getItem("enjet_teams_group_id");
+  }
+
+  if(!gid) throw new Error("Planner 그룹 없음");
 
   // 그룹의 플랜 목록 조회
   const r = await fetch(
@@ -6081,8 +6106,10 @@ async function getPlannerPlanId() {
   console.log("Planner 플랜 목록:", plans.map(p=>p.title+"("+p.id+")"));
 
   if(!plans.length) throw new Error("Planner 플랜 없음 - Teams 채널에서 Planner 탭 확인");
-  // 첫 번째 플랜 사용 (채널 연결된 플랜)
-  _plannerPlanId = plans[0].id;
+  // 영업 관련 플랜 우선 (없으면 첫 번째)
+  const salesPlan = plans.find(p=>p.title.includes("영업")||p.title.includes("Sales")||p.title.includes("미래성장"));
+  _plannerPlanId = (salesPlan||plans[0]).id;
+  console.log("✅ 사용할 Planner 플랜:", (salesPlan||plans[0]).title, _plannerPlanId);
   return _plannerPlanId;
 }
 
