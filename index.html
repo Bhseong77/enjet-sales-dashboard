@@ -11430,15 +11430,16 @@ async function loadTodoFromPlanner(force=false) {
       } catch(e){}
     }));
 
-    // 4. 태스크별 details 조회 (첨부파일 references)
+    // 4. 태스크별 details 순차 조회 (동시 요청 시 400 rate limit 방지)
     const detailsMap = {};
-    await Promise.allSettled(tasks.map(async task=>{
+    for(const task of tasks) {
       try {
         const dR = await fetch(`https://graph.microsoft.com/v1.0/planner/tasks/${task.id}/details`,
           {headers:{"Authorization":"Bearer "+t}});
-        if(dR.ok) { const d=await dR.json(); detailsMap[task.id]=d; }
-      } catch(e){}
-    }));
+        if(dR.ok) { detailsMap[task.id] = await dR.json(); }
+        else { console.warn(`details 조회 실패 (${dR.status}):`, task.title?.substring(0,20)); }
+      } catch(e){ console.warn("details 에러:", task.id, e.message); }
+    }
 
     _todoItems = tasks.map(task=>{
       const assignee = Object.keys(task.assignments||{}).map(uid=>userMap[uid]||uid.substring(0,8)).join(", ");
@@ -11458,8 +11459,12 @@ async function loadTodoFromPlanner(force=false) {
       const savedMinutesUrl  = getMeta("회의록URL");
       const savedMinutesName = getMeta("회의록명");
 
-      // 첨부파일: references 파싱
-      const attachments = existing?.attachments || Object.entries(refs).map(([encUrl, ref])=>{
+      if(savedAssignee||savedDept||savedMinutesUrl) {
+        console.log(`📋 [${task.title?.substring(0,20)}] 담당자:${savedAssignee} 협의부서:${savedDept} 고객:${savedCustAtts} 회의록:${savedMinutesName}`);
+      }
+
+      // 첨부파일: 항상 Planner references에서 새로 파싱 (캐시 무시)
+      const attachments = Object.entries(refs).map(([encUrl, ref])=>{
         const url = decodeURIComponent(encUrl);
         const name = ref.alias||url.split("/").pop()||"파일";
         const type = (name.includes("회의록")||url===savedMinutesUrl) ? "minutes" : "material";
@@ -11477,9 +11482,10 @@ async function loadTodoFromPlanner(force=false) {
         bucketName: _todoBuckets[task.bucketId]||"기타",
         createdAt: task.createdDateTime,
         dueDate: task.dueDateTime ? task.dueDateTime.split("T")[0] : "",
-        assignee: savedAssignee||assignee,
-        dept: savedDept||existing?.dept||"",
-        custAttendees: savedCustAtts||existing?.custAttendees||"",
+        // 우선순위: description 저장값 > Planner 할당자 > 빈값
+        assignee: savedAssignee || assignee || "",
+        dept: savedDept || "",
+        custAttendees: savedCustAtts || "",
         percentComplete: task.percentComplete||0,
         completed: task.percentComplete===100,
         status: task.percentComplete===100?"완료":task.percentComplete>0?"진행중":"대기",
