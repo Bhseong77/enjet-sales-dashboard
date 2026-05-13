@@ -1094,6 +1094,26 @@
               </div>
             </div>
 
+            <!-- 🆕 회의 형태 선택 (AI 요약 품질 향상) -->
+            <div style="margin-bottom:10px">
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:6px">🎙️ 회의 형태 <span style="font-weight:400;color:var(--t3)">(AI 요약 정확도에 영향)</span></label>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px" id="slMtgFormatBtns">
+                <button type="button" onclick="setMtgFormat('1on1_call')" data-fmt="1on1_call"
+                  style="padding:8px 6px;border-radius:8px;border:1.5px solid var(--border2);background:var(--bg3);font-size:12px;cursor:pointer;font-family:var(--s);text-align:center;line-height:1.4">
+                  📞<br><b>1:1 전화</b><br><span style="font-size:10px;color:var(--t3)">영업통화</span>
+                </button>
+                <button type="button" onclick="setMtgFormat('multi_online')" data-fmt="multi_online"
+                  style="padding:8px 6px;border-radius:8px;border:1.5px solid var(--border2);background:var(--bg3);font-size:12px;cursor:pointer;font-family:var(--s);text-align:center;line-height:1.4">
+                  💻<br><b>화상 미팅</b><br><span style="font-size:10px;color:var(--t3)">Teams/Zoom</span>
+                </button>
+                <button type="button" onclick="setMtgFormat('multi_offline')" data-fmt="multi_offline"
+                  style="padding:8px 6px;border-radius:8px;border:1.5px solid var(--border2);background:var(--bg3);font-size:12px;cursor:pointer;font-family:var(--s);text-align:center;line-height:1.4">
+                  🤝<br><b>오프라인</b><br><span style="font-size:10px;color:var(--t3)">현장 미팅</span>
+                </button>
+              </div>
+              <input type="hidden" id="slMtgFormat" value="multi_offline">
+            </div>
+
             <!-- 협의부서 -->
             <div style="margin-bottom:10px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
@@ -7000,9 +7020,116 @@ let _slActionItems = []; // AI 추출 액션아이템 (저장 시 copilotActionI
 // ─── AI 요약 엔진 선택 ───
 async function autoSummarize(transcript, meta) {
   const engine = document.querySelector('input[name="slMtgEngine"]:checked')?.value || "ollama";
-  if(engine === "copilot") return await claudeSummarize(transcript, meta);  // Copilot 선택 시 Claude API 사용
+  const key = document.getElementById("slMtgOpenAIKey")?.value.trim() || localStorage.getItem("oai_key") || "";
+
+  // ✨ Copilot 엔진 + OpenAI 키 있으면 → GPT 초벌 → Copilot 정제 (2단계)
+  if(engine === "copilot" && key) {
+    return await twoStageSummarize(transcript, meta, key);
+  }
+  if(engine === "copilot") return await claudeSummarize(transcript, meta);
   if(engine === "openai") return await openAISummarize(transcript, meta);
   return await ollamaSummarize(transcript, meta);
+}
+
+// 2단계 요약: GPT 초벌 → Copilot 정제
+async function twoStageSummarize(transcript, meta, key) {
+  // 1단계: GPT-4o-mini로 빠른 초벌 요약 (STT 노이즈 제거 + 구조화)
+  slMtgShowProgress(62, "🤖 1단계: GPT-4o-mini 초벌 요약 중...");
+  const roughPrompt = buildMtgPrompt(transcript, meta);
+  const gptRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {"Content-Type":"application/json","Authorization":"Bearer "+key},
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        {role:"system", content:"당신은 ENJET 영업팀 회의록 전문 작성 AI입니다. 음성 녹취록의 노이즈와 중복을 제거하고 핵심만 추출해 구조화된 회의록을 작성하세요."},
+        {role:"user", content:roughPrompt}
+      ],
+      max_tokens: 2000, temperature: 0.2
+    })
+  });
+  if(!gptRes.ok) {
+    const e = await gptRes.json();
+    throw new Error("GPT 오류: "+(e.error?.message||gptRes.status));
+  }
+  const gptData = await gptRes.json();
+  const roughSummary = gptData.choices?.[0]?.message?.content || "";
+
+  // 2단계: Copilot으로 정제 (ENJET 컨텍스트 + 품질 향상)
+  slMtgShowProgress(82, "✨ 2단계: M365 Copilot 정제 중...");
+  const t = await getToken();
+
+  const convRes = await fetch("https://graph.microsoft.com/beta/copilot/conversations", {
+    method: "POST",
+    headers: {"Content-Type":"application/json","Authorization":"Bearer "+t},
+    body: JSON.stringify({})
+  });
+  if(!convRes.ok) {
+    // Copilot 실패하면 GPT 결과만 반환
+    console.warn("Copilot 정제 실패, GPT 결과 사용");
+    return roughSummary;
+  }
+  const {id: convId} = await convRes.json();
+
+  // 참석자 정보 수집 (발화자 추론 보강용)
+  const internalRaw2 = document.getElementById("slMtgInternalAttendees")?.value || "";
+  const internalList2 = internalRaw2.split(/[,，\s]+/).map(s=>s.trim()).filter(Boolean);
+  const custList2 = _slMtgCustTags || [];
+  const fmt2 = document.getElementById("slMtgFormat")?.value || "multi_offline";
+  const fmtLabel2 = {"1on1_call":"1:1 전화통화","multi_online":"화상 미팅","multi_offline":"오프라인 미팅"}[fmt2]||"미팅";
+
+  const refinePrompt = `아래는 ENJET 영업팀 회의록 초안입니다.
+
+[회의 정보]
+- 형태: ${fmtLabel2}
+- ENJET 참석: ${internalList2.join(", ")||"(미입력)"}
+- 고객사 참석: ${custList2.join(", ")||"(미입력)"}
+- 거래처: ${meta.company||""}
+
+다음을 보완해서 최종 회의록으로 완성해줘:
+1. "발화자1/발화자2" 같은 익명 표현을 위 참석자 이름으로 교체 (문맥 추론)
+2. 영업 관련 수치(금액/납기/수량) 명확히 표시
+3. 액션아이템 담당자: 위 참석자 이름으로 특정, 불명확하면 [미정]
+4. 고객 요청/니즈는 별도로 눈에 띄게 강조
+5. 전문 용어/회사명 정확하게 유지
+6. 중복 제거하고 간결하게 정리
+7. 형식은 초안과 동일하게 유지
+
+[초안]
+${roughSummary}`;
+
+  const chatRes = await fetch(`https://graph.microsoft.com/beta/copilot/conversations/${convId}/chat`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json","Authorization":"Bearer "+t},
+    body: JSON.stringify({
+      message: { text: refinePrompt },
+      locationHint: { timeZone: "Asia/Seoul" }
+    })
+  });
+
+  if(!chatRes.ok) {
+    console.warn("Copilot 정제 실패, GPT 결과 반환");
+    return roughSummary;
+  }
+  const chatData = await chatRes.json();
+  const messages = chatData.messages || [];
+  let refined = "";
+  for(let i = messages.length-1; i >= 0; i--) {
+    const t2 = messages[i].text || "";
+    if(t2 && !t2.includes(refinePrompt.substring(0,30))) {
+      refined = t2; break;
+    }
+  }
+  if(!refined && messages.length > 0) refined = messages[0].text || "";
+
+  // HTML 태그 제거
+  if(refined && refined.includes("<")) {
+    refined = refined.replace(/<[^>]+>/g,"").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&nbsp;/g," ").trim();
+  }
+
+  // 최종 결과 = Copilot 정제본 (실패 시 GPT 초벌본)
+  const final = refined || roughSummary;
+  return `✨ [GPT 초벌 → Copilot 정제 완료]\n\n${final}`;
 }
 
 // ─── Ollama (로컬 무료) ───
@@ -7050,39 +7177,115 @@ async function openAISummarize(transcript, meta) {
 }
 
 // ─── 공통 프롬프트 ───
+// 회의 형태 선택 버튼
+function setMtgFormat(fmt) {
+  document.getElementById("slMtgFormat").value = fmt;
+  document.querySelectorAll("[data-fmt]").forEach(b => {
+    const isOn = b.dataset.fmt === fmt;
+    b.style.borderColor = isOn ? "var(--p)" : "var(--border2)";
+    b.style.background = isOn ? "var(--pd)" : "var(--bg3)";
+    b.style.color = isOn ? "var(--p)" : "var(--t)";
+    b.style.fontWeight = isOn ? "800" : "400";
+  });
+}
+
 function buildMtgPrompt(transcript, meta) {
   const date = document.getElementById("slMtgDateCommon")?.value || meta.date || new Date().toISOString().split("T")[0];
-  const attendees = getSlMtgAllAttendees() || meta.attendees || "";
   const location = document.getElementById("slMtgLocationCommon")?.value || "";
   const depts = getSlMtgDepts();
-  return `다음은 "${meta.company||""}" 관련 영업 회의/미팅 내용입니다.
+  const fmt = document.getElementById("slMtgFormat")?.value || "multi_offline";
+
+  // 참석자 분리 (내부 ENJET vs 고객사)
+  const internalRaw = document.getElementById("slMtgInternalAttendees")?.value || "";
+  const internalList = internalRaw.split(/[,，\s]+/).map(s=>s.trim()).filter(Boolean);
+  const custList = _slMtgCustTags || [];
+  const allAttendees = getSlMtgAllAttendees() || meta.attendees || "";
+
+  // 발화자 추론 지침 생성
+  let speakerGuide = "";
+  if(internalList.length > 0 || custList.length > 0) {
+    speakerGuide = `
+[참석자 정보 - 발화자 추론에 활용]
+• ENJET 내부: ${internalList.length > 0 ? internalList.join(", ") : "(미입력)"}
+• 고객사 참석자: ${custList.length > 0 ? custList.join(", ") : "(미입력)"}
+• 거래처: ${meta.company || ""}
+
+발화자 추론 규칙:
+- "발화자1", "발화자2" 같은 익명 표현을 위 참석자 이름으로 대체하세요
+- 1:1 통화면 ENJET 담당자(${internalList[0]||"내부"}) vs ${custList[0]||meta.company||"고객"} 으로 구분
+- 문맥상 누가 말하는지 추론 가능하면 이름 명시 (추론 어려우면 [ENJET] / [고객사] 로 구분)
+- 추론 불가 시 발화자 미상으로 표시
+`;
+  }
+
+  // 형태별 특화 지침
+  const fmtGuide = {
+    "1on1_call": `※ 1:1 전화 통화 녹음
+- 발화자 2명: ${internalList[0]||"ENJET 담당자"} (내부) vs ${custList[0]||meta.company||"고객"} (외부)
+- 고객 요청사항/니즈/불만을 [고객 요청] 섹션으로 별도 추출
+- 통화 약속(콜백, 자료 전송 등) → 액션아이템 등록
+- 음질 불량/불명확 부분 → [불명확] 표시`,
+
+    "multi_online": `※ 화상 회의 녹음 (Teams/Zoom 등)
+- 참석자별 발언 구분: ${allAttendees||"참석자 목록 참조"}
+- 화면 공유/자료 언급 별도 기록
+- 연결 끊김/잡음 누락 → [누락] 표시
+- 합의/미합의 사항 명확히 구분`,
+
+    "multi_offline": `※ 오프라인 현장 미팅 녹음
+- 참석자별 발언 구분: ${allAttendees||"참석자 목록 참조"}
+- 현장 확인 제품/설비 내용 별도 기록
+- 현장 분위기(긍정/부정/중립) 간략 메모
+- 비공식 대화도 중요하면 포함`
+  };
+
+  const fmtLabel = {
+    "1on1_call":"1:1 전화통화",
+    "multi_online":"화상 미팅",
+    "multi_offline":"오프라인 미팅"
+  }[fmt] || "미팅";
+
+  return `다음은 ENJET 영업팀의 "${meta.company||""}" 관련 미팅 녹취 내용입니다.
+${fmtGuide[fmt] || fmtGuide["multi_offline"]}
+${speakerGuide}
 아래 형식으로 한국어 회의록을 작성해주세요:
 
 # 회의록
 - 일시: ${date}
+- 형태: ${fmtLabel}
 - 장소: ${location||"-"}
-- 회사/거래처: ${meta.company||""}
-- 참석자: ${attendees||"-"}
+- 거래처: ${meta.company||""}
+- ENJET 참석: ${internalList.join(", ")||"-"}
+- 고객사 참석: ${custList.join(", ")||"-"}
 ${depts?`- 협의부서: ${depts}`:""}
 
+## 핵심 요약
+(전체 미팅을 2~3줄로 요약)
+
 ## 주요 안건
-(회의에서 다룬 주요 내용 요약)
+(다룬 핵심 내용 3~5가지)
 
-## 논의 내용
-(세부 논의 사항)
+## 발언별 논의 내용
+(발화자: 발언 내용 형식으로 구분, 중요 발언 위주)
 
-## 결정 사항
-(합의된 내용)
+${fmt === "1on1_call" ? `## 고객 요청/니즈
+(고객이 명시적으로 요청하거나 암시한 내용, 중요도 순)
+
+` : ""}## 결정 사항
+| 구분 | 내용 |
+|------|------|
+| ✅ 합의 | |
+| ⏳ 미합의/검토 중 | |
 
 ## 액션 아이템
-- [ ] (담당자: 기한)
+| 담당자 | 내용 | 기한 |
+|--------|------|------|
 
-## 다음 일정
-(다음 미팅 또는 후속 계획)
+## 다음 일정 및 후속 조치
 
 ---
-[회의/미팅 내용]
-${transcript.substring(0, 10000)}`;
+[원문 녹취]
+${transcript.substring(0, 10000)}${transcript.length > 10000 ? "\n...(이하 생략)" : ""}`;
 }
 
 // ─── Teams 회의 AI 인사이트 가져오기 (Meeting Insights API - GA) ───
@@ -7446,6 +7649,8 @@ async function openSLMinutesModal(actId) {
   document.getElementById("slMtgDirectInput").value = "";
   // 기본값 설정
   document.getElementById("slMtgDateCommon").value = new Date().toISOString().split("T")[0];
+  // 회의 형태 기본값 (오프라인)
+  setTimeout(() => setMtgFormat("multi_offline"), 50);
   // 내부 참석자 기본값
   document.getElementById("slMtgInternalAttendees").value = acct?.name||"";
   // 고객 담당자를 고객참석자 태그로
@@ -7838,8 +8043,13 @@ async function handleSLMtgFile(file) {
       transcript = await readTextFile(file);
     }
 
-    const engineLabel = engine==="copilot" ? "✨ M365 Copilot" : engine==="openai" ? "🤖 GPT-4o-mini" : "🦙 Ollama";
-    slMtgShowProgress(60, `${engineLabel} 회의록 요약 중...`);
+    const isTwoStage = engine === "copilot" && key;
+    const engineLabel = isTwoStage
+      ? "🤖+✨ GPT 초벌 → Copilot 정제 중..."
+      : engine==="copilot" ? "✨ M365 Copilot 요약 중..."
+      : engine==="openai" ? "🤖 GPT-4o-mini 요약 중..."
+      : "🦙 Ollama 요약 중...";
+    slMtgShowProgress(60, engineLabel);
     const act = slData.find(x=>x.id===_slMtgActId)||{};
     const summary = await autoSummarize(transcript, {
       title: act.company+" 회의",
