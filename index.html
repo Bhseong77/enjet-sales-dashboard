@@ -437,7 +437,15 @@
       <div class="kr">
         <div class="kpi c1"><div class="kl">공급가액</div><div class="kv"><span id="k-tax">-</span><span style="font-size:15px;color:var(--t2)">억</span></div><div class="ks"><span class="badge info" id="k-badge">로딩중</span></div></div>
         <div class="kpi c2"><div class="kl">입금 완료</div><div class="kv"><span id="k-inc">-</span><span style="font-size:15px;color:var(--t2)">억</span></div><div class="ks">수금률 <span id="k-rate">-%</span></div></div>
-        <div class="kpi c3"><div class="kl">잔금 (미수금)</div><div class="kv"><span id="k-unp">-</span><span style="font-size:15px;color:var(--t2)">억</span></div><div class="ks"><span class="badge warn">수금 필요</span></div></div>
+        <div class="kpi c3">
+          <div class="kl">잔금 (미수금)</div>
+          <div class="kv"><span id="k-unp">-</span><span style="font-size:15px;color:var(--t2)">억</span></div>
+          <div class="ks" style="font-size:11px;line-height:1.6">
+            국내 <b id="k-unp-dom">-</b>억
+            &nbsp;·&nbsp;
+            해외 <b id="k-unp-intl">-</b> <span id="k-unp-intl-krw" style="color:var(--t3);font-size:10px"></span>
+          </div>
+        </div>
         <div class="kpi c4"><div class="kl">진행중 프로젝트</div><div class="kv"><span id="k-proj">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span id="k-proj-amt">-억</span></div></div>
       </div>
       <div class="g3-sales" style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px;margin-bottom:9px">
@@ -2598,111 +2606,69 @@ async function syncAll() {
 }
 
 // ━━ 매출 로드 ━━
-// 핵심: 새 파일엔 연도, 월 컬럼이 미리 있음 → 날짜 파싱 불필요
 async function loadSales() {
   try {
     const {wb,name}=await readSP(PX_SALES,{cellDates:true});
-    // 시트명 우선순위: 매출_전체 → 매출_세금계산서 (구버전 호환)
     const sh = wb.Sheets["매출_전체"] || wb.Sheets["매출_세금계산서"];
-    if(!sh) throw new Error("매출 시트 없음 (매출_전체 또는 매출_세금계산서)");
-    // range:1 → 1행(타이틀) 스킵, 2행이 헤더
+    if(!sh) throw new Error("매출 시트 없음");
     const raw=XLSX.utils.sheet_to_json(sh,{defval:"",range:1});
+
+    // 환율 실시간 조회 (USD→KRW)
+    let usdRate = 1380; // fallback
+    try {
+      const fx = await fetch("https://open.er-api.com/v6/latest/USD");
+      if(fx.ok){ const fxd=await fx.json(); usdRate=fxd.rates?.KRW||1380; }
+    } catch(_){}
+    console.log(`💱 USD/KRW 환율: ${usdRate.toLocaleString()}원`);
+
     SD=raw.filter(r=>{
       const co=r["거래처"]||"";
       return co&&String(co).trim()&&String(co).trim()!=="거래처";
     }).map(r=>{
       const 공급 = N(r["공급가액"]);
-      const 입금raw = N(r["입금액"]);
-      const 현재잔금 = N(r["현재기준잔액"]);
-      // 입금이 외화인지 판별 (공급의 1% 미만 → 외화로 간주)
-      const 입금비율 = 공급 > 0 ? 입금raw/공급 : 0;
-      const 외화여부 = 입금raw > 0 && 입금비율 < 0.01;
+      const 입금 = N(r["입금액"]);
+      const 잔액원화 = N(r["잔액(원화)"]||r["잔액_원화"]||r["잔액"]);
+      const 달러잔액 = N(r["잔액(달러$)"]||r["달러잔액"]);
+      const 구분 = String(r["Local구분"]||r["구분"]||"");
+      const 국내 = 구분==="국내"||구분==="내수";
 
-      let 잔금, 입금;
-      if(현재잔금 > 0) {
-        // 미수금 시트 정확한 값
-        잔금 = 현재잔금;
-        입금 = Math.max(0, 공급 - 잔금);
-      } else if(외화여부) {
-        // 외화 입금 → 아직 원화 환산 불가 → 공급 전체를 미수로
-        잔금 = 공급;
-        입금 = 0;
+      // 잔금: 국내=원화잔액, 해외=달러잔액×환율
+      let 잔금;
+      if(달러잔액 > 0) {
+        잔금 = 달러잔액 * usdRate; // 실시간 환율 적용
+      } else if(잔액원화 > 0) {
+        잔금 = 잔액원화;
       } else {
-        잔금 = Math.max(0, 공급 - 입금raw);
-        입금 = Math.min(입금raw, 공급);
+        잔금 = Math.max(0, 공급 - 입금);
       }
       return {
         날짜: r["수익인식일"]||r["매출채권인식일"]||"",
         연도: N(r["연도"]),
         월:   N(r["월"]),
         거래처: String(r["거래처"]||""),
-        구분:   String(r["Local구분"]||r["구분"]||""),
+        구분,
         프번:   String(r["프로젝트코드"]||""),
         품목:   String(r["품목"]||""),
-        공급:   공급,
-        입금:   입금,
-        잔금:   잔금,
+        공급,
+        입금:   Math.max(0, 공급 - 잔금),
+        잔금,
+        달러잔액,         // 원래 달러 금액 보존
+        잔금원화: 잔금,   // 환율 적용된 원화
+        국내,
       };
     });
 
-    // ── 미수금: "미수금_260512기준" 시트에서 직접 읽기 ──
-    // 이 시트의 현재기준잔액이 가장 정확한 값
-    const shAR = wb.Sheets["미수금_260512기준"];
-    if(shAR) {
-      const rawAR = XLSX.utils.sheet_to_json(shAR,{defval:"",range:1});
-      // 거래처별 현재기준잔액 합산 → SD 행 잔금에 매핑
-      const arMap = {}; // key: 거래처+코드+수익인식일 → 현재기준잔액
-      rawAR.forEach(r=>{
-        const co=String(r["거래처"]||"").trim();
-        const pj=String(r["프로젝트코드"]||"").trim();
-        const dt=String(r["수익인식일"]||r["매출채권인식일"]||"").substring(0,10);
-        const pm=String(r["품목"]||"").trim();
-        const v=N(r["현재기준잔액"]);
-        if(v>0) {
-          const k=co+"||"+pj+"||"+dt+"||"+pm;
-          arMap[k]=(arMap[k]||0)+v;
-        }
-      });
-      // SD 행에 잔금 매핑 + 입금 재계산
-      SD.forEach(r=>{
-        const dt=String(r.날짜||"").substring(0,10);
-        const k=r.거래처+"||"+r.프번+"||"+dt+"||"+r.품목;
-        if(arMap[k]) {
-          r.잔금 = arMap[k];
-          r.입금 = Math.max(0, r.공급 - r.잔금); // 입금 재계산
-          delete arMap[k];
-        } else {
-          // 미매칭 → 기존 계산값 유지 (공급-잔금)
-          r.입금 = Math.max(0, r.공급 - r.잔금);
-        }
-      });
-      // 미매칭 미수금 → 거래처별 합산하여 SD에 별도 행 추가
-      const unmatchedTotal = Object.values(arMap).reduce((s,v)=>s+v,0);
-      if(unmatchedTotal>0) console.log("📋 미매칭 미수금:", unmatchedTotal.toLocaleString()+"원 → 거래처별 합산");
-      // 미매칭 행들을 거래처별로 합산
-      const byComp={};
-      Object.entries(arMap).forEach(([k,v])=>{
-        const co=k.split("||")[0];
-        byComp[co]=(byComp[co]||0)+v;
-      });
-      Object.entries(byComp).forEach(([co,v])=>{
-        // 해당 거래처의 첫 번째 SD 행 찾아서 잔금 추가
-        const existing=SD.find(r=>r.거래처===co);
-        if(existing) existing.잔금+=v;
-        else SD.push({날짜:"",연도:2026,월:0,거래처:co,구분:"",프번:"",품목:"(미수합산)",공급:0,입금:0,잔금:v});
-      });
-      const totalAR = SD.reduce((s,r)=>s+r.잔금,0);
-      console.log("✅ 미수금 시트 로드 완료:", totalAR.toLocaleString()+"원");
-    } else {
-      // 미수금 시트 없으면 기존 방식: 현재기준잔액 → 잔액 fallback
-      SD.forEach(r2=>{
-        const matched=raw.find(x=>String(x["거래처"]||"")==r2.거래처);
-        // 실제로는 index 기반 매핑 불가, 그냥 잔액 사용
-      });
-      console.warn("⚠️ 미수금_260512기준 시트 없음 → 잔액 컬럼 사용");
-    }
+    const 공급합 = SD.reduce((s,r)=>s+r.공급,0);
+    const 국내잔금 = SD.filter(r=>r.국내).reduce((s,r)=>s+r.잔금,0);
+    const 해외달러 = SD.reduce((s,r)=>s+r.달러잔액,0);
+    const 해외잔금원화 = SD.filter(r=>!r.국내).reduce((s,r)=>s+r.잔금,0);
 
-    console.log("✅ 매출 로드:", SD.length, "건 ←", name, "| 미수합:", SD.reduce((s,r)=>s+r.잔금,0).toLocaleString()+"원");
+    // 환율 정보 전역 저장 (KPI 업데이트용)
+    window._usdRate = usdRate;
+    window._해외달러잔액 = 해외달러;
+
+    console.log(`✅ 매출 로드: ${SD.length}건 ← ${name}`);
+    console.log(`   공급 ${(공급합/1e8).toFixed(2)}억 | 국내미수 ${(국내잔금/1e8).toFixed(2)}억 | 해외미수 $${해외달러.toFixed(0)} (${(해외잔금원화/1e8).toFixed(2)}억, 환율${usdRate})`);
     updateSalesAll();
   } catch(e) {
     console.error("❌ 매출 실패:", e.message);
@@ -2744,8 +2710,25 @@ function updKPI(data, type) {
   const i=data.reduce((s,r)=>s+r.입금,0);
   const u=data.reduce((s,r)=>s+r.잔금,0);
   const rate=t>0?Math.round(i/t*100):0;
-  $("k-tax",(t/1e8).toFixed(2)); $("k-inc",(i/1e8).toFixed(2)); $("k-unp",(u/1e8).toFixed(2)); $("k-rate",rate+"%");
-  $("cf-tax",(t/1e8).toFixed(2)); $("cf-inc",(i/1e8).toFixed(2)); $("cf-unp",(u/1e8).toFixed(2)); $("cf-rate",rate+"%");
+
+  const uDom  = data.filter(r=>r.국내).reduce((s,r)=>s+r.잔금,0);
+  const uIntl = data.filter(r=>!r.국내).reduce((s,r)=>s+r.잔금,0);
+  const uDollar = data.filter(r=>!r.국내).reduce((s,r)=>s+(r.달러잔액||0),0);
+
+  $("k-tax",(t/1e8).toFixed(2)); $("k-inc",(i/1e8).toFixed(2));
+  $("k-unp",(u/1e8).toFixed(2)); $("k-rate",rate+"%");
+  $("k-unp-dom",(uDom/1e8).toFixed(2));
+  // 해외: 달러있으면 달러+환산 표시, 없으면 억
+  if(uDollar>0) {
+    const el=document.getElementById("k-unp-intl");
+    if(el) el.textContent=`$${Math.round(uDollar).toLocaleString()}`;
+    const pel=document.getElementById("k-unp-intl-krw");
+    if(pel) pel.textContent=`≈${(uIntl/1e8).toFixed(2)}억`;
+  } else {
+    $("k-unp-intl",(uIntl/1e8).toFixed(2));
+  }
+  $("cf-tax",(t/1e8).toFixed(2)); $("cf-inc",(i/1e8).toFixed(2));
+  $("cf-unp",(u/1e8).toFixed(2)); $("cf-rate",rate+"%");
   $("cf-cnt",data.length);
 }
 
