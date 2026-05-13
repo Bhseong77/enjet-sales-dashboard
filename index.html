@@ -8480,9 +8480,28 @@ function renderSLCards(data, container, FILE_TYPES) {
         : `<button onclick="uploadSLFile('${r.id}','${ft.key}')" class="sl-card-btn" style="color:var(--t3);border-color:var(--border2)">${ft.label} ⬆</button>`;
     }).join("");
 
-    // 프로젝트코드 표시
+    // 🆕 요청 대기 + 완료 실패 여부 체크
+    const pendingReqCard = (typeof pjCodeRequests !== "undefined" && Array.isArray(pjCodeRequests))
+      ? pjCodeRequests.find(req => req.activityId === r.id && req.status === "pending" && req.code === r.pjcode)
+      : null;
+    const failedReqCard = (typeof pjCodeRequests !== "undefined" && Array.isArray(pjCodeRequests))
+      ? pjCodeRequests.find(req => req.activityId === r.id && req.completeFailed === true && req.code === r.pjcode)
+      : null;
+    const isRequestingCard = !!pendingReqCard;
+    const isFailedCard = !!failedReqCard;
+    
     let pjBadge = "";
-    if(hasOfficialCode) {
+    if(isFailedCard) {
+      // 완료 처리 실패: 강한 깜빡 경고
+      pjBadge = `<span class="sl-card-tag" style="background:#fee2e2;color:#dc2626;font-family:var(--m);font-weight:700;cursor:pointer;animation:pulse 0.8s infinite" onclick="completePjCodeReqRetry('${failedReqCard.id}')">${r.pjcode} ⚠️재시도</span>`;
+    } else if(isRequestingCard) {
+      // 🆕 요청 대기 중: 코드 + 요청중 배지
+      const reorderBadge = pendingReqCard.reorder
+        ? `<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 4px;border-radius:5px;font-weight:700;margin-left:2px">🔁${pendingReqCard.reorder.round||""}</span>`
+        : "";
+      pjBadge = `<span class="sl-card-tag" style="background:var(--pd);color:var(--p);font-family:var(--m);font-weight:700;cursor:pointer" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')">${r.pjcode}${reorderBadge}</span>
+        <span style="padding:1px 7px;border-radius:5px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;margin-left:3px;animation:pulse 2s infinite">⏳ 요청중</span>`;
+    } else if(hasOfficialCode) {
       pjBadge = `<span class="sl-card-tag" style="background:var(--pd);color:var(--p);font-family:var(--m);font-weight:700;cursor:pointer" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')">${r.pjcode}</span>`;
     } else if(r.status==="제안"||r.status==="견적") {
       pjBadge = `<button onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')"
@@ -8618,8 +8637,35 @@ function renderSLTable(data) {
     // 프로젝트코드 표시 - 임시코드(신규N차)는 정식 코드 아님 → 제안 상태면 깜빡!
     const isTempCode = r.pjcode && /^신규\d*차?$/.test(r.pjcode);
     const hasOfficialCode = r.pjcode && !isTempCode;
+    // 🆕 요청 대기 여부 + 완료 실패 여부 체크
+    const pendingReq = (typeof pjCodeRequests !== "undefined" && Array.isArray(pjCodeRequests))
+      ? pjCodeRequests.find(req => req.activityId === r.id && req.status === "pending" && req.code === r.pjcode)
+      : null;
+    const failedReq = (typeof pjCodeRequests !== "undefined" && Array.isArray(pjCodeRequests))
+      ? pjCodeRequests.find(req => req.activityId === r.id && req.completeFailed === true && req.code === r.pjcode)
+      : null;
+    const isRequesting = !!pendingReq;
+    const isFailed = !!failedReq;
+    
     let pjDisplay;
-    if(hasOfficialCode) {
+    if(isFailed) {
+      // 완료 처리 실패: 코드 + 강한 깜빡 경고
+      const safeCo = r.company.replace(/'/g,"\\'");
+      pjDisplay = `<div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start" onclick="completePjCodeReqRetry('${failedReq.id}')">
+        <span class="tm" style="font-size:14px;color:var(--p);font-weight:700;cursor:pointer;animation:pulse 0.8s infinite">${r.pjcode}</span>
+        <span style="padding:1px 8px;border-radius:5px;background:#fee2e2;color:#dc2626;font-size:11px;font-weight:700;animation:pulse 0.8s infinite;cursor:pointer" title="클릭: 다시 완료 처리 시도">⚠️ 저장실패 - 재시도</span>
+      </div>`;
+    } else if(isRequesting) {
+      // 요청 대기 중: 코드 표시 + "요청중" 배지
+      const safeCo = r.company.replace(/'/g,"\\'");
+      const reorderBadge = pendingReq.reorder
+        ? `<span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:6px;font-weight:700;margin-left:3px">🔁${pendingReq.reorder.round||"재주문"}</span>`
+        : "";
+      pjDisplay = `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start" onclick="openPjCodePicker('${r.id}','${safeCo}')">
+        <span class="tm" style="font-size:14px;color:var(--p);font-weight:700;cursor:pointer">${r.pjcode}${reorderBadge}</span>
+        <span style="padding:1px 8px;border-radius:5px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;animation:pulse 2s infinite" title="파이프라인 탭의 [프로젝트코드 요청]에서 완료 처리 가능">⏳ 요청중</span>
+      </div>`;
+    } else if(hasOfficialCode) {
       // 정식 코드(BM26003 등) → 클릭 가능한 표시
       pjDisplay = `<span class="tm" style="font-size:14px;cursor:pointer;color:var(--p);text-decoration:underline;text-underline-offset:2px" onclick="openPjCodePicker('${r.id}','${r.company.replace(/'/g,"\\'")}')" title="클릭: 코드 변경/삭제">${r.pjcode}</span>`;
     } else if(r.status==="제안" || r.status==="견적") {
@@ -9830,11 +9876,45 @@ async function submitPjCodeRequest() {
     try { renderSLAll(); } catch(e){}
   }
   
+  // 🆕 PD(파이프라인 프로젝트List)에도 즉시 등록 (요청 대기 상태로)
+  const pdEntry = {
+    진행구분: "작성",
+    프로젝트명: projectName || (ctx.company ? ctx.company + " 신규 영업" : "신규 영업"),
+    프로젝트번호: code,
+    계약일: new Date().toISOString().split("T")[0],
+    유형: "영업진행",
+    거래처: ctx.company || "",
+    책임자: (slData?.find(x=>x.id===ctx.actId))?.salesMgr || "",
+    PM: "",
+    원화금액: 0,
+    상태: "요청대기",
+    _source: "pjRequest",
+    _reqId: req.id,
+    _createdAt: new Date().toISOString(),
+  };
+  if(typeof PD !== "undefined" && Array.isArray(PD)) {
+    // 중복 방지
+    if(!PD.find(p => String(p.프로젝트번호||"").trim() === code)) {
+      PD.push(pdEntry);
+      console.log("✅ PD에 추가:", code);
+    }
+  }
+  if(Array.isArray(dashProjects)) {
+    if(!dashProjects.find(p => String(p.프로젝트번호||"").trim() === code)) {
+      dashProjects.push(pdEntry);
+      saveDashProjectsToSP().catch(e=>console.warn("대시보드 프로젝트 저장 실패:", e.message));
+    }
+  }
+  // 파이프라인 KPI 갱신 (열려있으면)
+  try { if(typeof updPlKPI === "function") updPlKPI(); } catch(e){}
+
   // SP에 요청 목록 저장
   try { await savePjCodeRequestsToSP(); } catch(e){ console.warn("요청 저장 실패", e); }
   
   closePjCodeGenModal();
   
+  // 영업활동 카드 다시 렌더 (요청중 배지 표시)
+  try { renderSLAll(); } catch(e){}
   // 파이프라인 탭 카드 갱신
   try { renderPjCodeRequestsCard(); } catch(e){}
   
@@ -9936,12 +10016,13 @@ function renderPjCodeRequestsCard() {
 async function completePjCodeReq(reqId) {
   const r = pjCodeRequests.find(x => x.id === reqId);
   if(!r) return;
-  if(!confirm(`프로젝트코드 [${r.code}] 발급을 완료 처리할까요?`)) return;
+  if(!confirm(`프로젝트코드 [${r.code}] 발급을 완료 처리할까요?\n\n(파이프라인 탭에서 완료 처리하면\n영업활동 목록의 코드가 정식 등록됩니다)`)) return;
   
   const me = (typeof userInfo !== "undefined" && userInfo?.displayName) || "(나)";
   r.status = "completed";
   r.completedAt = new Date().toISOString();
   r.completedBy = me;
+  r.completeFailed = false;
   
   // 연결된 영업활동에도 이력 기록
   const act = slData?.find(x => x.id === r.activityId);
@@ -9954,11 +10035,27 @@ async function completePjCodeReq(reqId) {
       type: "status"
     });
     act.updatedAt = new Date().toISOString();
-    try { await saveSLToSP(); } catch(e){}
-    try { renderSLAll(); } catch(e){}
+    try { await saveSLToSP(); } catch(e){ console.warn("SL 저장 실패:", e); }
   }
   
-  try { await savePjCodeRequestsToSP(); } catch(e){}
+  // SP에 요청 목록 저장 (실패해도 UI는 갱신)
+  let spOk = false;
+  try {
+    spOk = await savePjCodeRequestsToSP();
+  } catch(e) {
+    console.warn("SP 저장 실패:", e);
+    spOk = false;
+  }
+  
+  if(!spOk) {
+    // 저장 실패 → 플래그 설정 → 영업활동 카드 깜빡으로 알림
+    r.completeFailed = true;
+    r.status = "pending";  // 롤백
+    alert(`⚠️ 완료 처리 중 SharePoint 저장에 실패했습니다.\n\n[${r.code}] 코드가 영업활동 목록에서 깜빡이는 상태로 표시됩니다.\n네트워크 확인 후 다시 시도해주세요.`);
+  }
+  
+  // 영업활동 카드/리스트 갱신 (실패 시 깜빡 포함)
+  try { renderSLAll(); } catch(e){}
   renderPjCodeRequestsCard();
 }
 
@@ -9967,6 +10064,21 @@ async function deletePjCodeReq(reqId) {
   pjCodeRequests = pjCodeRequests.filter(x => x.id !== reqId);
   try { await savePjCodeRequestsToSP(); } catch(e){}
   renderPjCodeRequestsCard();
+  try { renderSLAll(); } catch(e){}
+}
+
+// 완료 처리 실패 후 재시도 (영업활동 카드 클릭 → 파이프라인 탭으로 안내)
+async function completePjCodeReqRetry(reqId) {
+  const r = pjCodeRequests.find(x => x.id === reqId);
+  if(!r) return;
+  if(!confirm(`[${r.code}] 완료 처리를 다시 시도할까요?\n\n저장 실패 원인: SharePoint 접근 불가 (CORS 또는 네트워크)\n\n[확인]: 지금 다시 완료 처리 시도\n[취소]: 파이프라인 탭에서 나중에 처리`)) {
+    // 파이프라인 탭으로 이동
+    try { go("pipeline"); } catch(e){}
+    return;
+  }
+  // 플래그 초기화 후 재시도
+  r.completeFailed = false;
+  await completePjCodeReq(reqId);
 }
 
 function openPjCodePicker(actId, company) {
@@ -14312,6 +14424,16 @@ function go(id, el) {
     if(dashProjects.length === 0) {
       loadDashProjectsFromSP().catch(e=>console.warn("Dash 프로젝트 로드 실패:", e.message));
     }
+    // 🆕 프로젝트코드 요청 목록 로드 - 영업활동 카드 "요청중" 배지 표시용
+    (async () => {
+      try {
+        if(!Array.isArray(pjCodeRequests) || !pjCodeRequests.length) {
+          await loadPjCodeRequestsFromSP();
+          // 로드 완료 후 카드 다시 렌더 (요청중 배지 반영)
+          if(typeof renderSLAll === "function") renderSLAll();
+        }
+      } catch(e) { console.warn("프로젝트코드 요청 로드 실패:", e.message); }
+    })();
     // 회의록 배지(badge-sm) 갱신용 - 메모리에 없을 때만 로드
     if(!Array.isArray(window._mtgLogs) || !window._mtgLogs.length) {
       loadMtgLogsFromSP().catch(e=>console.warn("회의록 로드 실패:", e.message));
