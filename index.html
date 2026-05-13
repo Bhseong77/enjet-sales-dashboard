@@ -4350,12 +4350,20 @@ ${transcript.substring(0, 12000)}${transcript.length > 12000 ? "\n...(이하 생
   }
   const { id: convId } = await convRes.json();
 
-  // Step 2: 메시지 전송 (동기)
+  // Step 2: 메시지 전송 - additionalContext로 회의 내용 주입
+  // (Copilot이 context를 참조해서 요약)
   const chatRes = await fetch(`https://graph.microsoft.com/beta/copilot/conversations/${convId}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + t },
     body: JSON.stringify({
-      message: { text: prompt },
+      message: {
+        text: `다음 회의 내용을 한국어 회의록으로 요약해줘:\n\n## 요약 형식\n- 핵심 논의사항 (3-5개 불릿)\n- 결정사항 및 합의\n- 후속 액션아이템 (담당자/내용/기한)\n- 특이사항`
+      },
+      additionalContext: [
+        {
+          text: `[회의 정보] ${metaStr || ""}\n\n[회의 내용]\n${transcript.substring(0, 8000)}`
+        }
+      ],
       locationHint: { timeZone: "Asia/Seoul" }
     })
   });
@@ -4365,17 +4373,36 @@ ${transcript.substring(0, 12000)}${transcript.length > 12000 ? "\n...(이하 생
   }
   const chatData = await chatRes.json();
 
-  // 응답 추출 (messages 배열의 마지막 bot 메시지)
+  // 응답 파싱 - messages 배열의 마지막 항목 text 필드
+  // 공식 응답 구조: { messages: [ { text: "...", ... } ] }
   const messages = chatData.messages || [];
-  const botMsg = [...messages].reverse().find(m => m.role === "assistant" || m.from?.user == null);
-  let answer = botMsg?.body?.content || botMsg?.body?.text || "";
-
-  // HTML 태그 제거 (응답이 HTML인 경우)
-  if(answer.startsWith("<") || answer.includes("</")) {
-    answer = answer.replace(/<[^>]+>/g, "").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&nbsp;/g," ").trim();
+  // 마지막 메시지가 Copilot 응답 (user 질문 제외)
+  let answer = "";
+  for(let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    // user 메시지 건너뛰고 Copilot 응답만 추출
+    const msgText = msg.text || msg?.body?.content || msg?.body?.text || "";
+    if(msgText && msgText !== prompt && !msgText.includes("다음 회의 내용을")) {
+      answer = msgText;
+      break;
+    }
+  }
+  // 첫 번째 메시지가 응답일 수도 있음
+  if(!answer && messages.length > 0) {
+    answer = messages[0].text || messages[0]?.body?.content || "";
   }
 
-  return answer || "요약 결과를 받지 못했습니다. 다시 시도해주세요.";
+  // 콘솔 디버깅 (개발용)
+  console.log("🤖 Copilot Chat 응답:", JSON.stringify(chatData).substring(0, 500));
+
+  // HTML 태그 제거
+  if(answer && (answer.startsWith("<") || answer.includes("</"))) {
+    answer = answer.replace(/<[^>]+>/g, "")
+      .replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">")
+      .replace(/&nbsp;/g," ").replace(/\n{3,}/g,"\n\n").trim();
+  }
+
+  return answer || "Copilot 응답을 받았으나 텍스트를 추출하지 못했습니다.\n\n콘솔(F12)에서 응답 구조를 확인해주세요.";
 }
 
 // UI 헬퍼
