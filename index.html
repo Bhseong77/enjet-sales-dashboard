@@ -362,6 +362,8 @@
       <div class="ni" onclick="go('sales-todo',this)">✅ 영업Todo <span class="nb nbg" id="badge-todo" style="background:var(--r);color:#fff">0</span></div>
       <div class="ni" onclick="go('quote-db',this)">📄 견적서 DB <span class="nb nbg" id="badge-qdb">0</span></div>
       <div class="ni" onclick="go('sales-meeting',this)">📝 회의록 DB <span class="nb nbg" id="badge-sm">0</span></div>
+      <div class="ni" onclick="go('delivery-db',this)">🚚 거래명세서 DB <span class="nb nbg" id="badge-dlv">0</span></div>
+      <div class="ni" onclick="go('tax-db',this)">🧾 세금계산서 DB <span class="nb nbg" id="badge-tax">0</span></div>
       <div class="ni" onclick="go('customer',this)">🏭 고객사 DB <span class="nb nbg" id="badge-ct">-</span></div>
       <div class="sb-sec">마케팅</div>
       <div class="ni" onclick="go('marketing',this)">📣 마케팅 활동</div>
@@ -2680,6 +2682,223 @@
         </div>
       </div>
 
+
+    <!-- 🚚 거래명세서 DB 탭 -->
+    <div class="page" id="tab-delivery-db">
+      <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
+        <div class="kpi"><div class="kl">🚚 총 건수</div><div class="kv" id="dlv-tot">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">💰 이번달 합계</div><div class="kv" id="dlv-month-amt" style="color:var(--p);font-size:18px">0</div><div class="ks">원</div></div>
+        <div class="kpi"><div class="kl">🏭 거래처 수</div><div class="kv" id="dlv-co-cnt">0</div><div class="ks">곳</div></div>
+        <div class="kpi"><div class="kl">📅 최근 등록</div><div class="kv" id="dlv-last-date" style="font-size:14px">-</div><div class="ks"></div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:16px;font-weight:800">🚚 거래명세서 DB</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input class="si" type="text" id="dlv-search" placeholder="🔍 거래처/품목/PO번호..." style="width:180px;font-size:13px" oninput="renderDeliveryDB()">
+            <button onclick="openDeliveryModal()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="tbl" style="min-width:780px">
+          <thead><tr>
+            <th style="min-width:80px">거래일</th>
+            <th style="min-width:120px">거래처</th>
+            <th style="min-width:140px">품목</th>
+            <th style="min-width:60px">수량</th>
+            <th style="min-width:90px">공급가액</th>
+            <th style="min-width:70px">세액</th>
+            <th style="min-width:90px">합계금액</th>
+            <th style="min-width:100px">PO번호</th>
+            <th style="min-width:80px">프로젝트</th>
+            <th style="min-width:60px">파일</th>
+            <th style="min-width:50px"></th>
+          </tr></thead>
+          <tbody id="dlvBody"><tr><td colspan="11"><div class="empty"><div class="ei">🚚</div><div class="et">거래명세서 없음</div><div style="font-size:13px;color:var(--t3);margin-top:6px">PDF 업로드하면 AI가 자동으로 항목을 추출합니다</div></div></td></tr></tbody>
+        </table></div>
+        <div style="font-size:13px;color:var(--t3);margin-top:8px;text-align:right" id="dlv-cnt"></div>
+      </div>
+    </div>
+
+    <!-- 🧾 세금계산서 DB 탭 -->
+    <div class="page" id="tab-tax-db">
+      <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
+        <div class="kpi"><div class="kl">🧾 총 건수</div><div class="kv" id="tax-tot">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">💰 이번달 공급가액</div><div class="kv" id="tax-month-amt" style="color:var(--p);font-size:18px">0</div><div class="ks">원</div></div>
+        <div class="kpi"><div class="kl">🏭 거래처 수</div><div class="kv" id="tax-co-cnt">0</div><div class="ks">곳</div></div>
+        <div class="kpi"><div class="kl">📅 최근 등록</div><div class="kv" id="tax-last-date" style="font-size:14px">-</div><div class="ks"></div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:16px;font-weight:800">🧾 세금계산서 DB</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input class="si" type="text" id="tax-search" placeholder="🔍 거래처/품목/승인번호..." style="width:180px;font-size:13px" oninput="renderTaxDB()">
+            <button onclick="openTaxModal()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="tbl" style="min-width:820px">
+          <thead><tr>
+            <th style="min-width:80px">작성일</th>
+            <th style="min-width:120px">공급받는자</th>
+            <th style="min-width:140px">품목</th>
+            <th style="min-width:90px">공급가액</th>
+            <th style="min-width:70px">세액</th>
+            <th style="min-width:90px">합계금액</th>
+            <th style="min-width:120px">승인번호</th>
+            <th style="min-width:80px">관리번호</th>
+            <th style="min-width:60px">파일</th>
+            <th style="min-width:50px"></th>
+          </tr></thead>
+          <tbody id="taxBody"><tr><td colspan="10"><div class="empty"><div class="ei">🧾</div><div class="et">세금계산서 없음</div><div style="font-size:13px;color:var(--t3);margin-top:6px">PDF 업로드하면 AI가 자동으로 항목을 추출합니다</div></div></td></tr></tbody>
+        </table></div>
+        <div style="font-size:13px;color:var(--t3);margin-top:8px;text-align:right" id="tax-cnt"></div>
+      </div>
+    </div>
+
+    <!-- 🚚 거래명세서 입력 모달 -->
+    <div id="dlvModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative">
+        <div style="background:linear-gradient(135deg,var(--p),var(--a));color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:900" id="dlvModalTitle">🚚 거래명세서 등록</div>
+          <button onclick="document.getElementById('dlvModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
+        </div>
+        <div style="padding:16px 18px">
+          <!-- AI 파싱 영역 -->
+          <div style="margin-bottom:14px;padding:12px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
+            <div style="font-size:13px;font-weight:700;color:#0369a1;margin-bottom:8px">🤖 PDF 업로드 → AI 자동 추출</div>
+            <!-- AI 엔진 선택 -->
+            <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px">
+                <input type="radio" name="docAiEngine" value="gemini" checked style="accent-color:#10b981">
+                <span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">무료</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #bfdbfe;background:#eff6ff;font-size:12px">
+                <input type="radio" name="docAiEngine" value="copilot" style="accent-color:#1e40af">
+                <span style="font-weight:700;color:#1e40af">✨ Copilot</span><span style="color:var(--t3)">M365</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px">
+                <input type="radio" name="docAiEngine" value="openai" style="accent-color:#6366f1">
+                <span style="font-weight:700;color:#6366f1">🤖 OpenAI</span><span style="color:var(--t3)">gpt-4o</span>
+              </label>
+            </div>
+            <!-- Gemini 키 입력 -->
+            <div id="dlvGeminiKeyRow" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 Gemini Key</span>
+              <input class="si" type="password" id="dlvGeminiKey" placeholder="AIza..." style="flex:1;font-size:12px" value="">
+              <button onclick="localStorage.setItem('gemini_key',document.getElementById('dlvGeminiKey').value);alert('저장됨')" style="padding:5px 10px;border-radius:6px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-family:var(--s)">저장</button>
+            </div>
+            <div id="dlvOpenAIKeyRow" style="display:none;flex;gap:6px;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 OpenAI Key</span>
+              <input class="si" type="password" id="dlvOpenAIKey" placeholder="sk-..." style="flex:1;font-size:12px" value="">
+            </div>
+            <script>
+              document.querySelectorAll('input[name="docAiEngine"]').forEach(r=>{
+                r.addEventListener("change",()=>{
+                  const v=document.querySelector('input[name="docAiEngine"]:checked')?.value;
+                  document.getElementById("dlvGeminiKeyRow").style.display=v==="gemini"?"flex":"none";
+                  document.getElementById("dlvOpenAIKeyRow").style.display=v==="openai"?"flex":"none";
+                });
+              });
+            </script>
+            <!-- 파일 업로드 -->
+            <input type="file" id="dlvPdfInput" style="display:none" accept="application/pdf,.pdf" onchange="parseDlvPdf(this.files[0])">
+            <label for="dlvPdfInput" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:2px dashed #7dd3fc;border-radius:8px;cursor:pointer;background:#fff;font-size:13px;color:#0369a1;font-weight:700">
+              📎 거래명세서 PDF 탭해서 선택
+            </label>
+            <div id="dlvParseStatus" style="font-size:12px;color:var(--t2);margin-top:6px;display:none"></div>
+          </div>
+          <!-- 입력 폼 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 거래일 *</label><input class="si" type="date" id="dlv-date" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 거래처 *</label><input class="si" type="text" id="dlv-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📦 품목</label><input class="si" type="text" id="dlv-item" placeholder="EHD Nozzle Assy 외" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔢 수량</label><input class="si" type="text" id="dlv-qty" placeholder="8 EA" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:3px">💰 공급가액</label><input class="si" type="number" id="dlv-supply" placeholder="1440000" style="width:100%;font-size:13px" oninput="calcDlvTotal()"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🧾 세액</label><input class="si" type="number" id="dlv-tax" placeholder="144000" style="width:100%;font-size:13px" oninput="calcDlvTotal()"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:3px">💵 합계금액</label><input class="si" type="number" id="dlv-total" placeholder="1584000" style="width:100%;font-size:13px;font-weight:700;color:var(--g)"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 PO번호</label><input class="si" type="text" id="dlv-po" placeholder="2064522177" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="dlv-pjcode" placeholder="BM25999-M020" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="dlv-note" placeholder="메모" style="width:100%;font-size:13px"></div>
+          </div>
+          <input type="hidden" id="dlv-edit-id">
+          <input type="hidden" id="dlv-file-url">
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button onclick="document.getElementById('dlvModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+            <button onclick="saveDeliveryEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🧾 세금계산서 입력 모달 -->
+    <div id="taxModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative">
+        <div style="background:linear-gradient(135deg,#dc2626,#f87171);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:900" id="taxModalTitle">🧾 세금계산서 등록</div>
+          <button onclick="document.getElementById('taxModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
+        </div>
+        <div style="padding:16px 18px">
+          <!-- AI 파싱 영역 (거래명세서와 동일한 엔진 선택 재사용) -->
+          <div style="margin-bottom:14px;padding:12px;background:#fff5f5;border-radius:10px;border:1.5px solid #fecaca">
+            <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:8px">🤖 PDF 업로드 → AI 자동 추출</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px">
+                <input type="radio" name="taxAiEngine" value="gemini" checked style="accent-color:#10b981">
+                <span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">무료</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #bfdbfe;background:#eff6ff;font-size:12px">
+                <input type="radio" name="taxAiEngine" value="copilot" style="accent-color:#1e40af">
+                <span style="font-weight:700;color:#1e40af">✨ Copilot</span><span style="color:var(--t3)">M365</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px">
+                <input type="radio" name="taxAiEngine" value="openai" style="accent-color:#6366f1">
+                <span style="font-weight:700;color:#6366f1">🤖 OpenAI</span><span style="color:var(--t3)">gpt-4o</span>
+              </label>
+            </div>
+            <div id="taxGeminiKeyRow" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 Gemini Key</span>
+              <input class="si" type="password" id="taxGeminiKey" placeholder="AIza..." style="flex:1;font-size:12px" value="">
+              <button onclick="localStorage.setItem('gemini_key',document.getElementById('taxGeminiKey').value);alert('저장됨')" style="padding:5px 10px;border-radius:6px;border:none;background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-family:var(--s)">저장</button>
+            </div>
+            <div id="taxOpenAIKeyRow" style="display:none;gap:6px;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 OpenAI Key</span>
+              <input class="si" type="password" id="taxOpenAIKey" placeholder="sk-..." style="flex:1;font-size:12px" value="">
+            </div>
+            <script>
+              document.querySelectorAll('input[name="taxAiEngine"]').forEach(r=>{
+                r.addEventListener("change",()=>{
+                  const v=document.querySelector('input[name="taxAiEngine"]:checked')?.value;
+                  document.getElementById("taxGeminiKeyRow").style.display=v==="gemini"?"flex":"none";
+                  document.getElementById("taxOpenAIKeyRow").style.display=v==="openai"?"flex":"none";
+                });
+              });
+            </script>
+            <input type="file" id="taxPdfInput" style="display:none" accept="application/pdf,.pdf" onchange="parseTaxPdf(this.files[0])">
+            <label for="taxPdfInput" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:2px dashed #fca5a5;border-radius:8px;cursor:pointer;background:#fff;font-size:13px;color:#dc2626;font-weight:700">
+              📎 세금계산서 PDF 탭해서 선택
+            </label>
+            <div id="taxParseStatus" style="font-size:12px;color:var(--t2);margin-top:6px;display:none"></div>
+          </div>
+          <!-- 입력 폼 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 작성일 *</label><input class="si" type="date" id="tax-date" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 공급받는자 *</label><input class="si" type="text" id="tax-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📦 품목</label><input class="si" type="text" id="tax-item" placeholder="Ink Paste Nozzle 외" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:3px">💰 공급가액</label><input class="si" type="number" id="tax-supply" placeholder="8940000" style="width:100%;font-size:13px" oninput="calcTaxTotal()"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🧾 세액</label><input class="si" type="number" id="tax-vat" placeholder="894000" style="width:100%;font-size:13px" oninput="calcTaxTotal()"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:3px">💵 합계금액</label><input class="si" type="number" id="tax-total" placeholder="9834000" style="width:100%;font-size:13px;font-weight:700;color:var(--g)"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--r);display:block;margin-bottom:3px">🔑 승인번호</label><input class="si" type="text" id="tax-approval" placeholder="20260430410000080991f3te" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 관리번호</label><input class="si" type="text" id="tax-mgmt" placeholder="202600105113" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="tax-note" placeholder="메모" style="width:100%;font-size:13px"></div>
+          </div>
+          <input type="hidden" id="tax-edit-id">
+          <input type="hidden" id="tax-file-url">
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button onclick="document.getElementById('taxModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+            <button onclick="saveTaxEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:#dc2626;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 📁 자료 DB 탭 (전시회 준비파일 통합 관리) -->
     <div class="page" id="tab-exh-prep-db">
@@ -12746,7 +12965,7 @@ async function deleteSLActivity(id) {
 // 영업활동 탭 자동로드 → 통합 go 함수에서 처리
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB",marketing:"📣 마케팅 활동","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB","delivery-db":"🚚 거래명세서 DB","tax-db":"🧾 세금계산서 DB",marketing:"📣 마케팅 활동","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
 
 // ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -15279,6 +15498,8 @@ function go(id, el) {
       } catch(e) { console.warn("프로젝트코드 요청 로드 실패:", e); }
     })();
   }
+  if(id==="delivery-db") { loadDeliveryDB(); }
+  if(id==="tax-db") { loadTaxDB(); }
   // 고객사 관리 탭
   if(id==="customer") {
     if(exhData.length === 0) loadCustContactsFromSP();
@@ -15453,6 +15674,347 @@ function renderMtgLogTable(data){
     <td><span class="badge info" style="font-size:12px">${m.type||"영업미팅"}</span></td>
   </tr>`).join("");
 }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 🚚 거래명세서 DB + 🧾 세금계산서 DB
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const DLV_SP_PATH = "📦영업/99.Dashboard(real-time)/delivery-db.json";
+const TAX_SP_PATH = "📦영업/99.Dashboard(real-time)/tax-db.json";
+let _dlvData = [], _taxData = [];
+
+const fmtWon = n => n ? Number(n).toLocaleString("ko-KR") + "원" : "-";
+
+async function saveDeliveryToSP() {
+  await getIds(); const t = await getToken();
+  const enc = DLV_SP_PATH.split("/").map(encodeURIComponent).join("/");
+  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
+    method:"PUT", headers:{"Authorization":"Bearer "+t,"Content-Type":"application/json"},
+    body: JSON.stringify(_dlvData)
+  });
+  $("badge-dlv", _dlvData.length);
+}
+async function loadDeliveryDB() {
+  try {
+    await getIds(); const t = await getToken();
+    const enc = DLV_SP_PATH.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, { headers:{"Authorization":"Bearer "+t} });
+    if(r.ok) _dlvData = await r.json();
+  } catch(e) { _dlvData = []; }
+  renderDeliveryDB();
+}
+async function saveTaxToSP() {
+  await getIds(); const t = await getToken();
+  const enc = TAX_SP_PATH.split("/").map(encodeURIComponent).join("/");
+  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
+    method:"PUT", headers:{"Authorization":"Bearer "+t,"Content-Type":"application/json"},
+    body: JSON.stringify(_taxData)
+  });
+  $("badge-tax", _taxData.length);
+}
+async function loadTaxDB() {
+  try {
+    await getIds(); const t = await getToken();
+    const enc = TAX_SP_PATH.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, { headers:{"Authorization":"Bearer "+t} });
+    if(r.ok) _taxData = await r.json();
+  } catch(e) { _taxData = []; }
+  renderTaxDB();
+}
+
+function renderDeliveryDB() {
+  const q = document.getElementById("dlv-search")?.value?.toLowerCase()||"";
+  const filtered = _dlvData.filter(d =>
+    !q || [d.company,d.item,d.po,d.pjcode,d.note].some(v=>String(v||"").toLowerCase().includes(q))
+  );
+  const body = document.getElementById("dlvBody");
+  if(!body) return;
+  if(!filtered.length) {
+    body.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="ei">🚚</div><div class="et">거래명세서 없음</div></div></td></tr>`;
+  } else {
+    body.innerHTML = filtered.map(d => `<tr>
+      <td style="font-size:13px;color:var(--t3)">${d.date||"-"}</td>
+      <td style="font-size:14px;font-weight:600">${d.company||"-"}</td>
+      <td style="font-size:13px">${d.item||"-"}</td>
+      <td style="font-size:13px;text-align:center">${d.qty||"-"}</td>
+      <td style="font-size:13px;text-align:right">${d.supply?Number(d.supply).toLocaleString():"-"}</td>
+      <td style="font-size:13px;text-align:right;color:var(--t3)">${d.tax?Number(d.tax).toLocaleString():"-"}</td>
+      <td style="font-size:14px;font-weight:700;text-align:right;color:var(--g)">${d.total?Number(d.total).toLocaleString():"-"}</td>
+      <td style="font-size:12px;color:var(--p);font-family:var(--m)">${d.po||"-"}</td>
+      <td style="font-size:12px;color:var(--a)">${d.pjcode||"-"}</td>
+      <td style="text-align:center">${d.fileUrl?`<a href="${d.fileUrl}" target="_blank" style="font-size:12px;color:var(--p)">📎</a>`:"-"}</td>
+      <td style="white-space:nowrap">
+        <span style="cursor:pointer;font-size:14px" onclick="openDeliveryModal('${d.id}')" title="수정">✏️</span>
+        <span style="cursor:pointer;font-size:14px;color:var(--r);margin-left:3px" onclick="deleteDelivery('${d.id}')" title="삭제">🗑️</span>
+      </td>
+    </tr>`).join("");
+  }
+  const thisMonth = new Date().toISOString().substring(0,7);
+  const monthData = _dlvData.filter(d=>(d.date||"").substring(0,7)===thisMonth);
+  const monthAmt = monthData.reduce((s,d)=>s+Number(d.total||0),0);
+  const cos = [...new Set(_dlvData.map(d=>d.company).filter(Boolean))];
+  $("dlv-tot", _dlvData.length);
+  $("dlv-month-amt", monthAmt.toLocaleString());
+  $("dlv-co-cnt", cos.length);
+  const sorted = [..._dlvData].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+  $("dlv-last-date", sorted[0]?.date||"-");
+  $("dlv-cnt", `총 ${filtered.length}건`);
+}
+
+function renderTaxDB() {
+  const q = document.getElementById("tax-search")?.value?.toLowerCase()||"";
+  const filtered = _taxData.filter(d =>
+    !q || [d.company,d.item,d.approval,d.mgmt,d.note].some(v=>String(v||"").toLowerCase().includes(q))
+  );
+  const body = document.getElementById("taxBody");
+  if(!body) return;
+  if(!filtered.length) {
+    body.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="ei">🧾</div><div class="et">세금계산서 없음</div></div></td></tr>`;
+  } else {
+    body.innerHTML = filtered.map(d => `<tr>
+      <td style="font-size:13px;color:var(--t3)">${d.date||"-"}</td>
+      <td style="font-size:14px;font-weight:600">${d.company||"-"}</td>
+      <td style="font-size:13px">${d.item||"-"}</td>
+      <td style="font-size:13px;text-align:right">${d.supply?Number(d.supply).toLocaleString():"-"}</td>
+      <td style="font-size:13px;text-align:right;color:var(--t3)">${d.vat?Number(d.vat).toLocaleString():"-"}</td>
+      <td style="font-size:14px;font-weight:700;text-align:right;color:var(--g)">${d.total?Number(d.total).toLocaleString():"-"}</td>
+      <td style="font-size:11px;color:var(--r);font-family:var(--m)">${d.approval||"-"}</td>
+      <td style="font-size:11px;color:var(--t3)">${d.mgmt||"-"}</td>
+      <td style="text-align:center">${d.fileUrl?`<a href="${d.fileUrl}" target="_blank" style="font-size:12px;color:var(--p)">📎</a>`:"-"}</td>
+      <td style="white-space:nowrap">
+        <span style="cursor:pointer;font-size:14px" onclick="openTaxModal('${d.id}')" title="수정">✏️</span>
+        <span style="cursor:pointer;font-size:14px;color:var(--r);margin-left:3px" onclick="deleteTax('${d.id}')" title="삭제">🗑️</span>
+      </td>
+    </tr>`).join("");
+  }
+  const thisMonth = new Date().toISOString().substring(0,7);
+  const monthAmt = _taxData.filter(d=>(d.date||"").substring(0,7)===thisMonth).reduce((s,d)=>s+Number(d.supply||0),0);
+  const cos = [...new Set(_taxData.map(d=>d.company).filter(Boolean))];
+  $("tax-tot", _taxData.length);
+  $("tax-month-amt", monthAmt.toLocaleString());
+  $("tax-co-cnt", cos.length);
+  const sorted2 = [..._taxData].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+  $("tax-last-date", sorted2[0]?.date||"-");
+  $("tax-cnt", `총 ${filtered.length}건`);
+}
+
+function calcDlvTotal() {
+  const s=Number(document.getElementById("dlv-supply")?.value||0);
+  const t=Number(document.getElementById("dlv-tax")?.value||0);
+  const tot=document.getElementById("dlv-total");
+  if(tot&&(s||t)) tot.value=s+t;
+}
+function calcTaxTotal() {
+  const s=Number(document.getElementById("tax-supply")?.value||0);
+  const v=Number(document.getElementById("tax-vat")?.value||0);
+  const tot=document.getElementById("tax-total");
+  if(tot&&(s||v)) tot.value=s+v;
+}
+
+function openDeliveryModal(id) {
+  const modal=document.getElementById("dlvModal"); if(!modal) return;
+  const gk=localStorage.getItem("gemini_key")||""; if(gk) { const el=document.getElementById("dlvGeminiKey"); if(el) el.value=gk; }
+  const ok=localStorage.getItem("oai_key")||""; if(ok) { const el=document.getElementById("dlvOpenAIKey"); if(el) el.value=ok; }
+  if(id) {
+    const d=_dlvData.find(x=>x.id===id); if(!d) return;
+    $("dlvModalTitle","🚚 거래명세서 수정");
+    ["date","company","item","qty","supply","tax","total","po","pjcode","note","file-url"].forEach(f=>{
+      const el=document.getElementById("dlv-"+f); if(el) el.value=d[f.replace("-","")]||d[f]||"";
+    });
+    document.getElementById("dlv-edit-id").value=id;
+  } else {
+    $("dlvModalTitle","🚚 거래명세서 등록");
+    ["date","company","item","qty","supply","tax","total","po","pjcode","note","file-url","edit-id"].forEach(f=>{ const el=document.getElementById("dlv-"+f); if(el) el.value=""; });
+    document.getElementById("dlv-date").value=new Date().toISOString().split("T")[0];
+    const st=document.getElementById("dlvParseStatus"); if(st){st.style.display="none";st.style.color="";}
+  }
+  modal.style.display="flex";
+}
+function openTaxModal(id) {
+  const modal=document.getElementById("taxModal"); if(!modal) return;
+  const gk=localStorage.getItem("gemini_key")||""; if(gk) { const el=document.getElementById("taxGeminiKey"); if(el) el.value=gk; }
+  const ok=localStorage.getItem("oai_key")||""; if(ok) { const el=document.getElementById("taxOpenAIKey"); if(el) el.value=ok; }
+  if(id) {
+    const d=_taxData.find(x=>x.id===id); if(!d) return;
+    $("taxModalTitle","🧾 세금계산서 수정");
+    document.getElementById("tax-edit-id").value=id;
+    document.getElementById("tax-date").value=d.date||"";
+    document.getElementById("tax-company").value=d.company||"";
+    document.getElementById("tax-item").value=d.item||"";
+    document.getElementById("tax-supply").value=d.supply||"";
+    document.getElementById("tax-vat").value=d.vat||"";
+    document.getElementById("tax-total").value=d.total||"";
+    document.getElementById("tax-approval").value=d.approval||"";
+    document.getElementById("tax-mgmt").value=d.mgmt||"";
+    document.getElementById("tax-note").value=d.note||"";
+    document.getElementById("tax-file-url").value=d.fileUrl||"";
+  } else {
+    $("taxModalTitle","🧾 세금계산서 등록");
+    ["date","company","item","supply","vat","total","approval","mgmt","note","file-url","edit-id"].forEach(f=>{ const el=document.getElementById("tax-"+f); if(el) el.value=""; });
+    document.getElementById("tax-date").value=new Date().toISOString().split("T")[0];
+    const st=document.getElementById("taxParseStatus"); if(st){st.style.display="none";st.style.color="";}
+  }
+  modal.style.display="flex";
+}
+
+async function parsePdfWithAI(file, docType, statusElId, fillFn) {
+  const statusEl=document.getElementById(statusElId);
+  if(statusEl){statusEl.style.display="block";statusEl.textContent="⏳ PDF 읽는 중...";}
+  const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+  const engine=document.querySelector(`input[name="${docType==="dlv"?"docAiEngine":"taxAiEngine"}"]:checked`)?.value||"gemini";
+  const prompt=docType==="dlv"
+    ?`이 거래명세서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. JSON만 출력(마크다운 없이):\n{"date":"YYYY-MM-DD","company":"공급받는자 회사명","item":"품목명","qty":"수량+단위","supply":공급가액숫자,"tax":세액숫자,"total":합계금액숫자,"po":"PO번호","pjcode":"프로젝트코드","note":"비고"}`
+    :`이 전자세금계산서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. JSON만 출력(마크다운 없이):\n{"date":"YYYY-MM-DD","company":"공급받는자 회사명","item":"품목명","supply":공급가액숫자,"vat":세액숫자,"total":합계금액숫자,"approval":"승인번호","mgmt":"관리번호","note":"기타"}`;
+  try {
+    let resultJson=null;
+    if(engine==="gemini"){
+      const key=document.getElementById(docType==="dlv"?"dlvGeminiKey":"taxGeminiKey")?.value.trim()||localStorage.getItem("gemini_key")||"";
+      if(!key) throw new Error("Gemini API Key를 입력해주세요. (aistudio.google.com 무료 발급)");
+      if(statusEl) statusEl.textContent="🟢 Gemini가 PDF 분석 중...";
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:"application/pdf",data:base64}},{text:prompt}]}]})
+      });
+      if(!res.ok){const e=await res.json();throw new Error("Gemini 오류: "+(e.error?.message||res.status));}
+      const data=await res.json();
+      const text=data.candidates?.[0]?.content?.parts?.[0]?.text||"";
+      resultJson=JSON.parse(text.replace(/```json|```/g,"").trim());
+    } else if(engine==="openai"){
+      const key=document.getElementById(docType==="dlv"?"dlvOpenAIKey":"taxOpenAIKey")?.value.trim()||localStorage.getItem("oai_key")||"";
+      if(!key) throw new Error("OpenAI API Key를 입력해주세요.");
+      if(statusEl) statusEl.textContent="🤖 GPT-4o가 PDF 분석 중...";
+      const res=await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+        body:JSON.stringify({model:"gpt-4o",messages:[{role:"user",content:[{type:"text",text:prompt},{type:"image_url",image_url:{url:`data:application/pdf;base64,${base64}`}}]}],max_tokens:500})
+      });
+      if(!res.ok){const e=await res.json();throw new Error("OpenAI 오류: "+(e.error?.message||res.status));}
+      const data=await res.json();
+      resultJson=JSON.parse((data.choices?.[0]?.message?.content||"").replace(/```json|```/g,"").trim());
+    } else if(engine==="copilot"){
+      if(statusEl) statusEl.textContent="✨ Copilot이 PDF 분석 중...";
+      const pdfText=await extractPdfText(base64);
+      const t=await getToken();
+      const convRes=await fetch("https://graph.microsoft.com/beta/copilot/conversations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},body:"{}"});
+      if(!convRes.ok) throw new Error("Copilot 연결 실패 ("+convRes.status+")");
+      const {id:convId}=await convRes.json();
+      const chatRes=await fetch(`https://graph.microsoft.com/beta/copilot/conversations/${convId}/chat`,{
+        method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+        body:JSON.stringify({message:{text:`${prompt}\n\n[문서 내용]\n${pdfText.substring(0,5000)}`},locationHint:{timeZone:"Asia/Seoul"}})
+      });
+      if(!chatRes.ok) throw new Error("Copilot 오류 ("+chatRes.status+")");
+      const chatData=await chatRes.json();
+      const msgs=chatData.messages||[];
+      let text="";for(let i=msgs.length-1;i>=0;i--){if(msgs[i].text){text=msgs[i].text;break;}}
+      resultJson=JSON.parse(text.replace(/```json|```/g,"").replace(/<[^>]+>/g,"").trim());
+    }
+    if(resultJson){fillFn(resultJson);if(statusEl){statusEl.textContent="✅ 추출 완료! 내용 확인 후 저장하세요.";statusEl.style.color="var(--g)";}}
+  } catch(e){if(statusEl){statusEl.textContent="❌ "+e.message;statusEl.style.color="var(--r)";}}
+}
+
+async function extractPdfText(base64) {
+  try {
+    if(!window.pdfjsLib){
+      await new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+    const arr=new Uint8Array(atob(base64).split("").map(c=>c.charCodeAt(0)));
+    const pdf=await window.pdfjsLib.getDocument({data:arr}).promise;
+    let text="";
+    for(let p=1;p<=pdf.numPages;p++){const page=await pdf.getPage(p);const c=await page.getTextContent();text+=c.items.map(i=>i.str).join(" ")+"\n";}
+    return text;
+  } catch(e){return "(PDF 텍스트 추출 실패)";}
+}
+
+async function parseDlvPdf(file) {
+  if(!file) return;
+  try {
+    await getIds();const t=await getToken();
+    const safeName=file.name.replace(/[^a-zA-Z0-9가-힣._-]/g,"_");
+    const spPath=`📦영업/9.거래문서/거래명세서/${new Date().toISOString().substring(0,7)}`;
+    await ensureSPFolder(spPath);
+    const enc=spPath.split("/").map(encodeURIComponent).join("/");
+    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(safeName)}:/content`,{method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":"application/pdf"},body:file});
+    if(r.ok){const d=await r.json();const el=document.getElementById("dlv-file-url");if(el)el.value=d.webUrl||"";}
+  } catch(e){console.warn("거래명세서 SP 저장 실패:",e.message);}
+  await parsePdfWithAI(file,"dlv","dlvParseStatus",(json)=>{
+    const m={"date":"dlv-date","company":"dlv-company","item":"dlv-item","qty":"dlv-qty","supply":"dlv-supply","tax":"dlv-tax","total":"dlv-total","po":"dlv-po","pjcode":"dlv-pjcode","note":"dlv-note"};
+    Object.entries(m).forEach(([k,id])=>{if(json[k]!==undefined){const el=document.getElementById(id);if(el)el.value=json[k];}});
+  });
+}
+
+async function parseTaxPdf(file) {
+  if(!file) return;
+  try {
+    await getIds();const t=await getToken();
+    const safeName=file.name.replace(/[^a-zA-Z0-9가-힣._-]/g,"_");
+    const spPath=`📦영업/9.거래문서/세금계산서/${new Date().toISOString().substring(0,7)}`;
+    await ensureSPFolder(spPath);
+    const enc=spPath.split("/").map(encodeURIComponent).join("/");
+    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(safeName)}:/content`,{method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":"application/pdf"},body:file});
+    if(r.ok){const d=await r.json();const el=document.getElementById("tax-file-url");if(el)el.value=d.webUrl||"";}
+  } catch(e){console.warn("세금계산서 SP 저장 실패:",e.message);}
+  await parsePdfWithAI(file,"tax","taxParseStatus",(json)=>{
+    const m={"date":"tax-date","company":"tax-company","item":"tax-item","supply":"tax-supply","vat":"tax-vat","total":"tax-total","approval":"tax-approval","mgmt":"tax-mgmt","note":"tax-note"};
+    Object.entries(m).forEach(([k,id])=>{if(json[k]!==undefined){const el=document.getElementById(id);if(el)el.value=json[k];}});
+  });
+}
+
+async function saveDeliveryEntry() {
+  const date=document.getElementById("dlv-date")?.value;
+  const company=document.getElementById("dlv-company")?.value?.trim();
+  if(!date||!company){alert("거래일과 거래처는 필수입니다.");return;}
+  const editId=document.getElementById("dlv-edit-id")?.value;
+  const entry={
+    id:editId||"dlv_"+Date.now(), date, company,
+    item:document.getElementById("dlv-item")?.value||"",
+    qty:document.getElementById("dlv-qty")?.value||"",
+    supply:Number(document.getElementById("dlv-supply")?.value||0),
+    tax:Number(document.getElementById("dlv-tax")?.value||0),
+    total:Number(document.getElementById("dlv-total")?.value||0),
+    po:document.getElementById("dlv-po")?.value||"",
+    pjcode:document.getElementById("dlv-pjcode")?.value||"",
+    note:document.getElementById("dlv-note")?.value||"",
+    fileUrl:document.getElementById("dlv-file-url")?.value||"",
+    createdAt:new Date().toISOString(),
+  };
+  if(editId){const idx=_dlvData.findIndex(x=>x.id===editId);if(idx>=0)_dlvData[idx]=entry;else _dlvData.unshift(entry);}
+  else _dlvData.unshift(entry);
+  try{await saveDeliveryToSP();renderDeliveryDB();document.getElementById("dlvModal").style.display="none";alert("✅ 거래명세서 저장 완료!");}
+  catch(e){alert("저장 실패: "+e.message);}
+}
+
+async function saveTaxEntry() {
+  const date=document.getElementById("tax-date")?.value;
+  const company=document.getElementById("tax-company")?.value?.trim();
+  if(!date||!company){alert("작성일과 공급받는자는 필수입니다.");return;}
+  const editId=document.getElementById("tax-edit-id")?.value;
+  const entry={
+    id:editId||"tax_"+Date.now(), date, company,
+    item:document.getElementById("tax-item")?.value||"",
+    supply:Number(document.getElementById("tax-supply")?.value||0),
+    vat:Number(document.getElementById("tax-vat")?.value||0),
+    total:Number(document.getElementById("tax-total")?.value||0),
+    approval:document.getElementById("tax-approval")?.value||"",
+    mgmt:document.getElementById("tax-mgmt")?.value||"",
+    note:document.getElementById("tax-note")?.value||"",
+    fileUrl:document.getElementById("tax-file-url")?.value||"",
+    createdAt:new Date().toISOString(),
+  };
+  if(editId){const idx=_taxData.findIndex(x=>x.id===editId);if(idx>=0)_taxData[idx]=entry;else _taxData.unshift(entry);}
+  else _taxData.unshift(entry);
+  try{await saveTaxToSP();renderTaxDB();document.getElementById("taxModal").style.display="none";alert("✅ 세금계산서 저장 완료!");}
+  catch(e){alert("저장 실패: "+e.message);}
+}
+
+function deleteDelivery(id){
+  if(!confirm("이 거래명세서를 삭제할까요?")) return;
+  _dlvData=_dlvData.filter(x=>x.id!==id);
+  saveDeliveryToSP().then(()=>renderDeliveryDB());
+}
+function deleteTax(id){
+  if(!confirm("이 세금계산서를 삭제할까요?")) return;
+  _taxData=_taxData.filter(x=>x.id!==id);
+  saveTaxToSP().then(()=>renderTaxDB());
+}
 </script>
+
 </body>
 </html>
