@@ -4657,7 +4657,7 @@ async function saveExhEvent() {
   ].join("\n"));
 }
 
-// Teams 그룹 캘린더에 이벤트 생성
+// Teams 그룹 캘린더에 이벤트 생성 (영업활동과 동일한 dateTime 방식)
 async function createTeamsCalEvent(evt) {
   const gid = await findTeamsGroup();
   if(!gid) throw new Error("Teams 그룹을 찾을 수 없음 (futresales@enjet.co.kr)");
@@ -4668,40 +4668,33 @@ async function createTeamsCalEvent(evt) {
     : "https://graph.microsoft.com/v1.0/groups/"+gid+"/events";
   const method = evt.teamsEventId ? "PATCH" : "POST";
 
-  const endDate = evt.end||evt.start;
-  const endDatePlusOne = (()=>{
-    const d=new Date(endDate+"T00:00:00"); d.setDate(d.getDate()+1);
-    return d.toISOString().split("T")[0];
-  })();
+  // end >= start 보장
+  const startDate = evt.start;
+  let endDate = evt.end || evt.start;
+  if(endDate < startDate) endDate = startDate;
 
-  // allDay 이벤트: date 형식만 사용 (timeZone 불가)
+  // 영업활동과 동일하게 dateTime 방식 사용 (isAllDay:false)
+  // allDay + date 방식은 그룹 캘린더에서 400 에러 발생
   const body = {
     subject: evt.name.startsWith("[마케팅]")||evt.name.startsWith("[전시회]")
               ? evt.name : "[마케팅] "+evt.name,
-    start: { date: evt.start },
-    end:   { date: endDatePlusOne },
-    isAllDay: true,
+    start: { dateTime: startDate+"T00:00:00", timeZone: "Asia/Seoul" },
+    end:   { dateTime: endDate+"T23:59:00",   timeZone: "Asia/Seoul" },
+    isAllDay: false,
     location: { displayName: [evt.venue, evt.city, evt.country].filter(Boolean).join(", ")||"" },
     body: {
       contentType: "HTML",
       content: `<b>마케팅 활동: ${evt.name}</b><br>
 구분: ${evt.region||"-"} | 유형: ${evt.type||"-"}<br>
 장소: ${[evt.venue,evt.city,evt.country].filter(Boolean).join(", ")||"-"}<br>
-담당자: ${evt.manager||"-"}<br>상태: ${evt.status||"-"}<br>
-비고: ${evt.note||""}<br><br><i>ENJET 영업 대시보드에서 등록됨</i>`
+담당자: ${evt.manager||"-"} ${evt.managerEmail?"("+evt.managerEmail+")":""}<br>
+상태: ${evt.status||"-"}<br>비고: ${evt.note||""}<br><br>
+<i>ENJET 영업 대시보드에서 등록됨</i>`
     },
     categories: [evt.region==="국내" ? "국내전시회" : "해외전시회"],
   };
 
-  // 유효한 이메일(@ 포함)만 attendees에 추가 - 잘못된 이메일은 400 에러 유발
-  if(evt.managerEmail && evt.managerEmail.includes("@")) {
-    body.attendees = [{
-      emailAddress:{ address:evt.managerEmail, name:evt.manager||evt.managerEmail },
-      type:"required"
-    }];
-  }
-
-  console.log(`📅 Teams 캘린더 ${method}:`, url.split("/").pop(), JSON.stringify(body).substring(0,200));
+  console.log(`📅 Teams 캘린더 ${method}: ${startDate}~${endDate}`, body.subject);
 
   const r = await fetch(url, {
     method,
@@ -4712,10 +4705,9 @@ async function createTeamsCalEvent(evt) {
   if(!r.ok) {
     const errBody = await r.json().catch(()=>({error:{message:r.statusText}}));
     const msg = errBody.error?.message || r.statusText;
-    console.error(`Teams 캘린더 ${method} 실패 (${r.status}):`, msg, '\n요청 body:', JSON.stringify(body));
-    if(r.status===403) throw new Error(`권한 부족 (403) — Azure AD에서 Calendars.ReadWrite 관리자 동의 필요\n${msg}`);
-    if(r.status===400) throw new Error(`요청 형식 오류 (400): ${msg}`);
-    if(r.status===404) throw new Error(`그룹/이벤트 없음 (404): ${msg}`);
+    console.error(`Teams 캘린더 ${method} 실패 (${r.status}):`, msg);
+    if(r.status===403) throw new Error(`권한 부족 (403) — Calendars.ReadWrite 관리자 동의 필요`);
+    if(r.status===400) throw new Error(`요청 오류 (400): ${msg}`);
     throw new Error(`(${r.status}) ${msg}`);
   }
 
