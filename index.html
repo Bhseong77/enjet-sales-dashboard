@@ -2906,7 +2906,7 @@ async function login() {
 function logout() { msal_.logoutPopup({account:acct}); acct=null; document.getElementById("lm").classList.remove("hidden"); document.getElementById("ml").style.display="none"; }
 function onOK() {
   document.getElementById("lm").classList.add("hidden"); document.getElementById("ml").style.display="flex";
-  document.getElementById("aus").className="aus ok"; document.getElementById("aus").textContent="● "+(acct.name||acct.username);
+  document.getElementById("aus").className="aus ok"; {const _e1=document.getElementById("aus");if(_e1) _e1.textContent="● "+(acct.name||acct.username);}
   document.getElementById("btnLogout").style.display="inline-block"; document.getElementById("btnRefresh").style.display="inline-block";
   initCharts(); syncAll();
   // 🔄 사이드바 배지 갱신용 - 백그라운드로 회의록 DB 로드
@@ -4427,17 +4427,17 @@ ${transcript.substring(0, 10000)}${transcript.length > 10000 ? "\n...(이하 생
 // UI 헬퍼
 function showProgress(pct, txt) {
   const _pb=document.getElementById("progressBox"); if(_pb) _pb.style.display="block";
-  document.getElementById("progressTxt").textContent = txt;
+  {const _e2=document.getElementById("progressTxt");if(_e2) _e2.textContent=txt;}
   const _pbar=document.getElementById("progressBar"); if(_pbar) _pbar.style.width=pct+"%";
-  document.getElementById("mtg-status").textContent = txt;
+  {const _e3=document.getElementById("mtg-status");if(_e3) _e3.textContent=txt;}
 }
 function hideProgress() {
   const _pb2=document.getElementById("progressBox"); if(_pb2) _pb2.style.display="none";
-  document.getElementById("mtg-status").textContent = "AI 요약 완료";
+  {const _e4=document.getElementById("mtg-status");if(_e4) _e4.textContent="AI 요약 완료";}
 }
 function showSummary(text) {
   const _sb2=document.getElementById("summaryBox"); if(_sb2) _sb2.style.display="block";
-  document.getElementById("summaryView").textContent = text;
+  {const _e5=document.getElementById("summaryView");if(_e5) _e5.textContent=text;}
   document.getElementById("summaryEdit").value = text;
 }
 function editSummary() {
@@ -4470,14 +4470,14 @@ async function saveMeeting() {
   };
 
   try {
-    document.getElementById("mtg-status").textContent = "💾 SharePoint 저장 중...";
+    {const _e6=document.getElementById("mtg-status");if(_e6) _e6.textContent="💾 SharePoint 저장 중...";}
     await saveSPFile(MTG_FOLDER, fileName, JSON.stringify(data, null, 2));
     alert("✅ SharePoint에 저장됐어요!\n" + MTG_FOLDER + "/" + fileName);
-    document.getElementById("mtg-status").textContent = "✅ 저장 완료";
+    {const _e7=document.getElementById("mtg-status");if(_e7) _e7.textContent="✅ 저장 완료";}
     await loadMeetings();
   } catch(e) {
     alert("저장 실패: " + e.message);
-    document.getElementById("mtg-status").textContent = "❌ 저장 실패";
+    {const _e8=document.getElementById("mtg-status");if(_e8) _e8.textContent="❌ 저장 실패";}
   }
 }
 
@@ -5480,7 +5480,7 @@ function openExhModal(evt) {
   if(evt && typeof evt === "object" && evt.id) {
     // 수정 모드
     exhEditIdx = exhSchedule.findIndex(e=>e.id===evt.id);
-    document.getElementById("exhModalTitle").textContent = "전시회 수정";
+    {const _e9=document.getElementById("exhModalTitle");if(_e9) _e9.textContent="전시회 수정";}
     document.getElementById("exh-f-name").value = evt.name||"";
     document.getElementById("exh-f-start").value = evt.start||"";
     document.getElementById("exh-f-end").value = evt.end||"";
@@ -5496,7 +5496,7 @@ function openExhModal(evt) {
   } else {
     // 신규
     exhEditIdx = -1;
-    document.getElementById("exhModalTitle").textContent = "전시회 추가";
+    {const _e10=document.getElementById("exhModalTitle");if(_e10) _e10.textContent="전시회 추가";}
     ["name","country","city","venue","manager","manager-email","note"].forEach(f=>document.getElementById("exh-f-"+f).value="");
     document.getElementById("exh-f-start").value = "";
     document.getElementById("exh-f-end").value = "";
@@ -6630,7 +6630,7 @@ async function openSLSubfolderModal(actId) {
   _slSubActId = actId;
   const act = slData.find(x=>x.id===actId);
   if(!act) return;
-  document.getElementById("slSubfolderActName").textContent = act.company + (act.pjcode ? " · "+act.pjcode : "");
+  {const _e11=document.getElementById("slSubfolderActName");if(_e11) _e11.textContent=act.company + (act.pjcode ? " · "+act.pjcode : "");}
   document.getElementById("slNewSubfolder").value = "";
   document.getElementById("slSubfolderModal").style.display = "flex";
 
@@ -7335,8 +7335,8 @@ async function openSLMinutesModal(actId) {
   if(!act) return;
 
   const modal = document.getElementById("slMinutesModal");
-  document.getElementById("slMinutesTitle").textContent = "📝 회의록 - "+act.company;
-  document.getElementById("slMinutesSubtitle").textContent = (act.pjcode||"신규")+" · "+act.status;
+  {const _e12=document.getElementById("slMinutesTitle");if(_e12) _e12.textContent="📝 회의록 - "+act.company;}
+  {const _e13=document.getElementById("slMinutesSubtitle");if(_e13) _e13.textContent=(act.pjcode||"신규")+" · "+act.status;}
   modal.style.display = "flex";
   switchMtgTab(1); // 항상 파일목록 탭으로 시작
 
@@ -11006,7 +11006,7 @@ function openCustMgrPickerForQuote() {
   _custMgrPickerCtx = { actId: "_quote_temp", company, _mode:"quote" };
   const modal = document.getElementById("custMgrPickerModal");
   if(!modal) return;
-  document.getElementById("custMgrPickerSubtitle").textContent = company || "담당자를 검색하세요";
+  {const _e14=document.getElementById("custMgrPickerSubtitle");if(_e14) _e14.textContent=company || "담당자를 검색하세요";}
   const curBox = document.getElementById("custMgrCurrentBox");
   if(curBox) curBox.style.display = "none";
   document.getElementById("custMgrSearchInput").value = company;
@@ -11644,7 +11644,7 @@ function openSLModal(act) {
   document.getElementById("slModal").style.display="flex";
   if(act) {
     slEditId=act.id;
-    document.getElementById("slModalTitle").textContent="영업활동 수정";
+    {const _e15=document.getElementById("slModalTitle");if(_e15) _e15.textContent="영업활동 수정";}
     document.getElementById("sl-f-company").value=act.company||"";
     // 프로젝트코드
     document.getElementById("sl-f-pjcode").value=act.pjcode||"";
@@ -11662,7 +11662,7 @@ function openSLModal(act) {
     const _et=document.getElementById("sl-f-etime"); if(_et) _et.value=act.endTime||"18:00";
   } else {
     slEditId=null;
-    document.getElementById("slModalTitle").textContent="영업활동 추가";
+    {const _e16=document.getElementById("slModalTitle");if(_e16) _e16.textContent="영업활동 추가";}
     ["sl-f-company","sl-f-pjcode","sl-f-custmgr","sl-f-salesmgr","sl-f-note"].forEach(id=>{
       const el=document.getElementById(id); if(el) el.value="";
     });
@@ -11727,7 +11727,7 @@ function openPjCodePickerForModal() {
   _pjCodePickerCtx = { actId: "_modal_temp", company };
   const modal = document.getElementById("pjCodePickerModal");
   if(!modal) return;
-  document.getElementById("pjCodePickerSubtitle").textContent = company || "고객사를 먼저 입력해주세요";
+  {const _e17=document.getElementById("pjCodePickerSubtitle");if(_e17) _e17.textContent=company || "고객사를 먼저 입력해주세요";}
   const cur = document.getElementById("sl-f-pjcode")?.value || "";
   const curBox = document.getElementById("pjCodeCurrentBox");
   const curVal = document.getElementById("pjCodeCurrentValue");
@@ -11748,7 +11748,7 @@ function openCustMgrPickerForModal() {
   _custMgrPickerCtx = { actId: "_modal_temp", company };
   const modal = document.getElementById("custMgrPickerModal");
   if(!modal) return;
-  document.getElementById("custMgrPickerSubtitle").textContent = company || "담당자를 검색하세요";
+  {const _e18=document.getElementById("custMgrPickerSubtitle");if(_e18) _e18.textContent=company || "담당자를 검색하세요";}
   const cur = document.getElementById("sl-f-custmgr")?.value || "";
   const curBox = document.getElementById("custMgrCurrentBox");
   if(curBox) curBox.style.display = cur ? "flex" : "none";
