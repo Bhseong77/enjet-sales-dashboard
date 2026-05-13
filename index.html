@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="version" content="v25-20260513">
 <title>ENJET | 영업 대시보드</title>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.10.0/lib/msal-browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -4243,19 +4247,22 @@ async function whisperSTT(file, apiKey) {
   // Whisper 지원 포맷 확인
   const WHISPER_OK = ["flac","m4a","mp3","mp4","mpeg","mpga","oga","ogg","wav","webm"];
   const ext = file.name.split(".").pop().toLowerCase();
+  // 갤럭시 녹음 파일: 확장자는 m4a지만 MIME이 audio/amr, audio/3gpp 등인 경우
+  const BAD_MIME = ["audio/amr","audio/3gpp","audio/3gpp2","audio/aac","audio/x-aac","audio/x-m4a"];
+  const isBadMime = BAD_MIME.some(m => file.type.startsWith(m));
   
   let uploadFile = file;
   let uploadName = file.name;
 
-  if(!WHISPER_OK.includes(ext)) {
-    // 지원 안 되는 포맷 (갤럭시 AMR 등) → WebAudio로 WAV 변환
-    slMtgShowProgress(15, "🔄 오디오 포맷 변환 중... (갤럭시 녹음 파일)");
+  if(!WHISPER_OK.includes(ext) || isBadMime) {
+    // 지원 안 되는 포맷 또는 갤럭시 AMR → WebAudio로 WAV 변환
+    slMtgShowProgress(15, `🔄 오디오 변환 중... (${file.type||ext} → WAV, 잠시 기다려주세요)`);
     try {
       uploadFile = await convertToWav(file);
       uploadName = file.name.replace(/\.[^.]+$/, ".wav");
+      console.log("✅ WAV 변환 완료:", uploadName, "원본 MIME:", file.type);
     } catch(convErr) {
       console.warn("WAV 변환 실패, 원본으로 시도:", convErr.message);
-      // 변환 실패해도 원본으로 시도
     }
   }
 
