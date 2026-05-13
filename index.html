@@ -3858,16 +3858,7 @@ function filterExh() {
     if(q && ![r.company,r.name,r.product,r.country].some(v=>v.toLowerCase().includes(q))) return false;
     return true;
   });
-  renderExhTable(exhFiltered);
-}
-
-function renderExhTable(data) {
-  const STATUS_STYLE = {
-    "팔로업필요":"dn","팔로업 필요":"dn",
-    "진행중":"info",
-    "거래연결":"up","거래 연결":"up",
-    "종료":"gray",
-  };
+  renderExhContactTable(exhFiltered);
   $("exh-count", data.length+"건 표시");
   document.getElementById("exhBody").innerHTML = data.length
     ? data.map(r=>`<tr>
@@ -4407,18 +4398,15 @@ async function saveExhToSP() {
 
 // 렌더링
 function filterExhSched() {
-  const yr = document.getElementById("exhYearFilter").value;
-  const tp = document.getElementById("exhTypeFilter").value;
-  let d = exhSchedule;
-  if(yr) d = d.filter(e=>e.start.startsWith(yr));
-  if(tp) d = d.filter(e=>e.region===tp);
-  renderExhTimeline(d);
+  // 필터 UI가 없어졌으므로 전체 데이터로 처리
+  const d = exhSchedule || [];
   renderExhTable(d);
   updateExhKPI(d);
 }
 
 function renderExhSched() {
   filterExhSched();
+  renderExhCalendar(); // 캘린더 뷰도 함께 갱신
 }
 
 function updateExhKPI(data) {
@@ -4491,98 +4479,57 @@ function getExhFolderName(e) {
 }
 
 function renderExhTable(data) {
+  data = data || [];
+  const body = document.getElementById("exhSchedBody");
+  if(!body) return;
   const STATUS_BADGE = {준비중:"info",진행중:"warn",완료:"up",취소:"dn",결과파일요청:"dn"};
   const TYPE_ICON = {부스참가:"🏪",방문참관:"👀",온라인:"💻"};
-  document.getElementById("exhSchedBody").innerHTML = data.length
-    ? data.map((e,i)=>{
-        const folderName = getExhFolderName(e);
-        const prepFiles = (e.prepFiles||[]);
-        const resultFiles = (e.resultFiles||[]);
-        return `<tr>
-          <td><span class="tn" style="font-size:15px">${e.name}</span>${e.source==="teams"?'<span style="font-size:14px;color:var(--p);margin-left:4px">Teams</span>':''}</td>
-          <td><span class="badge ${e.region==="국내"?"info":"warn"}" style="font-size:14px">${e.region==="국내"?"🇰🇷":"🌏"} ${e.region}</span></td>
-          <td style="font-size:15px">${TYPE_ICON[e.type]||""} ${e.type}</td>
-          <td style="font-size:14px;color:var(--t3)">${e.start||"-"}</td>
-          <td style="font-size:14px;color:var(--t3)">${e.end||"-"}</td>
-          <td style="font-size:15px">${[e.country,e.city].filter(Boolean).join(" / ")||"-"}</td>
-          <td style="font-size:14px;color:var(--t2)">${e.venue||"-"}</td>
-          <td>
-            <input value="${(e.manager||"").replace(/"/g,"&quot;")}" placeholder="담당자"
-              onkeydown="if(event.key==='Enter')this.blur()"
-              style="width:100%;padding:3px 6px;border:1px solid transparent;border-radius:4px;font-size:15px;font-family:var(--s);background:transparent;cursor:text;min-width:80px"
-              onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
-              onblur="this.style.borderColor='transparent';this.style.background='transparent';updateExhField('${e.id}','manager',this.value)">
-          </td>
-          <td>${(()=>{
-            const today = new Date().toISOString().split("T")[0];
-            const overdue = e.end && e.end < today;
-            const noResult = !(e.resultFiles||[]).length;
-            const dispStatus = (overdue && noResult && e.status!=="완료" && e.status!=="취소")
-              ? "결과파일요청" : (e.status||"준비중");
-            const badgeCls = dispStatus==="결과파일요청" ? "dn" : (STATUS_BADGE[dispStatus]||"gray");
-            return `<span class="badge ${badgeCls}" style="${dispStatus==="결과파일요청"?"animation:pulse 2s infinite":""}">${dispStatus}</span>`;
-          })()}</td>
-          <td style="text-align:center">
-            <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
-              ${prepFiles.length>0
-                ? `<button onclick="openExhFolder('${e.id}','prep')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
-                    📂 ${prepFiles.length}개 보기
-                  </button>
-                  <button onclick="uploadExhFile('${e.id}','prep')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer;white-space:nowrap">
-                    ⬆ 추가
-                  </button>`
-                : `<button onclick="uploadExhFile('${e.id}','prep')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
-                    ⬆ 업로드
-                  </button>`
-              }
-            </div>
-          </td>
-          <td style="text-align:center">
-            <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
-              ${resultFiles.length>0
-                ? `<button onclick="openExhFolder('${e.id}','result')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
-                    📂 ${resultFiles.length}개 보기
-                  </button>
-                  <button onclick="uploadExhFile('${e.id}','result')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer;white-space:nowrap">
-                    ⬆ 추가
-                  </button>`
-                : `<button onclick="uploadExhFile('${e.id}','result')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--a);background:var(--ad);color:var(--a);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
-                    ⬆ 업로드
-                  </button>`
-              }
-            </div>
-          </td>
-          <td style="text-align:center">
-            <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
-              ${(e.customerFiles||[]).length>0
-                ? `<button onclick="openExhFolder('${e.id}','customer')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
-                    🎪 ${(e.customerFiles||[]).length}개
-                  </button>
-                  <button onclick="uploadExhFile('${e.id}','customer')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:14px;cursor:pointer;white-space:nowrap">
-                    ⬆ 추가
-                  </button>`
-                : `<button onclick="uploadExhFile('${e.id}','customer')"
-                    style="padding:2px 8px;border-radius:5px;border:1px solid var(--pu);background:var(--pud,#f5f3ff);color:var(--pu);font-size:14px;cursor:pointer;font-weight:700;white-space:nowrap">
-                    ⬆ 업로드
-                  </button>`
-              }
-            </div>
-          </td>
-          <td>
-            <span style="font-size:14px;color:var(--p);cursor:pointer" onclick="openExhModal(exhSchedule.find(x=>x.id==='${e.id}'))">✏️</span>
-            <span style="font-size:14px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteExh('${e.id}')">🗑️</span>
-          </td>
-        </tr>`;
-      }).join("")
-    : `<tr><td colspan="13"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div></td></tr>`;
+  const today = new Date().toISOString().split("T")[0];
+
+  if(!data.length) {
+    body.innerHTML = `<tr><td colspan="13"><div class="empty"><div class="ei">📅</div><div class="et">전시회 일정이 없습니다</div><div style="margin-top:10px"><button onclick="openExhModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 일정 추가</button></div></div></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = data.map(e => {
+    const prepFiles     = e.prepFiles     || [];
+    const resultFiles   = e.resultFiles   || [];
+    const customerFiles = e.customerFiles || [];
+    const overdue = e.end && e.end < today;
+    const noResult = !resultFiles.length;
+    const dispStatus = (overdue && noResult && e.status!=="완료" && e.status!=="취소") ? "결과파일요청" : (e.status||"준비중");
+    const badgeCls = STATUS_BADGE[dispStatus]||"gray";
+
+    const fileBtn = (id, type, files, label, color) => files.length > 0
+      ? `<button onclick="openExhFolder('${id}','${type}')" style="padding:2px 8px;border-radius:5px;border:1px solid var(--${color});background:var(--${color}d,var(--gd));color:var(--${color});font-size:13px;cursor:pointer;font-weight:700;white-space:nowrap">📂 ${files.length}개</button>`
+      : `<button onclick="uploadExhFile('${id}','${type}')" style="padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:13px;cursor:pointer;white-space:nowrap">⬆ ${label}</button>`;
+
+    return `<tr>
+      <td><span class="tn" style="font-size:15px">${e.name||"-"}</span></td>
+      <td><span class="badge ${e.region==="국내"?"info":"warn"}" style="font-size:13px">${e.region==="국내"?"🇰🇷":"🌏"} ${e.region||"-"}</span></td>
+      <td style="font-size:14px">${TYPE_ICON[e.type]||""} ${e.type||"-"}</td>
+      <td style="font-size:13px;color:var(--t3)">${e.start||"-"}</td>
+      <td style="font-size:13px;color:var(--t3)">${e.end||"-"}</td>
+      <td style="font-size:14px">${[e.country,e.city].filter(Boolean).join(" / ")||"-"}</td>
+      <td style="font-size:13px;color:var(--t2)">${e.venue||"-"}</td>
+      <td><input value="${(e.manager||"").replace(/"/g,"&quot;")}" placeholder="담당자"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        style="width:100%;padding:3px 6px;border:1px solid transparent;border-radius:4px;font-size:14px;font-family:var(--s);background:transparent;cursor:text;min-width:70px"
+        onfocus="this.style.borderColor='var(--p)';this.style.background='#fff'"
+        onblur="this.style.borderColor='transparent';this.style.background='transparent';updateExhField('${e.id}','manager',this.value)"></td>
+      <td><select onchange="updateExhField('${e.id}','status',this.value)"
+        style="padding:2px 5px;border-radius:5px;border:1px solid var(--border2);font-size:13px;font-family:var(--s);background:#fff">
+        ${["준비중","진행중","완료","취소"].map(s=>`<option${s===dispStatus?" selected":""}>${s}</option>`).join("")}
+      </select></td>
+      <td style="text-align:center">${fileBtn(e.id,"prep",prepFiles,"준비파일","g")}</td>
+      <td style="text-align:center">${fileBtn(e.id,"result",resultFiles,"결과파일","a")}</td>
+      <td style="text-align:center">${fileBtn(e.id,"customer",customerFiles,"고객파일","pu")}</td>
+      <td style="white-space:nowrap">
+        <span style="font-size:14px;color:var(--p);cursor:pointer" onclick="openExhModal(exhSchedule.find(x=>x.id==='${e.id}'))">✏️</span>
+        <span style="font-size:14px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteExh('${e.id}')">🗑️</span>
+      </td>
+    </tr>`;
+  }).join("");
 }
 
 // 모달 열기/닫기
