@@ -361,7 +361,6 @@
       <div class="ni" onclick="go('customer',this)">🏭 고객사 DB <span class="nb nbg" id="badge-ct">-</span></div>
       <div class="sb-sec">마케팅</div>
       <div class="ni" onclick="go('marketing',this)">📣 마케팅 활동</div>
-      <div class="ni" onclick="go('mkt-meeting',this)">📝 미팅 로그 (마케팅)</div>
       <div class="ni" onclick="go('exh-prep-db',this)">📁 자료 DB <span class="nb nbg" id="badge-exhprep">0</span></div>
       <div class="ni" onclick="go('exh-result-db',this)">📊 전시회결과 DB <span class="nb nbg" id="badge-exhresult">0</span></div>
       <div class="ni" onclick="go('exhibition',this)">🎪 전시회고객 DB <span class="nb nbg" id="badge-exh">-</span></div>
@@ -2367,20 +2366,6 @@
       </div>
     </div>
 
-    <div class="page" id="tab-mkt-meeting">
-      <div class="card">
-        <div class="ch"><div class="ct"><div class="ci c2">📝</div>미팅 로그 (마케팅)</div><span style="font-size:14px;color:var(--t3)" id="mkt-mtg-upd">-</span></div>
-        <div class="cb" style="padding:10px 14px">
-          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-            <input class="si" type="text" placeholder="🔍 거래처/제목 검색..." id="mktMtgSrch" oninput="filterMtgByType('marketing')" style="flex:1;min-width:160px">
-            <button onclick="go('meeting-upload',null)" style="padding:5px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)" onclick="openUploadForType('marketing')">+ 새 회의록</button>
-          </div>
-          <div id="mktMtgList"><div class="sw"><div class="spr"></div></div></div>
-        </div>
-        <div class="cn">※ 마케팅 유형 회의록만 표시 · 회의록 업로드는 미팅 로그(영업) 탭 이용</div>
-      </div>
-    </div>
-
     <!-- 전시회 Contact -->
     <div class="page" id="tab-exhibition">
       <div class="kr">
@@ -2470,7 +2455,7 @@
   <div class="mob-more-item" onclick="go('sales-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>회의록 DB</div>
   <div class="mob-more-item" onclick="go('marketing',this);closeMobMore()"><span class="mob-icon">📣</span>마케팅</div>
   <div class="mob-more-item" onclick="go('cashflow',this);closeMobMore()"><span class="mob-icon">💰</span>현금흐름</div>
-  <div class="mob-more-item" onclick="go('mkt-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>마케팅미팅</div>
+
   <div class="mob-more-item" onclick="go('exh-prep-db',this);closeMobMore()"><span class="mob-icon">📁</span>자료 DB</div>
   <div class="mob-more-item" onclick="go('exh-result-db',this);closeMobMore()"><span class="mob-icon">📊</span>전시회결과 DB</div>
   <div class="mob-more-item" onclick="go('exhibition',this);closeMobMore()"><span class="mob-icon">🎪</span>전시회고객 DB</div>
@@ -2610,15 +2595,16 @@ async function syncAll() {
 async function loadSales() {
   try {
     const {wb,name}=await readSP(PX_SALES,{cellDates:true});
-    const sh=wb.Sheets["매출_세금계산서"];
-    if(!sh) throw new Error("매출_세금계산서 시트 없음");
+    // 시트명 우선순위: 매출_전체 → 매출_세금계산서 (구버전 호환)
+    const sh = wb.Sheets["매출_전체"] || wb.Sheets["매출_세금계산서"];
+    if(!sh) throw new Error("매출 시트 없음 (매출_전체 또는 매출_세금계산서)");
     // range:1 → 1행(타이틀) 스킵, 2행이 헤더
     const raw=XLSX.utils.sheet_to_json(sh,{defval:"",range:1});
     SD=raw.filter(r=>{
       const co=r["거래처"]||"";
       return co&&String(co).trim()&&String(co).trim()!=="거래처";
     }).map(r=>({
-      날짜: r["수익인식일"]||"",
+      날짜: r["수익인식일"]||r["매출채권인식일"]||"",
       연도: N(r["연도"]),
       월:   N(r["월"]),
       거래처: String(r["거래처"]||""),
@@ -2627,9 +2613,10 @@ async function loadSales() {
       품목:   String(r["품목"]||""),
       공급:   N(r["공급가액"]),
       입금:   N(r["입금액"]),
-      잔금:   N(r["잔액"]),
+      // 현재기준잔액 우선(정확한 미수금), 없으면 잔액 fallback
+      잔금:   N(r["현재기준잔액"]||r["잔액"]),
     }));
-    console.log("✅ 매출 로드:", SD.length, "건 ←", name);
+    console.log("✅ 매출 로드:", SD.length, "건 ←", name, "| 미수합:", SD.reduce((s,r)=>s+r.잔금,0).toLocaleString()+"원");
     updateSalesAll();
   } catch(e) {
     console.error("❌ 매출 실패:", e.message);
@@ -3854,17 +3841,6 @@ async function loadMeetings(tabId) {
     $("mtg-lbl", salesMtgs.length + "건");
     $("badge-sm", salesMtgs.length);
     if(listEl) renderMeetings(salesMtgs);
-
-    // 마케팅 미팅 목록
-    const mktEl = document.getElementById("mktMtgList");
-    if(mktEl) {
-      if(!mktMtgs.length) {
-        mktEl.innerHTML='<div class="empty"><div class="ei">📝</div><div class="et">마케팅 미팅 로그 없음</div></div>';
-      } else {
-        renderMeetingsToEl(mktMtgs, mktEl, mktMtgs.length);
-      }
-    }
-    $("mkt-mtg-upd","동기화: "+new Date().toLocaleTimeString("ko-KR"));
   } catch(e) {
     console.error("미팅 로드 실패:", e.message);
     if(listEl) listEl.innerHTML = '<div class="empty"><div class="ei">📂</div><div class="et">저장된 회의록 없음</div><div style="font-size:15px;color:var(--t3);margin-top:4px">회의록 요약 후 SharePoint 저장하면 여기 표시돼요</div></div>';
@@ -3878,21 +3854,7 @@ function filterMtg() {
   const f = salesMtgs.filter(m => !q || [m.title,m.company,m.attendees].some(v=>String(v||"").toLowerCase().includes(q)));
   renderMeetings(f);
 }
-function filterMtgByType(tabType) {
-  const MKT_TYPES = ["전시회","마케팅미팅","온라인","기타마케팅"];
-  const q = document.getElementById("mktMtgSrch").value.toLowerCase();
-  const mktMtgs = meetings.filter(m=>MKT_TYPES.includes(m.type||""));
-  const f = mktMtgs.filter(m => !q || [m.title,m.company,m.attendees].some(v=>String(v||"").toLowerCase().includes(q)));
-  const el = document.getElementById("mktMtgList");
-  if(el) renderMeetingsToEl(f, el, f.length);
-}
-function renderMeetingsToEl(data, el, total) {
-  if(!data.length){ el.innerHTML='<div class="empty"><div class="ei">🔍</div><div class="et">회의록 없음</div></div>'; return; }
-  const TYPE_ICON = {기술미팅:"⚙️",영업미팅:"💼",내부회의:"🏢",계약협의:"📝",고객방문:"🤝",전시회:"🎪",마케팅미팅:"📣"};
-  el.innerHTML=`<table class="tbl"><thead><tr><th>일자</th><th>회의명</th><th>거래처</th><th>유형</th><th>참석자</th><th>저장일시</th><th></th></tr></thead><tbody>${
-    data.map((m,i)=>`<tr style="cursor:pointer" onclick="openMtg(${meetings.indexOf(m)})"><td style="font-size:14px;color:var(--t3)">${m.date||"-"}</td><td><span class="tn" style="font-size:15px">${(m.title||"무제").substring(0,20)}</span></td><td style="font-size:15px">${(m.company||"-").substring(0,14)}</td><td><span class="badge info" style="font-size:14px">${TYPE_ICON[m.type]||"📝"} ${m.type||"-"}</span></td><td style="font-size:14px;color:var(--t2)">${(m.attendees||"-").substring(0,14)}</td><td style="font-size:14px;color:var(--t3)">${m.savedAt?m.savedAt.substring(0,16).replace("T"," "):"-"}</td><td><span style="font-size:14px;color:var(--p)">열기 →</span></td></tr>`).join("")
-  }</tbody></table>`;
-}
+
 
 function renderMeetings(data) {
   const listEl = document.getElementById("mtgList");
@@ -10422,7 +10384,7 @@ async function deleteSLActivity(id) {
 // 영업활동 탭 자동로드 → 통합 go 함수에서 처리
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB",marketing:"📣 마케팅 활동","mkt-meeting":"📝 미팅 로그 (마케팅)","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB",marketing:"📣 마케팅 활동","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
 
 // ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
