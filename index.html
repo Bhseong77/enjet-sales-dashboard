@@ -1265,21 +1265,13 @@
               <div style="font-size:15px;font-weight:700;color:var(--p);margin-bottom:10px">🤖 AI 요약 엔진 선택</div>
               <!-- 엔진 선택 -->
               <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-                <!-- 🆕 M365 Copilot 엔진 (최상단 추가) -->
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:10px 16px;border-radius:8px;border:2px solid #1e40af;background:#dbeafe;flex:1;min-width:180px">
-                  <input type="radio" name="slMtgEngine" value="copilot" style="accent-color:#1e40af">
+                  <input type="radio" name="slMtgEngine" value="copilot" checked style="accent-color:#1e40af">
                   <div>
                     <div style="font-size:14px;font-weight:800;color:#1e40af">✨ M365 Copilot
-                      <span style="font-size:11px;background:#1e40af;color:#fff;padding:1px 6px;border-radius:4px;margin-left:4px">구독됨</span>
+                      <span style="font-size:11px;background:#1e40af;color:#fff;padding:1px 6px;border-radius:4px;margin-left:4px">기본</span>
                     </div>
-                    <div style="font-size:11px;color:#1e3a8a">Teams 회의 자동요약 · 액션아이템 · 완전 자동</div>
-                  </div>
-                </label>
-                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:10px 16px;border-radius:8px;border:2px solid var(--g);background:var(--gd)">
-                  <input type="radio" name="slMtgEngine" value="ollama" style="accent-color:var(--g)">
-                  <div>
-                    <div style="font-size:14px;font-weight:700;color:var(--g)">🦙 Ollama <span style="font-size:11px;background:var(--g);color:#fff;padding:1px 6px;border-radius:4px">무료</span></div>
-                    <div style="font-size:11px;color:var(--t3)">로컬 실행 · 데이터 외부 전송 없음</div>
+                    <div style="font-size:11px;color:#1e3a8a">Teams 회의 자동요약 · 텍스트/파일 요약 · GPT 초벌+Copilot 정제</div>
                   </div>
                 </label>
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:10px 16px;border-radius:8px;border:2px solid var(--border2)">
@@ -1291,7 +1283,7 @@
                 </label>
               </div>
 
-              <!-- 🆕 Copilot 엔진: Teams 회의 선택 -->
+              <!-- Copilot 엔진: Teams 회의 선택 -->
               <div id="copilotMeetingRow" style="display:block;padding:12px;background:#eff6ff;border-radius:10px;border:1px solid #bfdbfe;margin-bottom:10px">
                 <div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:8px">✨ Teams 회의에서 AI 요약 불러오기</div>
                 <div style="display:flex;gap:6px;margin-bottom:8px">
@@ -1306,9 +1298,7 @@
                     🔍 조회
                   </button>
                 </div>
-                <!-- 회의 목록 -->
                 <div id="copilotMeetingList" style="max-height:200px;overflow-y:auto;border:1px solid #bfdbfe;border-radius:7px;background:#fff;display:none"></div>
-                <!-- 선택된 회의 -->
                 <div id="copilotSelectedMeeting" style="display:none;margin-top:8px;padding:8px 12px;background:#dcfce7;border-radius:8px;border:1px solid #86efac">
                   <div style="font-size:12px;color:#15803d;font-weight:700">✅ 선택된 회의</div>
                   <div id="copilotSelectedMeetingInfo" style="font-size:13px;color:var(--t);font-weight:600;margin-top:2px"></div>
@@ -1322,19 +1312,7 @@
                 <div style="font-size:11px;color:#6b7280;margin-top:6px">⚠️ Teams 회의 종료 후 최대 4시간 뒤 요약 생성됨. 녹화/녹취 필수.</div>
               </div>
 
-              <!-- Ollama 모델 선택 -->
-              <div id="ollamaModelRow" style="display:none;gap:8px;align-items:center;margin-bottom:10px;padding:10px;background:var(--bg3);border-radius:8px">
-                <span style="font-size:13px;color:var(--t2);white-space:nowrap">🦙 모델</span>
-                <select class="ss" id="slMtgOllamaModel" style="flex:1;font-size:13px">
-                  <option value="llama3.2">llama3.2 (권장 · 설치됨)</option>
-                  <option value="llama3.1">llama3.1</option>
-                  <option value="mistral">mistral</option>
-                  <option value="gemma3">gemma3</option>
-                  <option value="qwen2.5">qwen2.5 (한국어 우수)</option>
-                </select>
-                <span style="font-size:12px;color:var(--g)">✅ localhost:11434</span>
-              </div>
-              <!-- OpenAI 키 -->
+              <!-- OpenAI 키 (openai 선택 시만 표시) -->
               <div id="openaiKeyRow" style="display:none;padding:10px;background:var(--bg3);border-radius:8px;margin-bottom:10px">
                 <div style="display:flex;gap:8px;align-items:center">
                   <span style="font-size:13px;color:var(--t2);white-space:nowrap">🔑 OpenAI Key</span>
@@ -1349,16 +1327,14 @@
                   r.addEventListener("change",()=>{
                     const v = document.querySelector('input[name="slMtgEngine"]:checked')?.value;
                     document.getElementById("copilotMeetingRow").style.display = v==="copilot"?"block":"none";
-                    document.getElementById("ollamaModelRow").style.display = v==="ollama"?"flex":"none";
                     document.getElementById("openaiKeyRow").style.display = v==="openai"?"flex":"none";
                     const hint = document.getElementById("copilotAudioHint");
                     if(hint) hint.style.display = v==="copilot"?"block":"none";
                   });
                 });
               </script>
-              <!-- 오디오 STT는 항상 OpenAI Whisper 필요 -->
               <div style="font-size:12px;color:var(--t3);padding:6px 10px;background:var(--yd);border-radius:6px">
-                ⚠️ 오디오 파일(mp3 등) STT 변환은 OpenAI Whisper API 필요. Copilot 엔진은 텍스트 파일·직접입력도 지원
+                ⚠️ 오디오 파일 STT 변환은 OpenAI Whisper API 필요. Copilot 엔진 선택 시 GPT 초벌+Copilot 정제 2단계 자동 적용
               </div>
             </div>
 
@@ -1728,6 +1704,14 @@
               <textarea class="si" id="mtgdb-content" rows="8"
                 placeholder="회의 내용을 입력하세요.&#10;&#10;[안건]&#10;1. ...&#10;&#10;[주요 내용]&#10;- ...&#10;&#10;[결정 사항]&#10;- ...&#10;&#10;[다음 액션]&#10;- ..."
                 style="width:100%;resize:vertical;line-height:1.7;font-size:14px"></textarea>
+              <!-- AI 요약 버튼 -->
+              <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+                <button onclick="aiSummarizeMtgDBContent()" type="button"
+                  style="padding:7px 14px;border-radius:7px;border:none;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">
+                  ✨ AI 요약 (Copilot+GPT)
+                </button>
+                <div id="mtgdb-ai-status" style="font-size:12px;color:var(--t2);align-self:center;display:none"></div>
+              </div>
             </div>
             <div>
               <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📎 파일 첨부 <span style="color:var(--t3);font-weight:400">(클로바노트 내보내기 등)</span></label>
@@ -7357,16 +7341,12 @@ let _slActionItems = []; // AI 추출 액션아이템 (저장 시 copilotActionI
 
 // ─── AI 요약 엔진 선택 ───
 async function autoSummarize(transcript, meta) {
-  const engine = document.querySelector('input[name="slMtgEngine"]:checked')?.value || "ollama";
+  const engine = document.querySelector('input[name="slMtgEngine"]:checked')?.value || "copilot";
   const key = document.getElementById("slMtgOpenAIKey")?.value.trim() || localStorage.getItem("oai_key") || "";
-
-  // ✨ Copilot 엔진 + OpenAI 키 있으면 → GPT 초벌 → Copilot 정제 (2단계)
-  if(engine === "copilot" && key) {
-    return await twoStageSummarize(transcript, meta, key);
-  }
+  if(engine === "copilot" && key) return await twoStageSummarize(transcript, meta, key);
   if(engine === "copilot") return await claudeSummarize(transcript, meta);
   if(engine === "openai") return await openAISummarize(transcript, meta);
-  return await ollamaSummarize(transcript, meta);
+  return await claudeSummarize(transcript, meta); // fallback → Copilot
 }
 
 // 2단계 요약: GPT 초벌 → Copilot 정제
@@ -7471,6 +7451,27 @@ ${roughSummary}`;
 }
 
 // ─── Ollama (로컬 무료) ───
+// 회의록DB 신규작성 모달에서 AI 요약
+async function aiSummarizeMtgDBContent() {
+  const content = document.getElementById("mtgdb-content")?.value?.trim();
+  if(!content) { alert("회의 내용을 먼저 입력해주세요."); return; }
+  const statusEl = document.getElementById("mtgdb-ai-status");
+  if(statusEl) { statusEl.style.display="block"; statusEl.textContent="✨ AI 요약 중..."; }
+  try {
+    const company = document.getElementById("mtgdb-company")?.value||"";
+    const date = document.getElementById("mtgdb-date")?.value||"";
+    const type = document.getElementById("mtgdb-type")?.value||"영업미팅";
+    const summary = await twoStageSummarize(content, {
+      company, date, type,
+      attendees: "",
+    }, localStorage.getItem("oai_key")||"");
+    document.getElementById("mtgdb-content").value = summary;
+    if(statusEl) { statusEl.textContent="✅ AI 요약 완료! 내용을 검토 후 저장하세요."; statusEl.style.color="var(--g)"; }
+  } catch(e) {
+    if(statusEl) { statusEl.textContent="❌ "+e.message; statusEl.style.color="var(--r)"; }
+  }
+}
+
 async function ollamaSummarize(transcript, meta) {
   const model = document.getElementById("slMtgOllamaModel")?.value || "llama3.2";
   const prompt = buildMtgPrompt(transcript, meta);
