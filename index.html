@@ -552,11 +552,16 @@
 
     <!-- 파이프라인 -->
     <div class="page" id="tab-pipeline">
-      <div class="kr">
-        <div class="kpi c1"><div class="kl">전체 프로젝트</div><div class="kv"><span id="pl-tot">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks">ERP 기준</div></div>
-        <div class="kpi c2"><div class="kl">진행중 (확정+작성)</div><div class="kv"><span id="pl-act">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span id="pl-act-amt">-억</span></div></div>
-        <div class="kpi c3"><div class="kl">완료</div><div class="kv"><span id="pl-don">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
-        <div class="kpi c5"><div class="kl">중단</div><div class="kv"><span id="pl-stp">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+      <div class="kr" style="grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:9px">
+        <div class="kpi c1"><div class="kl">전체 프로젝트</div><div class="kv"><span id="pl-tot">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks">매출자료 기준</div></div>
+        <div class="kpi c2"><div class="kl">🔄 진행</div><div class="kv"><span id="pl-ing">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span id="pl-act-amt">-억</span></div></div>
+        <div class="kpi" style="border-top:3px solid #f59e0b"><div class="kl">💰 잔금</div><div class="kv" style="color:#d97706"><span id="pl-bal">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks">미수금 있음</div></div>
+      </div>
+      <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
+        <div class="kpi c3"><div class="kl">🏁 완료</div><div class="kv"><span id="pl-don">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi" style="border-top:3px solid #7c3aed"><div class="kl">🔬 개발</div><div class="kv" style="color:#7c3aed"><span id="pl-dev">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi" style="border-top:3px solid #0369a1"><div class="kl">🏛️ 국책과제</div><div class="kv" style="color:#0369a1"><span id="pl-gov">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi c5"><div class="kl">⛔ 중단</div><div class="kv"><span id="pl-stp">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
       </div>
 
       <!-- 🆕 프로젝트코드 요청 카드 -->
@@ -3968,9 +3973,13 @@ function updPlKPI() {
   const ingAmt = PD.filter(r=>r.진행구분==="진행").reduce((s,r)=>s+r.원화금액,0);
 
   $("pl-tot",  PD.length);
-  $("pl-act",  ing+bal);
-  $("pl-act-amt", ((ingAmt)/1e8).toFixed(1)+"억");
+  $("pl-ing",  ing);          // 🔄 진행
+  $("pl-bal",  bal);          // 💰 잔금
+  $("pl-act",  ing+bal);      // 하위호환 (뱃지 등)
+  $("pl-act-amt", (ingAmt/1e8).toFixed(1)+"억");
   $("pl-don",  done);
+  $("pl-dev",  dev);
+  $("pl-gov",  gov);
   $("pl-stp",  stp);
   $("badge-pl", ing+bal);
   $("k-proj",  ing+bal);
