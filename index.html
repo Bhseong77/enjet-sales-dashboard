@@ -374,6 +374,8 @@
         <div class="ni sb-sub-item" onclick="go('delivery-db',this)" style="padding-left:22px">🚚 거래명세서 DB <span class="nb nbg" id="badge-dlv">0</span></div>
         <div class="ni sb-sub-item" onclick="go('tax-db',this)" style="padding-left:22px">🧾 세금계산서 DB <span class="nb nbg" id="badge-tax">0</span></div>
         <div class="ni sb-sub-item" onclick="go('order-db',this)" style="padding-left:22px">📦 발주서 DB <span class="nb nbg" id="badge-ord">0</span></div>
+        <div class="ni sb-sub-item" onclick="go('confirm-db',this)" style="padding-left:22px">✅ 납품확인서 DB <span class="nb nbg" id="badge-cfm">0</span></div>
+        <div class="ni sb-sub-item" onclick="go('contract-db',this)" style="padding-left:22px">📑 계약서 DB <span class="nb nbg" id="badge-ctr">0</span></div>
       </div>
       <div class="ni" onclick="go('customer',this)">🏭 고객사 DB <span class="nb nbg" id="badge-ct">-</span></div>
       <div class="sb-sec">마케팅</div>
@@ -2846,6 +2848,153 @@
       </div>
     </div>
 
+    <!-- ✅ 납품확인서 DB 탭 -->
+    <div class="page" id="tab-confirm-db">
+      <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
+        <div class="kpi"><div class="kl">✅ 총 건수</div><div class="kv" id="cfm-tot">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">💰 이번달 합계</div><div class="kv" id="cfm-month-amt" style="color:var(--g);font-size:18px">0</div><div class="ks">원</div></div>
+        <div class="kpi"><div class="kl">🏭 거래처 수</div><div class="kv" id="cfm-co-cnt">0</div><div class="ks">곳</div></div>
+        <div class="kpi"><div class="kl">📅 최근 등록</div><div class="kv" id="cfm-last-date" style="font-size:14px">-</div><div class="ks"></div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:16px;font-weight:800">✅ 납품확인서 DB</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input class="si" type="text" id="cfm-search" placeholder="🔍 거래처/품목/프로젝트..." style="width:180px;font-size:13px" oninput="renderConfirmDB()">
+            <button onclick="openConfirmModal()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--g);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="tbl" style="min-width:780px">
+          <thead><tr>
+            <th style="min-width:80px">납품일</th><th style="min-width:120px">거래처</th><th style="min-width:140px">품목</th>
+            <th style="min-width:60px">수량</th><th style="min-width:90px">납품금액</th><th style="min-width:100px">PO번호</th>
+            <th style="min-width:80px">프로젝트</th><th style="min-width:70px">상태</th><th style="min-width:60px">파일</th><th style="min-width:50px"></th>
+          </tr></thead>
+          <tbody id="cfmBody"><tr><td colspan="10"><div class="empty"><div class="ei">✅</div><div class="et">납품확인서 없음</div></div></td></tr></tbody>
+        </table></div>
+        <div style="font-size:13px;color:var(--t3);margin-top:8px;text-align:right" id="cfm-cnt"></div>
+      </div>
+    </div>
+
+    <!-- 📑 계약서 DB 탭 -->
+    <div class="page" id="tab-contract-db">
+      <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
+        <div class="kpi"><div class="kl">📑 총 건수</div><div class="kv" id="ctr-tot">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">💰 이번달 계약금액</div><div class="kv" id="ctr-month-amt" style="color:var(--p);font-size:18px">0</div><div class="ks">원</div></div>
+        <div class="kpi"><div class="kl">🏭 거래처 수</div><div class="kv" id="ctr-co-cnt">0</div><div class="ks">곳</div></div>
+        <div class="kpi"><div class="kl">📅 최근 등록</div><div class="kv" id="ctr-last-date" style="font-size:14px">-</div><div class="ks"></div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:16px;font-weight:800">📑 계약서 DB</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input class="si" type="text" id="ctr-search" placeholder="🔍 거래처/품목/프로젝트..." style="width:180px;font-size:13px" oninput="renderContractDB()">
+            <button onclick="openContractModal()" style="padding:8px 16px;border-radius:8px;border:none;background:#0369a1;color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="tbl" style="min-width:820px">
+          <thead><tr>
+            <th style="min-width:80px">계약일</th><th style="min-width:120px">거래처</th><th style="min-width:140px">품목/내용</th>
+            <th style="min-width:90px">계약금액</th><th style="min-width:80px">프로젝트</th><th style="min-width:80px">납기일</th>
+            <th style="min-width:70px">상태</th><th style="min-width:60px">파일</th><th style="min-width:50px"></th>
+          </tr></thead>
+          <tbody id="ctrBody"><tr><td colspan="9"><div class="empty"><div class="ei">📑</div><div class="et">계약서 없음</div></div></td></tr></tbody>
+        </table></div>
+        <div style="font-size:13px;color:var(--t3);margin-top:8px;text-align:right" id="ctr-cnt"></div>
+      </div>
+    </div>
+
+    <!-- ✅ 납품확인서 입력 모달 -->
+    <div id="cfmModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto">
+        <div style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:900" id="cfmModalTitle">✅ 납품확인서 등록</div>
+          <button onclick="document.getElementById('cfmModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
+        </div>
+        <div style="padding:16px 18px">
+          <div style="margin-bottom:14px;padding:12px;background:#f0fdf4;border-radius:10px;border:1.5px solid #86efac">
+            <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:8px">🤖 PDF → AI 자동 추출</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px"><input type="radio" name="cfmAiEngine" value="gemini" checked style="accent-color:#10b981"><span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">무료</span></label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #bfdbfe;background:#eff6ff;font-size:12px"><input type="radio" name="cfmAiEngine" value="copilot" style="accent-color:#1e40af"><span style="font-weight:700;color:#1e40af">✨ Copilot</span></label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px"><input type="radio" name="cfmAiEngine" value="openai" style="accent-color:#6366f1"><span style="font-weight:700;color:#6366f1">🤖 OpenAI</span></label>
+            </div>
+            <div id="cfmGeminiKeyRow" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 Gemini Key</span>
+              <input class="si" type="password" id="cfmGeminiKey" placeholder="AIza..." style="flex:1;font-size:12px">
+              <button onclick="localStorage.setItem('gemini_key',document.getElementById('cfmGeminiKey').value);alert('저장됨')" style="padding:5px 10px;border-radius:6px;border:none;background:var(--g);color:#fff;font-size:12px;cursor:pointer;font-family:var(--s)">저장</button>
+            </div>
+            <input type="file" id="cfmPdfInput" style="display:none" accept="application/pdf,image/*" onchange="parseCfmPdf(this.files[0])">
+            <label for="cfmPdfInput" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:2px dashed #86efac;border-radius:8px;cursor:pointer;background:#fff;font-size:13px;color:#15803d;font-weight:700">📎 납품확인서 PDF 선택</label>
+            <div id="cfmParseStatus" style="font-size:12px;color:var(--t2);margin-top:6px;display:none"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 납품일 *</label><input class="si" type="date" id="cfm-date" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 거래처 *</label><input class="si" type="text" id="cfm-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📦 품목</label><input class="si" type="text" id="cfm-item" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔢 수량</label><input class="si" type="text" id="cfm-qty" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:3px">💰 납품금액</label><input class="si" type="number" id="cfm-amount" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 PO번호</label><input class="si" type="text" id="cfm-po" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="cfm-pjcode" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔄 상태</label>
+              <select class="si" id="cfm-status" style="width:100%;font-size:13px"><option value="납품완료">납품완료</option><option value="부분납품">부분납품</option><option value="반품">반품</option></select>
+            </div>
+            <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="cfm-note" style="width:100%;font-size:13px"></div>
+          </div>
+          <input type="hidden" id="cfm-edit-id"><input type="hidden" id="cfm-file-url">
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button onclick="document.getElementById('cfmModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+            <button onclick="saveConfirmEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:var(--g);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📑 계약서 입력 모달 -->
+    <div id="ctrModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto">
+        <div style="background:linear-gradient(135deg,#0369a1,#38bdf8);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:900" id="ctrModalTitle">📑 계약서 등록</div>
+          <button onclick="document.getElementById('ctrModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
+        </div>
+        <div style="padding:16px 18px">
+          <div style="margin-bottom:14px;padding:12px;background:#f0f9ff;border-radius:10px;border:1.5px solid #7dd3fc">
+            <div style="font-size:13px;font-weight:700;color:#0369a1;margin-bottom:8px">🤖 PDF → AI 자동 추출</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px"><input type="radio" name="ctrAiEngine" value="gemini" checked style="accent-color:#10b981"><span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">무료</span></label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #bfdbfe;background:#eff6ff;font-size:12px"><input type="radio" name="ctrAiEngine" value="copilot" style="accent-color:#1e40af"><span style="font-weight:700;color:#1e40af">✨ Copilot</span></label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px"><input type="radio" name="ctrAiEngine" value="openai" style="accent-color:#6366f1"><span style="font-weight:700;color:#6366f1">🤖 OpenAI</span></label>
+            </div>
+            <div id="ctrGeminiKeyRow" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 Gemini Key</span>
+              <input class="si" type="password" id="ctrGeminiKey" placeholder="AIza..." style="flex:1;font-size:12px">
+              <button onclick="localStorage.setItem('gemini_key',document.getElementById('ctrGeminiKey').value);alert('저장됨')" style="padding:5px 10px;border-radius:6px;border:none;background:#0369a1;color:#fff;font-size:12px;cursor:pointer;font-family:var(--s)">저장</button>
+            </div>
+            <input type="file" id="ctrPdfInput" style="display:none" accept="application/pdf,image/*" onchange="parseCtrPdf(this.files[0])">
+            <label for="ctrPdfInput" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:2px dashed #7dd3fc;border-radius:8px;cursor:pointer;background:#fff;font-size:13px;color:#0369a1;font-weight:700">📎 계약서 PDF 선택</label>
+            <div id="ctrParseStatus" style="font-size:12px;color:var(--t2);margin-top:6px;display:none"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 계약일 *</label><input class="si" type="date" id="ctr-date" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 거래처 *</label><input class="si" type="text" id="ctr-company" style="width:100%;font-size:13px"></div>
+            <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📄 품목/계약내용</label><input class="si" type="text" id="ctr-item" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:3px">💰 계약금액</label><input class="si" type="number" id="ctr-amount" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="ctr-pjcode" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--r);display:block;margin-bottom:3px">📅 납기일</label><input class="si" type="date" id="ctr-duedate" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔄 상태</label>
+              <select class="si" id="ctr-status" style="width:100%;font-size:13px"><option value="계약체결">계약체결</option><option value="진행중">진행중</option><option value="완료">완료</option><option value="해지">해지</option></select>
+            </div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="ctr-note" style="width:100%;font-size:13px"></div>
+          </div>
+          <input type="hidden" id="ctr-edit-id"><input type="hidden" id="ctr-file-url">
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button onclick="document.getElementById('ctrModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+            <button onclick="saveContractEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:#0369a1;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 🧾 세금계산서 DB 탭 -->
     <div class="page" id="tab-tax-db">
       <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
@@ -3215,6 +3364,8 @@
     <div class="mob-more-item" onclick="go('delivery-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">🚚</span>거래명세서 DB</div>
     <div class="mob-more-item" onclick="go('tax-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">🧾</span>세금계산서 DB</div>
     <div class="mob-more-item" onclick="go('order-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📦</span>발주서 DB</div>
+    <div class="mob-more-item" onclick="go('confirm-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">✅</span>납품확인서 DB</div>
+    <div class="mob-more-item" onclick="go('contract-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📑</span>계약서 DB</div>
   </div>
   <div class="mob-more-item" onclick="go('marketing',this);closeMobMore()"><span class="mob-icon">📣</span>마케팅</div>
   <div class="mob-more-item" onclick="go('cashflow',this);closeMobMore()"><span class="mob-icon">💰</span>현금흐름</div>
@@ -13844,7 +13995,7 @@ async function deleteSLActivity(id) {
 // 영업활동 탭 자동로드 → 통합 go 함수에서 처리
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB","delivery-db":"🚚 거래명세서 DB","tax-db":"🧾 세금계산서 DB","order-db":"📦 발주서 DB",marketing:"📣 마케팅 활동","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB","delivery-db":"🚚 거래명세서 DB","tax-db":"🧾 세금계산서 DB","order-db":"📦 발주서 DB","confirm-db":"✅ 납품확인서 DB","contract-db":"📑 계약서 DB",marketing:"📣 마케팅 활동","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
 
 // ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -16278,7 +16429,7 @@ function go(id, el) {
   $("ptitle", TITLES[id]||id);
 
   // DB 탭으로 이동 시 DB 그룹 자동 펼치기
-  const DB_TABS = ["quote-db","sales-meeting","delivery-db","tax-db","order-db"];
+  const DB_TABS = ["quote-db","sales-meeting","delivery-db","tax-db","order-db","confirm-db","contract-db"];
   if(DB_TABS.includes(id)) {
     openDbGroup();
     // DB 토글 버튼도 on 표시
@@ -16389,6 +16540,8 @@ function go(id, el) {
   if(id==="delivery-db") { loadDeliveryDB(); }
   if(id==="tax-db") { loadTaxDB(); }
   if(id==="order-db") { loadOrderDB(); }
+  if(id==="confirm-db") { loadConfirmDB(); }
+  if(id==="contract-db") { loadContractDB(); }
   // 고객사 관리 탭
   if(id==="customer") {
     if(exhData.length === 0) loadCustContactsFromSP();
@@ -17170,6 +17323,294 @@ async function parseTaxPdf(file) {
     const m={"date":"tax-date","company":"tax-company","item":"tax-item","supply":"tax-supply","vat":"tax-vat","total":"tax-total","approval":"tax-approval","mgmt":"tax-mgmt","note":"tax-note"};
     Object.entries(m).forEach(([k,id])=>{if(json[k]!==undefined){const el=document.getElementById(id);if(el)el.value=json[k];}});
   });
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅ 납품확인서 DB
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const CFM_SP_PATH = "📦영업/99.Dashboard(real-time)/confirm-db.json";
+let _cfmData = [];
+
+async function saveConfirmToSP() {
+  await getIds(); const t = await getToken();
+  const enc = CFM_SP_PATH.split("/").map(encodeURIComponent).join("/");
+  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
+    method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+    body: JSON.stringify(_cfmData)
+  });
+  $("badge-cfm", _cfmData.length);
+}
+
+async function loadConfirmDB() {
+  try {
+    await getIds(); const t = await getToken();
+    const enc = CFM_SP_PATH.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {headers:{"Authorization":"Bearer "+t}});
+    if(r.ok) _cfmData = await r.json();
+  } catch(e) { _cfmData = []; }
+  $("badge-cfm", _cfmData.length);
+  renderConfirmDB();
+}
+
+function renderConfirmDB() {
+  const q = (document.getElementById("cfm-search")?.value||"").toLowerCase();
+  const filtered = _cfmData.filter(d =>
+    !q || (d.company||"").toLowerCase().includes(q) ||
+    (d.item||"").toLowerCase().includes(q) || (d.pjcode||"").toLowerCase().includes(q)
+  );
+  const thisMonth = new Date().toISOString().substring(0,7);
+  const monthAmt = _cfmData.filter(d=>(d.date||"").substring(0,7)===thisMonth).reduce((s,d)=>s+Number(d.amount||0),0);
+  const cos = [...new Set(_cfmData.map(d=>d.company).filter(Boolean))];
+  $("cfm-tot", _cfmData.length);
+  $("cfm-month-amt", monthAmt.toLocaleString());
+  $("cfm-co-cnt", cos.length);
+  $("cfm-last-date", _cfmData.length ? (_cfmData.sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""))[0].date||"-") : "-");
+  const sorted = [...filtered].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const body = document.getElementById("cfmBody");
+  if(!body) return;
+  if(!sorted.length) { body.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">✅</div><div class="et">납품확인서 없음</div></div></td></tr>'; return; }
+  body.innerHTML = sorted.map(d => `<tr>
+    <td style="font-size:13px">${d.date||""}</td>
+    <td style="font-size:13px;font-weight:700">${d.company||""}</td>
+    <td style="font-size:13px">${d.item||""}</td>
+    <td style="font-size:13px;text-align:center">${d.qty||""}</td>
+    <td style="font-size:13px;text-align:right;font-weight:700;color:var(--g)">${d.amount?Number(d.amount).toLocaleString():""}</td>
+    <td style="font-size:12px;color:var(--t3)">${d.po||""}</td>
+    <td style="font-size:12px;color:var(--p)">${d.pjcode||""}</td>
+    <td><span style="font-size:11px;padding:2px 8px;border-radius:6px;background:var(--gd);color:var(--g);font-weight:700">${d.status||""}</span></td>
+    <td style="text-align:center">${d.fileUrl?`<a href="${d.fileUrl}" target="_blank" style="font-size:12px;color:var(--p)">📎</a>`:"-"}</td>
+    <td style="text-align:center;white-space:nowrap">
+      <button onclick="openConfirmModal('${d.id}')" style="padding:3px 8px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer">✏️</button>
+      <button onclick="deleteConfirmEntry('${d.id}')" style="padding:3px 8px;border-radius:5px;border:1px solid var(--r);background:transparent;color:var(--r);font-size:12px;cursor:pointer;margin-left:3px">🗑️</button>
+    </td>
+  </tr>`).join("");
+  $("cfm-cnt", filtered.length+"건");
+}
+
+function openConfirmModal(id) {
+  const modal = document.getElementById("cfmModal");
+  const gkEl = document.getElementById("cfmGeminiKey");
+  if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+  if(id) {
+    const d = _cfmData.find(x=>x.id===id); if(!d) return;
+    document.getElementById("cfm-edit-id").value = id;
+    document.getElementById("cfmModalTitle").textContent = "✅ 납품확인서 수정";
+    ["date","company","item","qty","po","pjcode","note"].forEach(f=>{
+      const el=document.getElementById("cfm-"+f); if(el) el.value=d[f]||"";
+    });
+    document.getElementById("cfm-amount").value = d.amount||"";
+    document.getElementById("cfm-status").value = d.status||"납품완료";
+    document.getElementById("cfm-file-url").value = d.fileUrl||"";
+  } else {
+    document.getElementById("cfm-edit-id").value = "";
+    document.getElementById("cfmModalTitle").textContent = "✅ 납품확인서 등록";
+    ["date","company","item","qty","amount","po","pjcode","note"].forEach(f=>{
+      const el=document.getElementById("cfm-"+f); if(el) el.value="";
+    });
+    document.getElementById("cfm-date").value = new Date().toISOString().split("T")[0];
+    document.getElementById("cfm-status").value = "납품완료";
+    document.getElementById("cfm-file-url").value = "";
+  }
+  modal.style.display = "flex";
+}
+
+async function saveConfirmEntry() {
+  const company = document.getElementById("cfm-company")?.value?.trim();
+  const date    = document.getElementById("cfm-date")?.value;
+  if(!company||!date) { alert("납품일과 거래처는 필수입니다"); return; }
+  const editId = document.getElementById("cfm-edit-id").value;
+  const entry = {
+    id: editId || "cfm_"+Date.now(),
+    date, company,
+    item:    document.getElementById("cfm-item").value,
+    qty:     document.getElementById("cfm-qty").value,
+    amount:  Number(document.getElementById("cfm-amount").value||0),
+    po:      document.getElementById("cfm-po").value,
+    pjcode:  document.getElementById("cfm-pjcode").value,
+    status:  document.getElementById("cfm-status").value,
+    note:    document.getElementById("cfm-note").value,
+    fileUrl: document.getElementById("cfm-file-url").value,
+    createdAt: editId ? (_cfmData.find(x=>x.id===editId)?.createdAt||new Date().toISOString()) : new Date().toISOString(),
+  };
+  if(editId){ const i=_cfmData.findIndex(x=>x.id===editId); if(i>=0)_cfmData[i]=entry; else _cfmData.unshift(entry); }
+  else _cfmData.unshift(entry);
+  await saveConfirmToSP();
+  renderConfirmDB();
+  document.getElementById("cfmModal").style.display = "none";
+}
+
+async function deleteConfirmEntry(id) {
+  if(!confirm("납품확인서를 삭제할까요?")) return;
+  _cfmData = _cfmData.filter(x=>x.id!==id);
+  await saveConfirmToSP();
+  renderConfirmDB();
+}
+
+async function parseCfmPdf(file) {
+  if(!file) return;
+  const statusEl = document.getElementById("cfmParseStatus");
+  statusEl.style.display="block"; statusEl.textContent="🤖 AI 분석 중...";
+  const engine = document.querySelector('input[name="cfmAiEngine"]:checked')?.value||"gemini";
+  const geminiKey = document.getElementById("cfmGeminiKey")?.value || localStorage.getItem("gemini_key")||"";
+  try {
+    const prompt = `납품확인서/거래명세서 PDF에서 다음 필드를 추출해서 JSON으로만 답해. 없으면 빈 문자열:
+{"date":"YYYY-MM-DD","company":"거래처명","item":"품목","qty":"수량","amount":숫자,"po":"PO번호","pjcode":"프로젝트코드","note":"비고"}`;
+    const result = await parseDocWithAI(file, prompt, engine, geminiKey, document.getElementById("cfmGeminiKey"));
+    if(result) {
+      if(result.date) document.getElementById("cfm-date").value = result.date;
+      if(result.company) document.getElementById("cfm-company").value = result.company;
+      if(result.item) document.getElementById("cfm-item").value = result.item;
+      if(result.qty) document.getElementById("cfm-qty").value = result.qty;
+      if(result.amount) document.getElementById("cfm-amount").value = result.amount;
+      if(result.po) document.getElementById("cfm-po").value = result.po;
+      if(result.pjcode) document.getElementById("cfm-pjcode").value = result.pjcode;
+      if(result.note) document.getElementById("cfm-note").value = result.note;
+      statusEl.textContent = "✅ AI 추출 완료! 내용을 확인하고 저장하세요.";
+    } else { statusEl.textContent = "⚠️ 추출 실패 - 직접 입력해주세요"; }
+  } catch(e) { statusEl.textContent = "❌ 오류: "+e.message; }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📑 계약서 DB
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const CTR_SP_PATH = "📦영업/99.Dashboard(real-time)/contract-db.json";
+let _ctrData = [];
+
+async function saveContractToSP() {
+  await getIds(); const t = await getToken();
+  const enc = CTR_SP_PATH.split("/").map(encodeURIComponent).join("/");
+  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
+    method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+    body: JSON.stringify(_ctrData)
+  });
+  $("badge-ctr", _ctrData.length);
+}
+
+async function loadContractDB() {
+  try {
+    await getIds(); const t = await getToken();
+    const enc = CTR_SP_PATH.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {headers:{"Authorization":"Bearer "+t}});
+    if(r.ok) _ctrData = await r.json();
+  } catch(e) { _ctrData = []; }
+  $("badge-ctr", _ctrData.length);
+  renderContractDB();
+}
+
+function renderContractDB() {
+  const q = (document.getElementById("ctr-search")?.value||"").toLowerCase();
+  const filtered = _ctrData.filter(d =>
+    !q || (d.company||"").toLowerCase().includes(q) ||
+    (d.item||"").toLowerCase().includes(q) || (d.pjcode||"").toLowerCase().includes(q)
+  );
+  const thisMonth = new Date().toISOString().substring(0,7);
+  const monthAmt = _ctrData.filter(d=>(d.date||"").substring(0,7)===thisMonth).reduce((s,d)=>s+Number(d.amount||0),0);
+  const cos = [...new Set(_ctrData.map(d=>d.company).filter(Boolean))];
+  $("ctr-tot", _ctrData.length);
+  $("ctr-month-amt", monthAmt.toLocaleString());
+  $("ctr-co-cnt", cos.length);
+  const sorted = [..._ctrData].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  $("ctr-last-date", sorted[0]?.date||"-");
+  const body = document.getElementById("ctrBody");
+  if(!body) return;
+  if(!filtered.length) { body.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📑</div><div class="et">계약서 없음</div></div></td></tr>'; return; }
+  body.innerHTML = [...filtered].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(d => `<tr>
+    <td style="font-size:13px">${d.date||""}</td>
+    <td style="font-size:13px;font-weight:700">${d.company||""}</td>
+    <td style="font-size:13px">${d.item||""}</td>
+    <td style="font-size:13px;text-align:right;font-weight:700;color:var(--p)">${d.amount?Number(d.amount).toLocaleString():""}</td>
+    <td style="font-size:12px;color:var(--p)">${d.pjcode||""}</td>
+    <td style="font-size:12px;color:var(--t3)">${d.duedate||""}</td>
+    <td><span style="font-size:11px;padding:2px 8px;border-radius:6px;background:#e0f2fe;color:#0369a1;font-weight:700">${d.status||""}</span></td>
+    <td style="text-align:center">${d.fileUrl?`<a href="${d.fileUrl}" target="_blank" style="font-size:12px;color:var(--p)">📎</a>`:"-"}</td>
+    <td style="text-align:center;white-space:nowrap">
+      <button onclick="openContractModal('${d.id}')" style="padding:3px 8px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer">✏️</button>
+      <button onclick="deleteContractEntry('${d.id}')" style="padding:3px 8px;border-radius:5px;border:1px solid var(--r);background:transparent;color:var(--r);font-size:12px;cursor:pointer;margin-left:3px">🗑️</button>
+    </td>
+  </tr>`).join("");
+  $("ctr-cnt", filtered.length+"건");
+}
+
+function openContractModal(id) {
+  const modal = document.getElementById("ctrModal");
+  const gkEl = document.getElementById("ctrGeminiKey");
+  if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+  if(id) {
+    const d = _ctrData.find(x=>x.id===id); if(!d) return;
+    document.getElementById("ctr-edit-id").value = id;
+    document.getElementById("ctrModalTitle").textContent = "📑 계약서 수정";
+    ["date","company","item","pjcode","duedate","note"].forEach(f=>{
+      const el=document.getElementById("ctr-"+f); if(el) el.value=d[f]||"";
+    });
+    document.getElementById("ctr-amount").value = d.amount||"";
+    document.getElementById("ctr-status").value = d.status||"계약체결";
+    document.getElementById("ctr-file-url").value = d.fileUrl||"";
+  } else {
+    document.getElementById("ctr-edit-id").value = "";
+    document.getElementById("ctrModalTitle").textContent = "📑 계약서 등록";
+    ["date","company","item","amount","pjcode","duedate","note"].forEach(f=>{
+      const el=document.getElementById("ctr-"+f); if(el) el.value="";
+    });
+    document.getElementById("ctr-date").value = new Date().toISOString().split("T")[0];
+    document.getElementById("ctr-status").value = "계약체결";
+    document.getElementById("ctr-file-url").value = "";
+  }
+  modal.style.display = "flex";
+}
+
+async function saveContractEntry() {
+  const company = document.getElementById("ctr-company")?.value?.trim();
+  const date    = document.getElementById("ctr-date")?.value;
+  if(!company||!date) { alert("계약일과 거래처는 필수입니다"); return; }
+  const editId = document.getElementById("ctr-edit-id").value;
+  const entry = {
+    id: editId || "ctr_"+Date.now(),
+    date, company,
+    item:    document.getElementById("ctr-item").value,
+    amount:  Number(document.getElementById("ctr-amount").value||0),
+    pjcode:  document.getElementById("ctr-pjcode").value,
+    duedate: document.getElementById("ctr-duedate").value,
+    status:  document.getElementById("ctr-status").value,
+    note:    document.getElementById("ctr-note").value,
+    fileUrl: document.getElementById("ctr-file-url").value,
+    createdAt: editId ? (_ctrData.find(x=>x.id===editId)?.createdAt||new Date().toISOString()) : new Date().toISOString(),
+  };
+  if(editId){ const i=_ctrData.findIndex(x=>x.id===editId); if(i>=0)_ctrData[i]=entry; else _ctrData.unshift(entry); }
+  else _ctrData.unshift(entry);
+  await saveContractToSP();
+  renderContractDB();
+  document.getElementById("ctrModal").style.display = "none";
+}
+
+async function deleteContractEntry(id) {
+  if(!confirm("계약서를 삭제할까요?")) return;
+  _ctrData = _ctrData.filter(x=>x.id!==id);
+  await saveContractToSP();
+  renderContractDB();
+}
+
+async function parseCtrPdf(file) {
+  if(!file) return;
+  const statusEl = document.getElementById("ctrParseStatus");
+  statusEl.style.display="block"; statusEl.textContent="🤖 AI 분석 중...";
+  const engine = document.querySelector('input[name="ctrAiEngine"]:checked')?.value||"gemini";
+  const geminiKey = document.getElementById("ctrGeminiKey")?.value || localStorage.getItem("gemini_key")||"";
+  try {
+    const prompt = `계약서 PDF에서 다음 필드를 추출해서 JSON으로만 답해. 없으면 빈 문자열:
+{"date":"YYYY-MM-DD","company":"거래처명","item":"계약내용","amount":숫자,"pjcode":"프로젝트코드","duedate":"YYYY-MM-DD","note":"비고"}`;
+    const result = await parseDocWithAI(file, prompt, engine, geminiKey, document.getElementById("ctrGeminiKey"));
+    if(result) {
+      if(result.date) document.getElementById("ctr-date").value = result.date;
+      if(result.company) document.getElementById("ctr-company").value = result.company;
+      if(result.item) document.getElementById("ctr-item").value = result.item;
+      if(result.amount) document.getElementById("ctr-amount").value = result.amount;
+      if(result.pjcode) document.getElementById("ctr-pjcode").value = result.pjcode;
+      if(result.duedate) document.getElementById("ctr-duedate").value = result.duedate;
+      if(result.note) document.getElementById("ctr-note").value = result.note;
+      statusEl.textContent = "✅ AI 추출 완료!";
+    } else { statusEl.textContent = "⚠️ 추출 실패 - 직접 입력해주세요"; }
+  } catch(e) { statusEl.textContent = "❌ 오류: "+e.message; }
 }
 
 async function saveDeliveryEntry() {
