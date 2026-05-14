@@ -553,15 +553,15 @@
     <!-- 파이프라인 -->
     <div class="page" id="tab-pipeline">
       <div class="kr" style="grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:9px">
-        <div class="kpi c1"><div class="kl">전체 프로젝트</div><div class="kv"><span id="pl-tot">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks">매출자료 기준</div></div>
-        <div class="kpi c2"><div class="kl">🔄 진행</div><div class="kv"><span id="pl-ing">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span id="pl-act-amt">-억</span></div></div>
-        <div class="kpi" style="border-top:3px solid #f59e0b"><div class="kl">💰 잔금</div><div class="kv" style="color:#d97706"><span id="pl-bal">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks">미수금 있음</div></div>
+        <div class="kpi c1" onclick="go('pipeline');qfNav('',null)" style="cursor:pointer" title="전체 보기"><div class="kl">전체 프로젝트</div><div class="kv"><span id="pl-tot">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks">매출자료 기준</div></div>
+        <div class="kpi c2" onclick="go('pipeline');qfNav('진행',null)" style="cursor:pointer" title="진행 필터"><div class="kl">🔄 진행</div><div class="kv"><span id="pl-ing">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span id="pl-act-amt">-억</span></div></div>
+        <div class="kpi" style="border-top:3px solid #f59e0b;cursor:pointer" onclick="go('pipeline');qfNav('잔금',null)" title="잔금 필터"><div class="kl">💰 잔금</div><div class="kv" style="color:#d97706"><span id="pl-bal">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks" id="pl-bal-amt" style="color:#d97706;font-weight:700">-</div></div>
       </div>
       <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
-        <div class="kpi c3"><div class="kl">🏁 완료</div><div class="kv"><span id="pl-don">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
-        <div class="kpi" style="border-top:3px solid #7c3aed"><div class="kl">🔬 개발</div><div class="kv" style="color:#7c3aed"><span id="pl-dev">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
-        <div class="kpi" style="border-top:3px solid #0369a1"><div class="kl">🏛️ 국책과제</div><div class="kv" style="color:#0369a1"><span id="pl-gov">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
-        <div class="kpi c5"><div class="kl">⛔ 중단</div><div class="kv"><span id="pl-stp">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi c3" onclick="go('pipeline');qfNav('완료',null)" style="cursor:pointer"><div class="kl">🏁 완료</div><div class="kv"><span id="pl-don">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi" style="border-top:3px solid #7c3aed;cursor:pointer" onclick="go('pipeline');qfNav('개발',null)"><div class="kl">🔬 개발</div><div class="kv" style="color:#7c3aed"><span id="pl-dev">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi" style="border-top:3px solid #0369a1;cursor:pointer" onclick="go('pipeline');qfNav('국책과제',null)"><div class="kl">🏛️ 국책과제</div><div class="kv" style="color:#0369a1"><span id="pl-gov">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
+        <div class="kpi c5" onclick="go('pipeline');qfNav('중단',null)" style="cursor:pointer"><div class="kl">⛔ 중단</div><div class="kv"><span id="pl-stp">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"></div></div>
       </div>
 
       <!-- 🆕 프로젝트코드 요청 카드 -->
@@ -571,8 +571,11 @@
             <div class="ci" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">📋</div>
             프로젝트코드 요청
             <span id="pjReqCount" style="font-size:14px;color:var(--p);font-weight:700;margin-left:4px;background:var(--pd);padding:2px 10px;border-radius:10px">0</span>
-            <span style="font-size:13px;color:var(--t3);font-weight:400;margin-left:6px">건 대기중</span>
+            <span id="pjReqPulse" style="display:none;margin-left:6px;font-size:12px;font-weight:700;color:#dc2626;background:#fee2e2;padding:2px 8px;border-radius:8px;animation:pulse 1s infinite">● 대기중</span>
           </div>
+          <button onclick="openPjCodeReqNew()" style="padding:6px 14px;border-radius:7px;border:none;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--s);display:flex;align-items:center;gap:5px">
+            ➕ 신규등록
+          </button>
         </div>
         <div class="cb" style="padding:6px 14px 12px">
           <div class="tw"><table class="tbl">
@@ -3973,8 +3976,17 @@ function updPlKPI() {
   const ingAmt = PD.filter(r=>r.진행구분==="진행").reduce((s,r)=>s+r.원화금액,0);
 
   $("pl-tot",  PD.length);
-  $("pl-ing",  ing);          // 🔄 진행
-  $("pl-bal",  bal);          // 💰 잔금
+  $("pl-ing",  ing);
+  $("pl-bal",  bal);
+  // 잔금 합계 (원화 + 달러환산)
+  const usdR = window._usdRate||1380;
+  const balAmt = PD.filter(r=>r.진행구분==="잔금").reduce((s,r)=>{
+    const 원화 = r.잔액원화||0;
+    const 달러 = (r.달러금액||0) * usdR;
+    return s + 원화 + 달러;
+  }, 0);
+  const balAmtEl = document.getElementById("pl-bal-amt");
+  if(balAmtEl) balAmtEl.textContent = balAmt>0 ? (balAmt/1e8).toFixed(2)+"억" : "0억";
   $("pl-act",  ing+bal);      // 하위호환 (뱃지 등)
   $("pl-act-amt", (ingAmt/1e8).toFixed(1)+"억");
   $("pl-don",  done);
@@ -4006,6 +4018,22 @@ function updPlKPI() {
 }
 let plQF="";  // 기본: 전체
 function qf(t,el){plQF=t;document.querySelectorAll(".qb").forEach(b=>b.classList.remove("on"));el.classList.add("on");filterPL();}
+
+// KPI 카드 클릭: 파이프라인 탭 이동 + 퀵필터 적용
+function qfNav(status, el) {
+  // 상태 드롭다운 변경
+  const sel = document.getElementById("plSt");
+  if(sel) sel.value = status;
+  // 퀵필터 버튼 on/off
+  plQF = status;
+  document.querySelectorAll(".qb").forEach(b => {
+    const txt = b.textContent.trim();
+    const match = status === "" ? (txt.startsWith("전체")) :
+      (txt.includes(status));
+    b.classList.toggle("on", match);
+  });
+  filterPL();
+}
 function filterPL() {
   const q    = document.getElementById("plSrch")?.value.toLowerCase()||"";
   const st   = document.getElementById("plSt")?.value||"";
@@ -11177,6 +11205,16 @@ function renderPjCodeRequestsCard() {
   
   const pending = list.filter(r => r.status === "pending").length;
   $("pjReqCount", pending);
+  // 대기중 깜빡임 배지
+  const pulse = document.getElementById("pjReqPulse");
+  if(pulse) {
+    if(pending > 0) {
+      pulse.style.display = "inline";
+      pulse.textContent = `● ${pending}건 대기중`;
+    } else {
+      pulse.style.display = "none";
+    }
+  }
   
   const tbody = document.getElementById("pjReqTbody");
   if(!tbody) return;
@@ -11208,6 +11246,84 @@ function renderPjCodeRequestsCard() {
       }</td>
     </tr>`;
   }).join("");
+}
+
+// 파이프라인 탭에서 직접 신규 프로젝트코드 요청 등록
+function openPjCodeReqNew() {
+  // 기존 모달이 있으면 재사용, 없으면 생성
+  let modal = document.getElementById("pjReqNewModal");
+  if(!modal) {
+    modal = document.createElement("div");
+    modal.id = "pjReqNewModal";
+    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center";
+    modal.innerHTML = `
+      <div style="background:var(--bg);border-radius:14px;padding:24px;width:420px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+          <div style="font-size:17px;font-weight:800;color:var(--t)">📋 프로젝트코드 신규 요청</div>
+          <button onclick="document.getElementById('pjReqNewModal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">생성될 프로젝트코드 *</label>
+            <input id="pjReqNew-code" class="si" placeholder="예: BP26005 또는 신규1차" style="width:100%;font-size:14px">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">프로젝트명</label>
+            <input id="pjReqNew-name" class="si" placeholder="예: 삼성전자 EHD 프린터 납품" style="width:100%;font-size:14px">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">거래처</label>
+            <input id="pjReqNew-company" class="si" placeholder="예: 삼성전자㈜" style="width:100%;font-size:14px">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">요청자</label>
+            <input id="pjReqNew-requester" class="si" placeholder="이름" style="width:100%;font-size:14px">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:18px">
+          <button onclick="document.getElementById('pjReqNewModal').remove()" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--t2);font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+          <button onclick="submitPjCodeReqNew()" style="flex:2;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--s)">✅ 요청 등록</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    // 요청자 자동 입력
+    const me = (typeof userInfo !== "undefined" && userInfo?.displayName) || "";
+    const inp = document.getElementById("pjReqNew-requester");
+    if(inp && me) inp.value = me;
+  }
+  modal.style.display = "flex";
+  setTimeout(()=>{ const c=document.getElementById("pjReqNew-code"); if(c)c.focus(); }, 100);
+}
+
+async function submitPjCodeReqNew() {
+  const code    = (document.getElementById("pjReqNew-code")?.value||"").trim();
+  const name    = (document.getElementById("pjReqNew-name")?.value||"").trim();
+  const company = (document.getElementById("pjReqNew-company")?.value||"").trim();
+  const req     = (document.getElementById("pjReqNew-requester")?.value||"").trim();
+  if(!code){ alert("프로젝트코드를 입력하세요"); return; }
+
+  if(!Array.isArray(pjCodeRequests)) pjCodeRequests = [];
+  const newReq = {
+    id: "req_"+Date.now(),
+    code, projectName: name, company, requester: req,
+    requestedAt: new Date().toISOString(),
+    status: "pending",
+    source: "pipeline_direct"  // 파이프라인 탭에서 직접 등록
+  };
+  pjCodeRequests.unshift(newReq);
+
+  // SP 저장
+  try { await savePjCodeRequestsToSP(); } catch(e){ console.warn("SP 저장 실패:", e); }
+
+  renderPjCodeRequests(pjCodeRequests);
+  document.getElementById("pjReqNewModal")?.remove();
+
+  // 성공 토스트
+  const toast = document.createElement("div");
+  toast.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e40af;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:700;z-index:99999;font-family:var(--s)";
+  toast.textContent = `✅ [${code}] 요청 등록 완료`;
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(), 3000);
 }
 
 async function completePjCodeReq(reqId) {
@@ -11710,7 +11826,7 @@ async function generateQuoteExcel(isDraft=false) {
   // EN: enjet_quote_template_en.xlsx (시트명: Quotation)
   // 변형 파일명도 자동 탐색: enjet_quote_template_en_2.xlsx, enjet_quote_template_en (1).xlsx 등
   const TEMPLATE_FILES = isEN 
-    ? ["enjet_quote_template_en.xlsx", "enjet_quote_template_en_2.xlsx", "enjet_quote_template_en_3.xlsx", "enjet_quote_template_en (1).xlsx", "enjet_quote_template_en (2).xlsx"]
+    ? ["enjet_quote_template_en_2.xlsx", "enjet_quote_template_en.xlsx", "enjet_quote_template_en_3.xlsx", "enjet_quote_template_en (1).xlsx", "enjet_quote_template_en (2).xlsx"]
     : ["enjet_quote_template_1.xlsx", "enjet_quote_template_2.xlsx", "enjet_quote_template_1 (1).xlsx"];
   const TEMPLATE_SHEET = isEN ? "Quotation" : "견적서(갑지)";
   let templateBytes;
