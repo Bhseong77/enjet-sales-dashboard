@@ -552,12 +552,41 @@
         </div>
       </div>
       <div class="card">
-        <div class="ch"><div class="ct"><div class="ci c1">📋</div>매출 내역 <span id="cf-tbl-l" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:4px">로딩중...</span></div></div>
+        <div class="ch">
+          <div class="ct"><div class="ci c1">📋</div>매출 내역 <span id="cf-tbl-l" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:4px">로딩중...</span></div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+            <input id="cf-srch" class="si" type="text" placeholder="🔍 거래처/프로젝트..." style="width:160px;font-size:13px" oninput="renderCFFiltered()">
+            <select id="cf-div" class="ss" style="font-size:13px" onchange="renderCFFiltered()">
+              <option value="">전체 구분</option>
+              <option value="국내">내수</option>
+              <option value="해외">수출</option>
+            </select>
+            <select id="cf-yr" class="ss" style="font-size:13px" onchange="renderCFFiltered()">
+              <option value="">전체 연도</option>
+            </select>
+            <select id="cf-sort" class="ss" style="font-size:13px" onchange="renderCFFiltered()">
+              <option value="date-desc">날짜 최신순</option>
+              <option value="date-asc">날짜 오래된순</option>
+              <option value="amt-desc">금액 높은순</option>
+              <option value="amt-asc">금액 낮은순</option>
+              <option value="bal-desc">잔금 많은순</option>
+            </select>
+          </div>
+        </div>
         <div class="cb" style="padding:10px 14px">
-          <div class="tw"><table class="tbl">
-            <thead><tr><th>수익인식일</th><th>거래처</th><th>프로젝트코드</th><th>구분</th><th class="r">공급가액</th><th class="r">입금액</th><th class="r">잔금</th></tr></thead>
+          <div style="overflow-x:auto"><table class="tbl" style="min-width:600px">
+            <thead><tr>
+              <th style="min-width:95px">수익인식일</th>
+              <th style="min-width:130px">거래처</th>
+              <th style="min-width:110px">프로젝트코드</th>
+              <th style="min-width:55px">구분</th>
+              <th class="r" style="min-width:90px">공급가액</th>
+              <th class="r" style="min-width:90px">입금액</th>
+              <th class="r" style="min-width:90px">잔금</th>
+            </tr></thead>
             <tbody id="cfTb"><tr><td colspan="7"><div class="sw"><div class="spr"></div></div></td></tr></tbody>
           </table></div>
+          <div style="font-size:13px;color:var(--t3);margin-top:6px;text-align:right" id="cf-tbl-note">최대 300건 표시</div>
         </div>
       </div>
     </div>
@@ -3653,6 +3682,15 @@ async function loadSalesAndProject() {
 
     console.log(`✅ 프로젝트현황: ${PD.length}건 ← ${name}`);
 
+    // SD가 이미 로드된 경우 상태 재보정
+    if(typeof SD !== "undefined" && SD.length > 0) {
+      updateSalesAll();
+    }
+    // 영업활동 로드된 경우 신규 동기화
+    if(typeof slData !== "undefined" && slData.length > 0) {
+      syncPipelineFromSL();
+    }
+
     // 유형/연도 필터 갱신
     const tp=[...new Set(PD.map(r=>r.유형).filter(Boolean))].sort();
     const yrs=[...new Set(PD.map(r=>r.연도).filter(y=>y>2000))].sort((a,b)=>b-a);
@@ -3910,11 +3948,64 @@ function renderUnpaid(data) {
   : "<div class='empty'><div class='ei'>✅</div><div class='et'>미수금 없음</div></div>");
 }
 
+// 현금흐름 테이블 기준 데이터 (필터링 전)
+let _cfData = [];
+
 function renderCFTable(data) {
-  $("cf-tbl-l",data.length+"건");
-  document.getElementById("cfTb").innerHTML=data.slice(0,300).map(r=>{
-    const dt=r.날짜?String(r.날짜).substring(0,10):"-";
-    return `<tr><td style="font-size:14px;color:var(--t3)">${dt}</td><td>${r.거래처.substring(0,16)}</td><td><span class="tm" style="font-size:14px">${r.프번}</span></td><td><span class="badge ${r.구분==="수출"||r.구분==="해외"?"warn":"info"}" style="font-size:14px">${r.구분}</span></td><td class="r"><span class="tm b">${r.공급>0?(r.공급/1e4).toFixed(0)+"만":"-"}</span></td><td class="r"><span class="tm g">${r.입금>0?(r.입금/1e4).toFixed(0)+"만":"0"}</span></td><td class="r"><span class="tm ${r.잔금>0?"r":""}">${r.잔금>0?(r.잔금/1e4).toFixed(0)+"만":"0"}</span></td></tr>`;
+  _cfData = data || [];
+  // 연도 필터 옵션 갱신
+  const yrSel = document.getElementById("cf-yr");
+  if(yrSel) {
+    const yrs = [...new Set(_cfData.map(r=>r.연도).filter(Boolean))].sort((a,b)=>b-a);
+    while(yrSel.options.length > 1) yrSel.remove(1);
+    yrs.forEach(y => yrSel.add(new Option(y+"년", y)));
+  }
+  renderCFFiltered();
+}
+
+function renderCFFiltered() {
+  if(!_cfData.length) { $("cf-tbl-l", "0건"); return; }
+  const q    = (document.getElementById("cf-srch")?.value||"").toLowerCase();
+  const div  = document.getElementById("cf-div")?.value||"";
+  const yr   = document.getElementById("cf-yr")?.value||"";
+  const sort = document.getElementById("cf-sort")?.value||"date-desc";
+
+  let d = _cfData.filter(r => {
+    if(q && !r.거래처.toLowerCase().includes(q) && !r.프번.toLowerCase().includes(q)) return false;
+    if(div) {
+      const isDom = r.구분==="국내"||r.구분==="내수";
+      if(div==="국내" && !isDom) return false;
+      if(div==="해외" && isDom) return false;
+    }
+    if(yr && String(r.연도) !== String(yr)) return false;
+    return true;
+  });
+
+  // 정렬
+  if(sort==="date-desc") d = d.sort((a,b)=>String(b.날짜).localeCompare(String(a.날짜)));
+  else if(sort==="date-asc") d = d.sort((a,b)=>String(a.날짜).localeCompare(String(b.날짜)));
+  else if(sort==="amt-desc") d = d.sort((a,b)=>(b.공급||0)-(a.공급||0));
+  else if(sort==="amt-asc") d = d.sort((a,b)=>(a.공급||0)-(b.공급||0));
+  else if(sort==="bal-desc") d = d.sort((a,b)=>(b.잔금||0)-(a.잔금||0));
+
+  const shown = d.slice(0, 300);
+  $("cf-tbl-l", d.length+"건");
+  $("cf-tbl-note", d.length > 300 ? `${d.length}건 중 300건 표시` : `총 ${d.length}건`);
+
+  document.getElementById("cfTb").innerHTML = shown.map(r => {
+    const dt  = r.날짜 ? String(r.날짜).substring(0,10) : "-";
+    const isDom = r.구분==="국내"||r.구분==="내수";
+    const fmt = v => v > 0 ? (v/1e4).toFixed(0)+"만" : "-";
+    const 잔빛 = r.잔금 > 0 ? "color:var(--r);font-weight:700" : "color:var(--t3)";
+    return `<tr>
+      <td style="font-size:13px;color:var(--t3);white-space:nowrap">${dt}</td>
+      <td style="font-size:13px" title="${r.거래처}">${r.거래처.length>14?r.거래처.substring(0,14)+"…":r.거래처}</td>
+      <td><span class="tm" style="font-size:13px">${r.프번}</span></td>
+      <td style="text-align:center"><span class="badge ${isDom?"info":"warn"}" style="font-size:12px">${isDom?"내수":"수출"}</span></td>
+      <td class="r" style="font-size:13px;font-weight:700;color:var(--p)">${fmt(r.공급)}</td>
+      <td class="r" style="font-size:13px;color:var(--g)">${fmt(r.입금)}</td>
+      <td class="r" style="font-size:13px;${잔빛}">${r.잔금>0?fmt(r.잔금):"0"}</td>
+    </tr>`;
   }).join("");
 }
 
@@ -7194,17 +7285,75 @@ async function loadSLFromSP() {
     const removed = before - slData.length;
     if(removed > 0) {
       console.log(`전시회 항목 ${removed}개 제거됨`);
-      await saveSLToSP(); // 필터된 데이터로 다시 저장
+      await saveSLToSP();
     }
     renderSLAll();
     $("slUpd","로드: "+new Date().toLocaleTimeString("ko-KR"));
+    // ← 로드 완료 후 파이프라인 신규 동기화
+    syncPipelineFromSL();
   } catch(e) {
     slData = [];
     renderSLAll();
   }
 }
 
-// ─── Teams 캘린더 동기화 ───
+// ━━ 영업활동 → 파이프라인 신규 동기화 ━━
+function syncPipelineFromSL() {
+  if(!Array.isArray(slData) || !slData.length || !Array.isArray(PD)) return;
+
+  let added = 0;
+  slData.forEach(act => {
+    // 신규/견적 단계 초기 활동만 대상 (발주 이상은 매출자료에서 관리)
+    const isEarly = !act.status || ["신규","제안","견적"].includes(act.status);
+    if(!isEarly) return;
+
+    const pjNo = act.pjcode || act.id;
+    const displayCode = act.pjcode || ("신규-"+(act.company||"").substring(0,4)+"-"+(act.date||"").substring(2,4));
+
+    // 이미 파이프라인에 있는지 확인 (_slId 또는 프로젝트번호로)
+    const existInPD = PD.some(p =>
+      (act.pjcode && p.프로젝트번호 === act.pjcode) ||
+      p._slId === act.id
+    );
+
+    if(!existInPD) {
+      PD.unshift({
+        프로젝트번호: act.pjcode || displayCode,
+        프로젝트명:   act.title || act.company || "",
+        거래처:       act.company || "",
+        유형:         "",
+        종사업장구분: "본사",
+        진행구분:     "신규",
+        원화금액:     0, 공급가액:0, 입금액:0, 잔액원화:0, 달러금액:0,
+        계약일:       act.date || "",
+        연도:         act.date ? parseInt(act.date.substring(0,4)) : new Date().getFullYear(),
+        구분:         "",
+        _overrideStatus: null,
+        _fromSL: true,
+        _slId: act.id,
+        files_견적서:[], files_발주서:[], files_거래명세서:[],
+        files_세금계산서:[], files_납품확인서:[], files_기타:[],
+      });
+      added++;
+    } else if(act.pjcode) {
+      // 기존 항목 거래처/프로젝트명 업데이트
+      const p = PD.find(x => x.프로젝트번호 === act.pjcode || x._slId === act.id);
+      if(p) {
+        if(act.pjcode && p.프로젝트번호 !== act.pjcode) p.프로젝트번호 = act.pjcode;
+        if(act.company) p.거래처 = act.company;
+        if(act.title) p.프로젝트명 = act.title;
+      }
+    }
+  });
+
+  if(added > 0) {
+    updPlKPI();
+    try { filterPL(); } catch(_){}
+    console.log(`✅ 파이프라인 신규 동기화: ${added}건 추가`);
+  }
+}
+
+// ━━ Teams 캘린더 동기화 ━━
 
 // Teams 일정 편집기 딥링크 열기
 function openTeamsEvent(teamsEventId) {
@@ -13315,49 +13464,12 @@ async function saveSLActivity() {
 
   // 🆕 영업활동 신규생성 시 → 파이프라인에 신규 상태로 추가
   if(!slEditId) {
-    const pjNo = act.pjcode || act.id; // 프로젝트코드 없으면 활동ID 임시 사용
-    const displayCode = act.pjcode || ("신규-"+act.company.substring(0,4)+"-"+new Date().getFullYear().toString().slice(2));
-    const existInPD = PD.some(p => p.프로젝트번호 === pjNo || p._slId === act.id);
-    if(!existInPD) {
-      PD.unshift({
-        프로젝트번호: act.pjcode || displayCode,
-        프로젝트명:   act.title || act.company || "",
-        거래처:       act.company || "",
-        유형:         "",
-        종사업장구분: "본사",
-        진행구분:     "신규",
-        원화금액:     0, 공급가액: 0, 입금액: 0, 잔액원화: 0, 달러금액: 0,
-        계약일:       act.date || "",
-        연도:         act.date ? parseInt(act.date.substring(0,4)) : new Date().getFullYear(),
-        구분:         "",
-        _overrideStatus: null,
-        _fromSL: true,
-        _slId: act.id,
-        files_견적서:[], files_발주서:[], files_거래명세서:[],
-        files_세금계산서:[], files_납품확인서:[], files_기타:[],
-      });
-      updPlKPI();
-      // 파이프라인 탭에서 바로 확인 가능하도록 필터 초기화 후 렌더
-      try {
-        const stSel = document.getElementById("plSt");
-        if(stSel) stSel.value = "";
-        plQF = "";
-        document.querySelectorAll(".qb").forEach(b => {
-          b.classList.toggle("on", b.textContent.includes("전체"));
-        });
-        filterPL();
-      } catch(_){}
-      console.log(`✅ 파이프라인 신규 추가: ${act.pjcode||displayCode} ← ${act.company} (영업활동 생성)`);
-    } else if(act.pjcode) {
-      // 기존 프로젝트 거래처/프로젝트명 업데이트
-      const p = PD.find(x => x.프로젝트번호 === act.pjcode || x._slId === act.id);
-      if(p) {
-        if(act.pjcode) p.프로젝트번호 = act.pjcode; // 코드 업데이트
-        if(act.company) p.거래처 = act.company;
-        if(act.title) p.프로젝트명 = act.title;
-        if(p.진행구분 === "신규") updPlKPI();
-      }
-    }
+    syncPipelineFromSL();
+    // 필터 초기화 (신규 건이 보이도록)
+    try {
+      const stSel = document.getElementById("plSt");
+      if(stSel && stSel.value === "잔금") { stSel.value = ""; plQF = ""; filterPL(); }
+    } catch(_){}
   }
 
   const optFolder = document.getElementById("sl-opt-folder")?.checked!==false;
