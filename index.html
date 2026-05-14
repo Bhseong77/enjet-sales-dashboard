@@ -614,8 +614,8 @@
             <button class="qb" onclick="qf('중단',this)">중단 <span id="ql-중">-</span></button>
           </div>
           <div class="tw"><table class="tbl">
-            <thead><tr><th>번호</th><th>프로젝트명</th><th>거래처</th><th>유형</th><th class="r">금액 (원화/달러)</th><th>상태</th><th>계약일</th><th>담당자</th><th>PM</th></tr></thead>
-            <tbody id="plTb"><tr><td colspan="9"><div class="sw"><div class="spr"></div></div></td></tr></tbody>
+            <thead><tr><th>번호</th><th>프로젝트명</th><th>거래처</th><th>유형</th><th class="r">금액 (원화/달러)</th><th>상태</th><th>계약일</th><th style="text-align:center">📄 견적</th><th style="text-align:center">📦 발주</th><th style="text-align:center">🚚 거래명세</th><th style="text-align:center">🧾 세금</th><th style="text-align:center">✅ 납품</th><th style="text-align:center">📁 기타</th></tr></thead>
+            <tbody id="plTb"><tr><td colspan="13"><div class="sw"><div class="spr"></div></div></td></tr></tbody>
           </table></div>
           <div style="font-size:14px;color:var(--t3);margin-top:7px;text-align:right" id="pl-cnt2"></div>
         </div>
@@ -3202,6 +3202,7 @@ const SP_FOLDER = "📦영업/99.Dashboard(real-time)";
 const PX_SALES   = "[매출자료]";
 const PX_CONTACT = "[연락처]";
 const PX_PROJECT = "[프로젝트List]";
+const PX_PL_LINKS = "📦영업/99.Dashboard(real-time)/pipeline-links.json"; // 파일링크 DB
 const SCOPES = [
   "User.Read","Files.Read.All","Sites.Read.All",
   "Calendars.ReadWrite","Group.ReadWrite.All",
@@ -3677,16 +3678,25 @@ async function loadProject() {
     if(ms){while(ms.options.length>1)ms.remove(1); mg.forEach(m=>{const o=new Option(m,m);ms.add(o);});}
     $("pl-upd","동기화: "+new Date().toLocaleTimeString("ko-KR")); $("pl-lbl",name);
     console.log("✅ 프로젝트:", PD.length, "건 ←", name);
-    // 대시보드 자체등록 프로젝트도 머지 (ERP에 아직 없는 신규N차 등)
-    if(dashProjects.length === 0) {
-      loadDashProjectsFromSP().then(()=>{
-        // 머지 후 렌더 재실행
+    // 파일링크 DB 병합 (pipeline-links.json)
+    loadPLLinksFromSP().then(()=>{
+      // 대시보드 자체등록 프로젝트도 머지
+      if(dashProjects.length === 0) {
+        loadDashProjectsFromSP().then(()=>{
+          try { filterPL(); } catch(_){}
+        });
+      } else {
+        mergeDashProjectsIntoPD();
         try { filterPL(); } catch(_){}
-      });
-    } else {
-      mergeDashProjectsIntoPD();
-      try { filterPL(); } catch(_){}
-    }
+      }
+    }).catch(()=>{
+      if(dashProjects.length === 0) {
+        loadDashProjectsFromSP().then(()=>{ try { filterPL(); } catch(_){} });
+      } else {
+        mergeDashProjectsIntoPD();
+        try { filterPL(); } catch(_){}
+      }
+    });
   } catch(e) {
     console.error("❌ 프로젝트 실패:", e.message, e.stack);
     const tb = document.getElementById("plTb");
@@ -3789,7 +3799,7 @@ function renderPL(data) {
   const tb=document.getElementById("plTb");
   if(!tb) return;
   if(!data||!data.length){
-    tb.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div></td></tr>`;
+    tb.innerHTML=`<tr><td colspan="13"><div class="empty"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div></td></tr>`;
     return;
   }
   tb.innerHTML=data.slice(0,300).filter(r=>r&&r.프로젝트번호).map(r=>{
@@ -3847,6 +3857,16 @@ function renderPL(data) {
         ondblclick="this.style.display='block';this.previousElementSibling.style.display='none';this.focus()">
     </td>`;
 
+    // 파일 링크 셀 생성 함수
+    const mkFileCell = (files, icon) => {
+      if(!files || !files.length) return `<td style="text-align:center;color:var(--t3)">-</td>`;
+      const links = files.slice(0,3).map(f =>
+        `<a href="${f.url}" target="_blank" title="${f.name}" style="display:block;font-size:11px;color:var(--p);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${icon} ${f.name.split('-').pop()}</a>`
+      ).join('');
+      const more = files.length > 3 ? `<span style="font-size:10px;color:var(--t3)">+${files.length-3}개</span>` : '';
+      return `<td style="max-width:90px;padding:2px 4px">${links}${more}</td>`;
+    };
+
     return `<tr>
       <td><span class="tm" style="font-size:13px">${pjNo}</span>${r.연도?`<span style="font-size:11px;color:var(--t3);margin-left:3px">'${String(r.연도).slice(2)}</span>`:""}</td>
       <td><span class="tn" style="font-size:14px" title="${r.프로젝트명||""}">${nm}</span></td>
@@ -3855,11 +3875,62 @@ function renderPL(data) {
       ${amtCell}
       ${statusCell}
       <td style="font-size:13px;color:var(--t3)">${dt}</td>
-      <td style="font-size:13px">${r.책임자||""}</td>
-      <td style="font-size:13px;color:var(--t3)">${r.PM||""}</td>
+      ${mkFileCell(r.files_견적서,'📄')}
+      ${mkFileCell(r.files_발주서,'📦')}
+      ${mkFileCell(r.files_거래명세서,'🚚')}
+      ${mkFileCell(r.files_세금계산서,'🧾')}
+      ${mkFileCell(r.files_납품확인서,'✅')}
+      ${mkFileCell(r.files_기타,'📁')}
     </tr>`;
   }).join("");
   $("pl-cnt2", data.length+"건 (최대 300)");
+}
+
+// ━━ 파이프라인 파일링크 DB (SP) ━━
+let _plLinks = {}; // {프로젝트번호: {files_견적서:[...], ...}}
+
+async function loadPLLinksFromSP() {
+  try {
+    await getIds(); const t = await getToken();
+    const enc = PX_PL_LINKS.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
+      headers:{"Authorization":"Bearer "+t}
+    });
+    if(!r.ok) return; // 파일 없으면 스킵
+    const data = await r.json();
+    // 배열이면 맵으로 변환
+    if(Array.isArray(data)) {
+      _plLinks = {};
+      data.forEach(item => { if(item.프로젝트번호) _plLinks[item.프로젝트번호] = item; });
+    } else {
+      _plLinks = data;
+    }
+    // PD에 파일링크 병합
+    mergePLLinks();
+    console.log(`✅ 파이프라인 파일링크: ${Object.keys(_plLinks).length}개 프로젝트`);
+  } catch(e) { console.warn("파이프라인 링크 로드 실패:", e.message); }
+}
+
+function mergePLLinks() {
+  if(!PD || !PD.length || !Object.keys(_plLinks).length) return;
+  PD.forEach(p => {
+    const link = _plLinks[p.프로젝트번호];
+    if(link) {
+      p.files_견적서    = link.files_견적서    || [];
+      p.files_발주서    = link.files_발주서    || [];
+      p.files_거래명세서 = link.files_거래명세서 || [];
+      p.files_세금계산서 = link.files_세금계산서 || [];
+      p.files_납품확인서 = link.files_납품확인서 || [];
+      p.files_기타      = link.files_기타      || [];
+      if(link.거래처 && !p.거래처) p.거래처 = link.거래처;
+      if(link.원화금액 && !p.원화금액) p.원화금액 = link.원화금액;
+      if(link.계약일 && !p.계약일) p.계약일 = link.계약일;
+      if(link.유형 && !p.유형) p.유형 = link.유형;
+      if(link.품목) p.품목 = link.품목;
+      if(link.구분) p.구분 = link.구분;
+    }
+  });
+  console.log("✅ 파일링크 병합 완료");
 }
 
 function updatePLField(pjNo, field, value) {
