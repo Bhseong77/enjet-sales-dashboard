@@ -27,6 +27,9 @@
 .sb-nav{padding:8px;flex:1;overflow-y:auto}
 .sb-sec{font-size:16px;text-transform:uppercase;letter-spacing:1.5px;color:var(--t3);padding:10px 8px 3px;font-weight:700}
 .ni{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;font-size:18px;color:var(--t2);cursor:pointer;font-weight:500;margin-bottom:1px;transition:all .15s}
+.sb-sub-item{font-size:16px;padding:8px 12px 8px 22px;border-left:2px solid var(--border2);margin-left:10px;border-radius:0 8px 8px 0}
+.sb-sub-item.on,.sb-sub-item:hover{border-left-color:var(--p);background:var(--pd)}
+.sb-group-toggle{font-size:18px}
 .ni:hover{background:var(--bg3)}.ni.on{background:var(--pd);color:var(--p);font-weight:700}
 .nb{margin-left:auto;font-size:14px;padding:1px 5px;border-radius:5px;font-family:var(--m);font-weight:700;background:var(--rd);color:var(--r)}
 .nbg{background:var(--gd);color:var(--g)}
@@ -360,11 +363,18 @@
       <div class="sb-sec">영업활동</div>
       <div class="ni" onclick="go('sales-log',this)">📋 영업활동 <span class="nb nbg" id="badge-sl">-</span></div>
       <div class="ni" onclick="go('sales-todo',this)">✅ 영업Todo <span class="nb nbg" id="badge-todo" style="background:var(--r);color:#fff">0</span></div>
-      <div class="ni" onclick="go('quote-db',this)">📄 견적서 DB <span class="nb nbg" id="badge-qdb">0</span></div>
-      <div class="ni" onclick="go('sales-meeting',this)">📝 회의록 DB <span class="nb nbg" id="badge-sm">0</span></div>
-      <div class="ni" onclick="go('delivery-db',this)">🚚 거래명세서 DB <span class="nb nbg" id="badge-dlv">0</span></div>
-      <div class="ni" onclick="go('tax-db',this)">🧾 세금계산서 DB <span class="nb nbg" id="badge-tax">0</span></div>
-      <div class="ni" onclick="go('order-db',this)">📦 발주서 DB <span class="nb nbg" id="badge-ord">0</span></div>
+      <!-- DB 접이식 그룹 -->
+      <div class="ni sb-group-toggle" id="dbGroupToggle" onclick="toggleDbGroup()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
+        <span>🗂️ DB</span>
+        <span id="dbGroupArrow" style="font-size:11px;color:var(--t3);transition:transform .2s">▶</span>
+      </div>
+      <div id="dbGroupItems" style="display:none;overflow:hidden">
+        <div class="ni sb-sub-item" onclick="go('quote-db',this)" style="padding-left:22px">📄 견적서 DB <span class="nb nbg" id="badge-qdb">0</span></div>
+        <div class="ni sb-sub-item" onclick="go('sales-meeting',this)" style="padding-left:22px">📝 회의록 DB <span class="nb nbg" id="badge-sm">0</span></div>
+        <div class="ni sb-sub-item" onclick="go('delivery-db',this)" style="padding-left:22px">🚚 거래명세서 DB <span class="nb nbg" id="badge-dlv">0</span></div>
+        <div class="ni sb-sub-item" onclick="go('tax-db',this)" style="padding-left:22px">🧾 세금계산서 DB <span class="nb nbg" id="badge-tax">0</span></div>
+        <div class="ni sb-sub-item" onclick="go('order-db',this)" style="padding-left:22px">📦 발주서 DB <span class="nb nbg" id="badge-ord">0</span></div>
+      </div>
       <div class="ni" onclick="go('customer',this)">🏭 고객사 DB <span class="nb nbg" id="badge-ct">-</span></div>
       <div class="sb-sec">마케팅</div>
       <div class="ni" onclick="go('marketing',this)">📣 마케팅 활동</div>
@@ -875,6 +885,7 @@
               <th style="text-align:center;min-width:55px;font-size:14px">📑 계약서</th>
               <th style="text-align:center;min-width:60px;font-size:14px">🚚 거래명세서</th>
               <th style="text-align:center;min-width:75px;font-size:14px">🧾 세금계산서</th>
+              <th style="text-align:center;min-width:55px;font-size:14px">✅ 납품확인서</th>
               <th style="min-width:45px"></th>
             </tr></thead>
             <tbody id="slBody">
@@ -3193,11 +3204,18 @@
 
 <!-- 모바일 더보기 패널 -->
 <div class="mob-nav-more" id="mobMore">
-  <div class="mob-more-item" onclick="go('quote-db',this);closeMobMore()"><span class="mob-icon">📄</span>견적서 DB</div>
-  <div class="mob-more-item" onclick="go('sales-meeting',this);closeMobMore()"><span class="mob-icon">📝</span>회의록 DB</div>
-  <div class="mob-more-item" onclick="go('delivery-db',this);closeMobMore()"><span class="mob-icon">🚚</span>거래명세서 DB</div>
-  <div class="mob-more-item" onclick="go('tax-db',this);closeMobMore()"><span class="mob-icon">🧾</span>세금계산서 DB</div>
-  <div class="mob-more-item" onclick="go('order-db',this);closeMobMore()"><span class="mob-icon">📦</span>발주서 DB</div>
+  <!-- DB 그룹 토글 -->
+  <div class="mob-more-item" onclick="toggleMobDbGroup()" style="display:flex;align-items:center;justify-content:space-between;font-weight:700;background:var(--bg2)">
+    <span><span class="mob-icon">🗂️</span>DB</span>
+    <span id="mobDbArrow" style="font-size:11px;color:var(--t3)">▶</span>
+  </div>
+  <div id="mobDbItems" style="display:none">
+    <div class="mob-more-item" onclick="go('quote-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📄</span>견적서 DB</div>
+    <div class="mob-more-item" onclick="go('sales-meeting',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📝</span>회의록 DB</div>
+    <div class="mob-more-item" onclick="go('delivery-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">🚚</span>거래명세서 DB</div>
+    <div class="mob-more-item" onclick="go('tax-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">🧾</span>세금계산서 DB</div>
+    <div class="mob-more-item" onclick="go('order-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📦</span>발주서 DB</div>
+  </div>
   <div class="mob-more-item" onclick="go('marketing',this);closeMobMore()"><span class="mob-icon">📣</span>마케팅</div>
   <div class="mob-more-item" onclick="go('cashflow',this);closeMobMore()"><span class="mob-icon">💰</span>현금흐름</div>
   <div class="mob-more-item" onclick="go('exh-prep-db',this);closeMobMore()"><span class="mob-icon">📁</span>자료 DB</div>
@@ -9086,6 +9104,13 @@ async function _deleteSLFile(fileId, fileName, actId, fileType) {
     const act = slData.find(x=>x.id===actId);
     if(act?.files?.[fileType]) {
       act.files[fileType] = act.files[fileType].filter(f=>f.name!==fileName && f.fileId!==fileId && f.id!==fileId);
+
+      // 파일 삭제 시 진행상태 되돌리기
+      const rollback = autoRollbackStatusByFile(act, fileType);
+      if(rollback) {
+        console.log(`↩️ 상태 롤백 [${act.company}]: ${rollback.oldStatus} → ${rollback.newStatus} (${rollback.reason})`);
+      }
+
       await saveSLToSP();
       renderSLAll();
     }
@@ -9189,8 +9214,6 @@ function autoAdvanceStatusByFile(act, fileType) {
   let newStatus = null;
   let reason = "";
 
-  // 파일 종류 → 상태 변경 매핑
-  // 이미 더 높은 단계면 변경 안 함
   const STATUS_RANK = {
     "신규":0, "제안":1, "견적":2, "발주":3, "진행":4,
     "납품완료":5, "세금계산서미발행":5, "세금계산서완료":6, "잔금":7, "유지보수(무상)":8, "종료":9
@@ -9198,26 +9221,23 @@ function autoAdvanceStatusByFile(act, fileType) {
   const curRank = STATUS_RANK[oldStatus] ?? 0;
 
   if(fileType === "proposal") {
-    // 자료/제안서 → 제안
     if(curRank < STATUS_RANK["제안"]) { newStatus = "제안"; reason = "자료(제안서) 업로드"; }
   } else if(fileType === "estimate") {
-    // 견적서 → 견적 (제안 이상이어야)
     if(curRank < STATUS_RANK["제안"])  { newStatus = "제안"; reason = "견적서 업로드 (제안 단계 선진입)"; }
     else if(curRank < STATUS_RANK["견적"]) { newStatus = "견적"; reason = "견적서 업로드"; }
   } else if(fileType === "order") {
-    // 발주서 → 발주
     if(curRank < STATUS_RANK["발주"]) { newStatus = "발주"; reason = "발주서 수령"; }
   } else if(fileType === "contract") {
-    // 계약서 → 진행
     if(curRank < STATUS_RANK["진행"]) { newStatus = "진행"; reason = "계약서 체결"; }
+  } else if(fileType === "confirm") {
+    // 납품확인서 → 납품완료
+    if(curRank < STATUS_RANK["납품완료"]) { newStatus = "납품완료"; reason = "납품확인서 업로드"; }
   } else if(fileType === "tax") {
-    // 세금계산서 → 세금계산서미발행(납품완료) → 세금계산서완료
     if(curRank < STATUS_RANK["납품완료"]) {
       newStatus = "납품완료"; reason = "세금계산서 업로드 (납품완료 처리)";
     } else if(oldStatus === "납품완료" || oldStatus === "세금계산서미발행") {
       newStatus = "세금계산서완료"; reason = "세금계산서 발행 완료";
     }
-    // 이미 세금계산서완료 이상이면 변경 안 함
   }
 
   if(newStatus && newStatus !== oldStatus) {
@@ -9235,6 +9255,56 @@ function autoAdvanceStatusByFile(act, fileType) {
     return { oldStatus, newStatus, reason };
   }
   return null;
+}
+
+// 파일 삭제 시 진행상태 되돌리기
+function autoRollbackStatusByFile(act, fileType) {
+  if(!act) return null;
+  const oldStatus = act.status || "신규";
+
+  // 파일 타입별 필요 최소 상태 및 되돌릴 상태 정의
+  const ROLLBACK_MAP = {
+    // fileType: { 현재 상태일 때 → 되돌릴 상태, 조건: 해당 fileType 파일이 0개 }
+    proposal: { from: "제안",          to: "신규" },
+    estimate: { from: ["제안","견적"], to: { "제안":"신규", "견적":"제안" } },
+    order:    { from: "발주",          to: "견적" },
+    contract: { from: "진행",          to: "발주" },
+    confirm:  { from: "납품완료",      to: "진행" },
+    tax:      { from: ["납품완료","세금계산서완료"], to: { "납품완료":"진행", "세금계산서완료":"납품완료" } },
+  };
+
+  const rule = ROLLBACK_MAP[fileType];
+  if(!rule) return null;
+
+  // 해당 파일 타입이 아직 남아있으면 되돌리지 않음
+  const remaining = (act.files?.[fileType] || []).length;
+  if(remaining > 0) return null;
+
+  // 현재 상태가 롤백 대상인지 확인
+  let newStatus = null;
+  if(Array.isArray(rule.from)) {
+    if(rule.from.includes(oldStatus)) {
+      newStatus = typeof rule.to === "object" ? rule.to[oldStatus] : rule.to;
+    }
+  } else {
+    if(oldStatus === rule.from) {
+      newStatus = rule.to;
+    }
+  }
+
+  if(!newStatus || newStatus === oldStatus) return null;
+
+  act.status = newStatus;
+  const today = new Date().toISOString().split("T")[0];
+  act.updatedAt = new Date().toISOString();
+  act.lastActivity = today;
+  if(!act.history) act.history = [];
+  act.history.unshift({
+    date: today,
+    action: `↩️ 상태 롤백: ${oldStatus} → ${newStatus} (${fileType} 파일 삭제)`,
+    type: "status"
+  });
+  return { oldStatus, newStatus, reason: fileType+" 파일 전체 삭제" };
 }
 
 // ─── 프로젝트코드 발급요청 ───
@@ -9833,6 +9903,7 @@ function renderSLTable(data) {
     {key:"contract", label:"📑",  col:"계약서"},
     {key:"delivery", label:"🚚",  col:"거래명세서"},
     {key:"tax",      label:"🧾",  col:"세금계산서"},
+    {key:"confirm",  label:"✅",  col:"납품확인서"},
   ];
   const PROPOSAL_DEFAULT_SUBS = ["제안서","교육","샘플test보고서"];
   const body = document.getElementById("slBody");
@@ -9850,7 +9921,7 @@ function renderSLTable(data) {
   body.style.display = ""; // tbody는 기본값(table-row-group)으로
 
   if(!data.length){
-    body.innerHTML='<tr><td colspan="14"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
+    body.innerHTML='<tr><td colspan="16"><div class="empty"><div class="ei">📋</div><div class="et">영업활동 없음</div><div style="margin-top:10px"><button onclick="openSLModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 추가</button></div></div></td></tr>';
     return;
   }
   // 최근활동일 기준 내림차순 정렬
@@ -9928,12 +9999,12 @@ function renderSLTable(data) {
           </button>
         </td>`;
       }
-      // 자료(proposal): 서브폴더 업로드
+      // 자료(proposal): 항상 서브폴더 모달 → 폴더 선택 후 업로드
       if(ft.key==="proposal") {
         return `<td style="text-align:center;white-space:nowrap">
           ${cnt>0
-            ?`<button onclick="openSLFileModal('${r.id}','proposal')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:13px;cursor:pointer;font-weight:700">📁 ${cnt}개</button>`
-            :`<button onclick="uploadSLFileToSubfolder('${r.id}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:13px;cursor:pointer">⬆</button>`}
+            ?`<button onclick="openSLSubfolderModal('${r.id}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:13px;cursor:pointer;font-weight:700">📁 ${cnt}개</button>`
+            :`<button onclick="openSLSubfolderModal('${r.id}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:13px;cursor:pointer">📂 ⬆</button>`}
         </td>`;
       }
       // 견적서: 작성(모달) + DB연결 + 업로드
@@ -11331,80 +11402,33 @@ function renderPjCodeRequestsCard() {
 
 // 파이프라인 탭에서 직접 신규 프로젝트코드 요청 등록
 function openPjCodeReqNew() {
-  // 기존 모달이 있으면 재사용, 없으면 생성
-  let modal = document.getElementById("pjReqNewModal");
-  if(!modal) {
-    modal = document.createElement("div");
-    modal.id = "pjReqNewModal";
-    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center";
-    modal.innerHTML = `
-      <div style="background:var(--bg);border-radius:14px;padding:24px;width:420px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-          <div style="font-size:17px;font-weight:800;color:var(--t)">📋 프로젝트코드 신규 요청</div>
-          <button onclick="document.getElementById('pjReqNewModal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:12px">
-          <div>
-            <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">생성될 프로젝트코드 *</label>
-            <input id="pjReqNew-code" class="si" placeholder="예: BP26005 또는 신규1차" style="width:100%;font-size:14px">
-          </div>
-          <div>
-            <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">프로젝트명</label>
-            <input id="pjReqNew-name" class="si" placeholder="예: 삼성전자 EHD 프린터 납품" style="width:100%;font-size:14px">
-          </div>
-          <div>
-            <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">거래처</label>
-            <input id="pjReqNew-company" class="si" placeholder="예: 삼성전자㈜" style="width:100%;font-size:14px">
-          </div>
-          <div>
-            <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px">요청자</label>
-            <input id="pjReqNew-requester" class="si" placeholder="이름" style="width:100%;font-size:14px">
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:18px">
-          <button onclick="document.getElementById('pjReqNewModal').remove()" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--t2);font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
-          <button onclick="submitPjCodeReqNew()" style="flex:2;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--s)">✅ 요청 등록</button>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-    // 요청자 자동 입력
-    const me = (typeof userInfo !== "undefined" && userInfo?.displayName) || "";
-    const inp = document.getElementById("pjReqNew-requester");
-    if(inp && me) inp.value = me;
-  }
+  // 기존 발급요청/입력 모달 재사용 (_pipeline_direct 임시 actId)
+  _pjCodePickerCtx = { actId: "_pipeline_direct", company: "" };
+  const modal = document.getElementById("pjCodePickerModal");
+  if(!modal) { console.warn("pjCodePickerModal 없음"); return; }
+
+  const sub = document.getElementById("pjCodePickerSubtitle");
+  if(sub) sub.textContent = "파이프라인에서 직접 발급";
+
+  // 현재 코드 박스 숨김
+  const curBox = document.getElementById("pjCodeCurrentBox");
+  if(curBox) curBox.style.display = "none";
+
+  // 검색/입력 초기화
+  const inp = document.getElementById("pjCodeSearchInput");
+  if(inp) { inp.value = ""; }
+  const sameOnly = document.getElementById("pjCodeSameCompanyOnly");
+  if(sameOnly) sameOnly.checked = false;
+  const newCode = document.getElementById("pjCodeNew-code");
+  const newName = document.getElementById("pjCodeNew-name");
+  if(newCode) newCode.value = "";
+  if(newName) newName.value = "";
+
+  renderPjCodeSearchResults();
   modal.style.display = "flex";
-  setTimeout(()=>{ const c=document.getElementById("pjReqNew-code"); if(c)c.focus(); }, 100);
-}
+  _pjCodeModalMode = true;  // 선택 시 요청 목록에 등록되도록
 
-async function submitPjCodeReqNew() {
-  const code    = (document.getElementById("pjReqNew-code")?.value||"").trim();
-  const name    = (document.getElementById("pjReqNew-name")?.value||"").trim();
-  const company = (document.getElementById("pjReqNew-company")?.value||"").trim();
-  const req     = (document.getElementById("pjReqNew-requester")?.value||"").trim();
-  if(!code){ alert("프로젝트코드를 입력하세요"); return; }
-
-  if(!Array.isArray(pjCodeRequests)) pjCodeRequests = [];
-  const newReq = {
-    id: "req_"+Date.now(),
-    code, projectName: name, company, requester: req,
-    requestedAt: new Date().toISOString(),
-    status: "pending",
-    source: "pipeline_direct"  // 파이프라인 탭에서 직접 등록
-  };
-  pjCodeRequests.unshift(newReq);
-
-  // SP 저장
-  try { await savePjCodeRequestsToSP(); } catch(e){ console.warn("SP 저장 실패:", e); }
-
-  renderPjCodeRequests(pjCodeRequests);
-  document.getElementById("pjReqNewModal")?.remove();
-
-  // 성공 토스트
-  const toast = document.createElement("div");
-  toast.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e40af;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:700;z-index:99999;font-family:var(--s)";
-  toast.textContent = `✅ [${code}] 요청 등록 완료`;
-  document.body.appendChild(toast);
-  setTimeout(()=>toast.remove(), 3000);
+  if(inp) setTimeout(()=>inp.focus(), 100);
 }
 
 async function completePjCodeReq(reqId) {
@@ -11617,6 +11641,33 @@ function renderPjCodeSearchResults() {
 function selectPjCode(code, name) {
   const actId = _pjCodePickerCtx.actId;
   if(!actId) { closePjCodePicker(); return; }
+
+  // 파이프라인 직접 발급 모드
+  if(actId === "_pipeline_direct") {
+    _pjCodeModalMode = false;
+    closePjCodePicker();
+    // 요청 목록에 등록
+    if(!Array.isArray(pjCodeRequests)) pjCodeRequests = [];
+    const me = (typeof userInfo !== "undefined" && userInfo?.displayName) || "(나)";
+    const newReq = {
+      id: "req_"+Date.now(),
+      code, projectName: name||"", company: "",
+      requester: me,
+      requestedAt: new Date().toISOString(),
+      status: "pending",
+      source: "pipeline_direct"
+    };
+    pjCodeRequests.unshift(newReq);
+    savePjCodeRequestsToSP().catch(e=>console.warn("SP 저장 실패:", e));
+    renderPjCodeRequests(pjCodeRequests);
+    // 토스트
+    const toast = document.createElement("div");
+    toast.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e40af;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:700;z-index:99999;font-family:var(--s)";
+    toast.textContent = `✅ [${code}] 요청 등록 완료`;
+    document.body.appendChild(toast);
+    setTimeout(()=>toast.remove(), 3000);
+    return;
+  }
 
   // 신규 모달 전용 모드: 영업활동에 저장 안 하고 모달 필드에만 반영
   if(_pjCodeModalMode || actId === "_modal_temp") {
@@ -12452,102 +12503,151 @@ function updateQuotePreviewEN() {
   const get = id => document.getElementById(id)?.value||"";
   const dateVal = get("q-date");
   const dateEng = dateVal ? new Date(dateVal).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"}) : "-";
+  const fmtUSD = v => "$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:0});
+
   let total = 0;
   _quoteItems.forEach(item=>{
     if(item.isDiscount) total += item.unitPrice;
     else total += (item.unitPrice||0)*(item.qty||1);
   });
-  const fmtUSD = v => "$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:0});
+
+  // 품목 행 (Q'ty + Total Price(USD) 컬럼만 - 새 템플릿 구조)
   const itemRows = _quoteItems.map((item,i)=>{
     if(item.isDiscount) return `<tr style="background:#fffde7">
-      <td style="border:1px solid #aaa;padding:3px 5px;text-align:center"></td>
-      <td style="border:1px solid #aaa;padding:3px 8px;font-style:italic;font-weight:700;color:#b26200" colspan="4">${item.name||"Special Discount"}</td>
-      <td style="border:1px solid #aaa;padding:3px 5px;text-align:right;color:#c00;font-weight:700">${item.unitPrice<0?"-"+fmtUSD(-item.unitPrice):fmtUSD(item.unitPrice)}</td>
-      <td style="border:1px solid #aaa;padding:3px 5px"></td></tr>`;
+      <td style="border:1px solid #bbb;padding:3px 5px;text-align:center"></td>
+      <td style="border:1px solid #bbb;padding:3px 8px;font-style:italic;font-weight:700;color:#b26200;text-align:left" colspan="2">${item.name||"Special Discount"}</td>
+      <td style="border:1px solid #bbb;padding:3px 6px;text-align:right;color:#c00;font-weight:700">${item.unitPrice<0?"-"+fmtUSD(-item.unitPrice):fmtUSD(item.unitPrice)}</td>
+      <td style="border:1px solid #bbb;padding:3px 5px"></td></tr>`;
     const amt = (item.unitPrice||0)*(item.qty||1);
     return `<tr>
-      <td style="border:1px solid #aaa;padding:3px 5px;text-align:center">${i+1}</td>
-      <td style="border:1px solid #aaa;padding:3px 8px;text-align:left">${item.name||""}</td>
-      <td style="border:1px solid #aaa;padding:3px 5px;text-align:right">${item.unitPrice?fmtUSD(item.unitPrice):""}</td>
-      <td style="border:1px solid #aaa;padding:3px 5px;text-align:center">${item.qty||1}</td>
-      <td style="border:1px solid #aaa;padding:3px 5px;text-align:center">${item.unit||"Set"}</td>
-      <td style="border:1px solid #aaa;padding:3px 5px;text-align:right">${amt?fmtUSD(amt):""}</td>
-      <td style="border:1px solid #aaa;padding:3px 5px">${item.note||""}</td></tr>`;
+      <td style="border:1px solid #bbb;padding:3px 5px;text-align:center;font-size:10px">${i+1}</td>
+      <td style="border:1px solid #bbb;padding:3px 8px;text-align:left;font-size:10px">${item.name||""}</td>
+      <td style="border:1px solid #bbb;padding:3px 5px;text-align:center;font-size:10px">${item.qty||1}</td>
+      <td style="border:1px solid #bbb;padding:3px 6px;text-align:right;font-size:10px;font-weight:700">${amt?fmtUSD(amt):""}</td>
+      <td style="border:1px solid #bbb;padding:3px 5px;font-size:10px">${item.unit||"Set"}</td></tr>`;
   }).join("");
-  const empty = Array(Math.max(0,3-_quoteItems.length)).fill(`<tr><td colspan="7" style="border:1px solid #aaa;padding:10px"></td></tr>`).join("");
-  const specText = get("q-spec").split("\n").filter(Boolean).map(l=>`<div>${l}</div>`).join("");
+  const emptyRows = Array(Math.max(0,3-_quoteItems.length))
+    .fill(`<tr><td style="border:1px solid #bbb;padding:8px"></td><td style="border:1px solid #bbb;padding:8px"></td><td style="border:1px solid #bbb;padding:8px"></td><td style="border:1px solid #bbb;padding:8px"></td><td style="border:1px solid #bbb;padding:8px"></td></tr>`).join("");
+
+  const specLines = get("q-spec").split("\n").filter(Boolean);
+  const specHTML = specLines.map(l=>`<div style="font-size:10px;padding:1px 0">${l}</div>`).join("");
   const noteText = get("q-note");
-  const _act = slData.find(x=>x.id===_quoteActId);
+
+  const _act = slData?.find(x=>x.id===_quoteActId);
   const _seq = String(((_act?.history||[]).filter(h=>h.action&&(h.action.includes("견적서")||h.action.includes("Quotation"))).length)+1).padStart(2,"0");
 
   area.innerHTML = `
-  <div style="font-family:Arial,sans-serif;color:#000">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div style="font-size:32px;font-weight:900;letter-spacing:10px;color:#1F3864">QUOTATION</div>
+  <div style="font-family:Arial,sans-serif;color:#000;font-size:10px">
+
+    <!-- 제목 + 회사 -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:28px;font-weight:900;letter-spacing:8px;color:#1a1a1a">QUOTATION</div>
       <div style="text-align:right">
-        <div style="font-size:16px;font-weight:800;color:#1F3864">ENJET INC., LTD.</div>
-        <div style="font-size:9px;color:#666;line-height:1.6">
-          No.45, Saneop-ro 92beon-gil, Gwonseon-gu,<br>Suwon-si, Gyeonggi-do, Korea<br>
+        <div style="font-size:14px;font-weight:800;color:#1F3864">ENJET INC., LTD.</div>
+        <div style="font-size:8.5px;color:#555;line-height:1.6">
+          No.45, Saneop-ro 92beon-gil, Gwonseon-gu,<br>
+          Suwon-si, Gyeonggi-do, Korea<br>
           Tel: 070-4892-8100 · Fax: 070-4892-8121<br>
           TIN: 206-86-36037
         </div>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-      <table style="width:100%;border-collapse:collapse;font-size:10px">
-        <tr style="background:#1F3864;color:#fff"><th colspan="2" style="padding:4px 8px">CLIENT</th></tr>
-        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700;width:70px">Company</td><td style="border:1px solid #aaa;padding:3px 6px;font-weight:700">${get("q-recipient")}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Details</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-subject")}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Date</td><td style="border:1px solid #aaa;padding:3px 6px">${dateEng}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Manager</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-manager")}</td></tr>
-      </table>
-      <table style="width:100%;border-collapse:collapse;font-size:10px">
-        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700;width:90px">Quotation NO</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-quoteNo")}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Delivery Place</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-delivery")}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Delivery Date</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-leadtime")}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Validity</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-validity")}</td></tr>
-        <tr><td style="border:1px solid #aaa;padding:3px 6px;background:#eef;font-weight:700">Payment</td><td style="border:1px solid #aaa;padding:3px 6px">${get("q-payment")}</td></tr>
-      </table>
+    <!-- CLIENT + PROVIDER 테이블 -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:6px;font-size:10px">
+      <tr>
+        <td style="width:12%;border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Client</td>
+        <td style="width:30%;border:1px solid #999;padding:3px 6px">${get("q-recipient")}</td>
+        <td rowspan="4" style="width:4%;border:1px solid #999;padding:2px;writing-mode:vertical-rl;text-align:center;font-weight:700;font-size:9px;background:#1F3864;color:#fff;letter-spacing:3px">PROVIDER</td>
+        <td style="width:20%;border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700;font-size:9px">Taxpayer Identification Number</td>
+        <td style="border:1px solid #999;padding:3px 6px">206-86-36037</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Details</td>
+        <td style="border:1px solid #999;padding:3px 6px">${get("q-subject")}</td>
+        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700;font-size:9px">Company Name</td>
+        <td style="border:1px solid #999;padding:3px 6px">ENJET INC., LTD &nbsp;&nbsp; CEO Do Young Byun</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Date</td>
+        <td style="border:1px solid #999;padding:3px 6px">${dateEng}</td>
+        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700;font-size:9px">Type of Business / Tel</td>
+        <td style="border:1px solid #999;padding:3px 6px">Manufacturing &nbsp; 070-4892-8111</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Manager</td>
+        <td style="border:1px solid #999;padding:3px 6px">${get("q-manager")}</td>
+        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700;font-size:9px">Address</td>
+        <td style="border:1px solid #999;padding:3px 6px;font-size:9px">No.45, Saneop-ro 92beon-gil, Gwonseon-gu, Suwon-si, Gyeonggi-do, Korea</td>
+      </tr>
+    </table>
+
+    <!-- 견적 조건 -->
+    <div style="font-size:9.5px;margin-bottom:5px;color:#333">We submit our quotation as below</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px;font-size:10px">
+      <tr>
+        <td style="width:18%;border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Quotation NO</td>
+        <td style="width:32%;border:1px solid #999;padding:3px 6px">${get("q-quoteNo")}</td>
+        <td style="width:20%;border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">A place of delivery</td>
+        <td style="border:1px solid #999;padding:3px 6px">${get("q-delivery")}</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Delivery Date</td>
+        <td style="border:1px solid #999;padding:3px 6px">${get("q-leadtime")}</td>
+        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Validity</td>
+        <td style="border:1px solid #999;padding:3px 6px">${get("q-validity")}</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Payment</td>
+        <td style="border:1px solid #999;padding:3px 6px">${get("q-payment")}</td>
+        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Trade Term</td>
+        <td style="border:1px solid #999;padding:3px 6px"></td>
+      </tr>
+    </table>
+
+    <!-- Total Price 헤더 -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <span style="font-size:11px;font-weight:700">Total Price :</span>
+      <span style="font-size:15px;font-weight:900;color:#C00000">${fmtUSD(total)}</span>
+      <span style="font-size:9px;color:#777;margin-left:auto">( US$ )</span>
     </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;border:2px solid #1F3864;padding:5px 12px;margin-bottom:6px;background:#EDF2F8">
-      <div style="font-size:11px;font-weight:700;color:#1F3864;letter-spacing:1px">TOTAL PRICE</div>
-      <div style="font-size:17px;font-weight:900;color:#C00000;letter-spacing:1px">${fmtUSD(total)}</div>
-      <div style="font-size:9px;color:#777">(Currency: USD)</div>
-    </div>
-
-    <table style="width:100%;border-collapse:collapse;margin-bottom:7px;font-size:10px">
+    <!-- 품목 테이블 (NO / Description / Q'ty / Total Price(USD) / Remark) -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px;font-size:10px">
       <thead>
         <tr style="background:#1F3864;color:#fff">
           <th style="border:1px solid #555;padding:4px 5px;width:28px">NO.</th>
-          <th style="border:1px solid #555;padding:4px 5px">Description</th>
-          <th style="border:1px solid #555;padding:4px 5px;width:75px">Unit Price</th>
-          <th style="border:1px solid #555;padding:4px 5px;width:35px">Q'ty</th>
-          <th style="border:1px solid #555;padding:4px 5px;width:38px">Unit</th>
-          <th style="border:1px solid #555;padding:4px 5px;width:85px">Total Price(USD)</th>
+          <th style="border:1px solid #555;padding:4px 8px;text-align:left">Description</th>
+          <th style="border:1px solid #555;padding:4px 5px;width:45px">Q'ty</th>
+          <th style="border:1px solid #555;padding:4px 5px;width:100px">Total Price<br>(USD)</th>
           <th style="border:1px solid #555;padding:4px 5px;width:55px">Remark</th>
         </tr>
       </thead>
-      <tbody>${itemRows}${empty}</tbody>
+      <tbody>${itemRows}${emptyRows}</tbody>
       <tfoot>
         <tr>
-          <td colspan="5" style="border:1px solid #aaa;border-top:2px solid #1F3864;padding:4px 8px;text-align:right;font-weight:700;background:#EDF2F8">Total</td>
-          <td style="border:1px solid #aaa;border-top:2px solid #1F3864;padding:4px 6px;text-align:right;font-weight:700;color:#C00000;background:#EDF2F8">${fmtUSD(total)}</td>
-          <td style="border:1px solid #aaa;border-top:2px solid #1F3864;background:#EDF2F8"></td>
+          <td colspan="3" style="border:1px solid #bbb;border-top:2px solid #1F3864;padding:4px 8px;text-align:right;font-weight:700">Total</td>
+          <td style="border:1px solid #bbb;border-top:2px solid #1F3864;padding:4px 6px;text-align:right;font-weight:700;color:#C00000">${fmtUSD(total)}</td>
+          <td style="border:1px solid #bbb;border-top:2px solid #1F3864"></td>
         </tr>
       </tfoot>
     </table>
 
-    ${specText?`<div style="border:1px solid #aaa;margin-bottom:6px">
-      <div style="background:#EDF2F8;font-weight:700;padding:3px 8px;font-size:10px;border-bottom:1px solid #aaa;color:#1F3864">SPECIFICATIONS</div>
-      <div style="padding:6px 8px;font-size:10px">${specText}</div></div>`:""}
-    ${noteText?`<div style="border-top:1px dashed #aaa;padding-top:4px;font-size:10px">
-      <div style="font-weight:700;margin-bottom:3px;color:#1F3864">※ Remarks</div>
-      <div>${noteText}</div></div>`:""}
+    <!-- Detailed Items / Spec -->
+    ${specHTML ? `<div style="margin-bottom:6px">
+      <div style="font-weight:700;font-size:10px;margin-bottom:3px">Detailed Items</div>
+      <div style="border:1px solid #ddd;padding:6px 8px">${specHTML}</div>
+    </div>` : ""}
 
-    <div style="position:absolute;bottom:6mm;left:0;right:0;padding:0 14mm;display:flex;justify-content:space-between;font-size:9px;color:#777;border-top:1px solid #ddd;padding-top:3px">
-      <span>ENJET-QUO-ENG-${_seq} REV(00)</span><span>ENJET INC., LTD.</span>
+    <!-- Remark -->
+    ${noteText ? `<div style="border-top:1px dashed #aaa;padding-top:4px">
+      <div style="font-weight:700;margin-bottom:3px">※ Remark</div>
+      <div style="font-size:10px">${noteText}</div>
+    </div>` : ""}
+
+    <!-- 문서번호 -->
+    <div style="display:flex;justify-content:space-between;font-size:8.5px;color:#777;margin-top:10px;border-top:1px solid #ddd;padding-top:3px">
+      <span>ENJET-QUO-01 REV(00)</span><span>ENJET INC., LTD.</span>
     </div>
   </div>`;
 }
@@ -13399,7 +13499,7 @@ async function postSLTeamsMsg(act, action) {
 async function uploadSLFile(actId, fileType, subFolderOverride) {
   const act = slData.find(x=>x.id===actId);
   if(!act) return;
-  const FOLDER_MAP = {minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",delivery:"거래명세서",tax:"세금계산서"};
+  const FOLDER_MAP = {minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",delivery:"거래명세서",tax:"세금계산서",confirm:"납품확인서"};
 
   // 자료(proposal)이면 서브폴더 선택 팝업
   if(fileType==="proposal" && !subFolderOverride) {
@@ -13425,6 +13525,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
     contract: "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,.pdf,.jpg,.jpeg,.png,.hwp,.doc,.docx,*/*",
     delivery: "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,*/*",
     tax:      "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,*/*",
+    confirm:  "application/pdf,image/*,.pdf,.jpg,.jpeg,.png,*/*",
   };
   input.accept = ACCEPT_MAP[fileType] || "*/*";
   // 안드로이드에서 파일 앱이 열리도록 body에 붙인 뒤 click
@@ -13520,6 +13621,38 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
         }
       }
 
+      // 🆕 계약서 업로드 시 AI 파싱
+      if(fileType === "contract" && uploaded.length > 0 && files.length > 0) {
+        const pdfFile = files.find(f => /\.(pdf|jpg|jpeg|png)$/i.test(f.name));
+        if(pdfFile && confirm(`✅ 계약서 업로드 완료!\n\n📄 ${pdfFile.name}\n\n🤖 AI로 내용 추출해서 거래명세서 DB에 등록할까요?`)) {
+          openDeliveryModal(null);
+          setTimeout(async () => {
+            const coEl = document.getElementById("dlv-company"); if(coEl && !coEl.value) coEl.value = act.company||"";
+            const pjEl = document.getElementById("dlv-pjcode"); if(pjEl && !pjEl.value) pjEl.value = act.pjcode||"";
+            const fuEl = document.getElementById("dlv-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
+            const gkEl = document.getElementById("dlvGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+            await parseDlvPdf(pdfFile);
+          }, 400);
+          return;
+        }
+      }
+
+      // 🆕 납품확인서 업로드 시 AI 파싱
+      if(fileType === "confirm" && uploaded.length > 0 && files.length > 0) {
+        const pdfFile = files.find(f => /\.(pdf|jpg|jpeg|png)$/i.test(f.name));
+        if(pdfFile && confirm(`✅ 납품확인서 업로드 완료!\n\n📄 ${pdfFile.name}\n\n🤖 AI로 내용 추출해서 거래명세서 DB에 등록할까요?`)) {
+          openDeliveryModal(null);
+          setTimeout(async () => {
+            const coEl = document.getElementById("dlv-company"); if(coEl && !coEl.value) coEl.value = act.company||"";
+            const pjEl = document.getElementById("dlv-pjcode"); if(pjEl && !pjEl.value) pjEl.value = act.pjcode||"";
+            const fuEl = document.getElementById("dlv-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
+            const gkEl = document.getElementById("dlvGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+            await parseDlvPdf(pdfFile);
+          }, 400);
+          return;
+        }
+      }
+
       let alertMsg = "✅ "+uploaded.length+"개 파일 업로드 완료!\n폴더: "+spPath;
       if(advancedFile) {
         alertMsg += `\n\n🔄 진행상태 자동 변경: ${advancedFile.oldStatus} → ${advancedFile.newStatus}`;
@@ -13538,8 +13671,8 @@ async function openSLFileModal(actId, fileType) {
   if(fileType==="proposal") { await openSLProposalFiles(actId); return; }
   const act=slData.find(x=>x.id===actId);
   if(!act) return;
-  const FOLDER_MAP={minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",delivery:"거래명세서",tax:"세금계산서"};
-  const LABEL_MAP ={minutes:"📝 회의록",proposal:"📁 자료",estimate:"📄 견적서",order:"📦 발주서",contract:"📑 계약서",tax:"🧾 세금계산서"};
+  const FOLDER_MAP={minutes:"회의록",proposal:"자료",estimate:"견적서",order:"발주서",contract:"계약서",delivery:"거래명세서",tax:"세금계산서",confirm:"납품확인서"};
+  const LABEL_MAP ={minutes:"📝 회의록",proposal:"📁 자료",estimate:"📄 견적서",order:"📦 발주서",contract:"📑 계약서",tax:"🧾 세금계산서",delivery:"🚚 거래명세서",confirm:"✅ 납품확인서",etc:"📁 기타"};
   const modal=document.getElementById("slFileModal");
   const title=document.getElementById("slFileModalTitle");
   const body=document.getElementById("slFileModalBody");
@@ -16144,6 +16277,15 @@ function go(id, el) {
   if(el) el.classList.add("on");
   $("ptitle", TITLES[id]||id);
 
+  // DB 탭으로 이동 시 DB 그룹 자동 펼치기
+  const DB_TABS = ["quote-db","sales-meeting","delivery-db","tax-db","order-db"];
+  if(DB_TABS.includes(id)) {
+    openDbGroup();
+    // DB 토글 버튼도 on 표시
+    const tog = document.getElementById("dbGroupToggle");
+    if(tog) tog.classList.add("on");
+  }
+
   // ─ 모바일 탭바 상태 동기화 ─
   document.querySelectorAll(".mob-nav-item").forEach(b=>b.classList.remove("on"));
   const mobItem = document.getElementById("mni-"+id);
@@ -16313,6 +16455,34 @@ function showBackToast() {
     toast.style.opacity = "0";
     _backPressTime = 0;
   }, 2000);
+}
+
+// ── DB 사이드바 그룹 토글 ──
+function toggleDbGroup() {
+  const items = document.getElementById("dbGroupItems");
+  const arrow = document.getElementById("dbGroupArrow");
+  if(!items) return;
+  const isOpen = items.style.display !== "none";
+  items.style.display = isOpen ? "none" : "block";
+  if(arrow) arrow.style.transform = isOpen ? "" : "rotate(90deg)";
+}
+
+function openDbGroup() {
+  const items = document.getElementById("dbGroupItems");
+  const arrow = document.getElementById("dbGroupArrow");
+  if(!items) return;
+  items.style.display = "block";
+  if(arrow) arrow.style.transform = "rotate(90deg)";
+}
+
+// ── 모바일 DB 그룹 토글 ──
+function toggleMobDbGroup() {
+  const items = document.getElementById("mobDbItems");
+  const arrow = document.getElementById("mobDbArrow");
+  if(!items) return;
+  const isOpen = items.style.display !== "none";
+  items.style.display = isOpen ? "none" : "block";
+  if(arrow) arrow.style.transform = isOpen ? "" : "rotate(90deg)";
 }
 
 function toggleMobMore() {
