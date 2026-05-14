@@ -3667,7 +3667,12 @@ async function loadProject() {
       });
       console.log("✅ 매출 연동 상태 보정 완료");
     } else {
-      console.warn("⚠️ SD 없음 - 상태 보정 스킵 (매출 로드 대기)");
+      // SD 없을 때 파일링크 기준 상태 적용
+      PD.forEach(p=>{
+        if(p._overrideStatus || p.진행구분 === "중단") return;
+        if(p._fromLinks) p.진행구분 = p._fromLinks;
+      });
+      console.warn("⚠️ SD 없음 - 파일링크 기준 상태 적용");
     }
     updPlKPI();
     try { filterPL(); } catch(pe){ console.warn("파이프라인 렌더 실패:", pe.message); }
@@ -3913,8 +3918,20 @@ async function loadPLLinksFromSP() {
 
 function mergePLLinks() {
   if(!PD || !PD.length || !Object.keys(_plLinks).length) return;
+
+  // 기본코드 추출 (BP25009-M001 → BP25009)
+  function basePjt(code) {
+    return String(code).replace(/[-_](M|S|PA|FA|RE|P|G|E|R|T)\d*$/,'')
+                       .replace(/[-_][가-힣A-Za-z0-9]+$/,'');
+  }
+
   PD.forEach(p => {
-    const link = _plLinks[p.프로젝트번호];
+    const pjNo = p.프로젝트번호;
+    // 1. 정확매칭
+    let link = _plLinks[pjNo];
+    // 2. 기본코드 매칭
+    if(!link) link = _plLinks[basePjt(pjNo)];
+
     if(link) {
       p.files_견적서    = link.files_견적서    || [];
       p.files_발주서    = link.files_발주서    || [];
@@ -3922,12 +3939,16 @@ function mergePLLinks() {
       p.files_세금계산서 = link.files_세금계산서 || [];
       p.files_납품확인서 = link.files_납품확인서 || [];
       p.files_기타      = link.files_기타      || [];
-      if(link.거래처 && !p.거래처) p.거래처 = link.거래처;
+      // 거래처/유형/계약일/상태도 보강 (ERP 값이 없는 경우)
+      if(link.거래처 && (!p.거래처 || p.거래처 === '-')) p.거래처 = link.거래처;
+      if(link.유형) p.유형 = link.유형;
+      if(link.계약일 && (!p.계약일 || p.계약일 === '')) p.계약일 = link.계약일;
       if(link.원화금액 && !p.원화금액) p.원화금액 = link.원화금액;
-      if(link.계약일 && !p.계약일) p.계약일 = link.계약일;
-      if(link.유형 && !p.유형) p.유형 = link.유형;
-      if(link.품목) p.품목 = link.품목;
       if(link.구분) p.구분 = link.구분;
+      // 상태: ERP _overrideStatus 없으면 파일링크 기준 상태 적용
+      if(!p._overrideStatus && link.진행구분) {
+        p._fromLinks = link.진행구분; // 파일링크 기준 상태 저장
+      }
     }
   });
   console.log("✅ 파일링크 병합 완료");
@@ -10949,9 +10970,10 @@ function renderPjCodeRequestsCard() {
       <td>${isPending
         ? '<span style="font-size:11px;padding:2px 8px;background:#fef3c7;color:#92400e;border-radius:8px;font-weight:700">대기중</span>'
         : '<span style="font-size:11px;padding:2px 8px;background:#dcfce7;color:#15803d;border-radius:8px;font-weight:700">✅ 완료</span><br><span style="font-size:10px;color:var(--t3)">'+(r.completedBy||"-")+' '+(r.completedAt||"").substring(0,10)+'</span>'}</td>
-      <td style="text-align:center">${isPending
-        ? `<button onclick="completePjCodeReq('${r.id}')" style="padding:4px 10px;border-radius:6px;border:none;background:var(--g);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">✅ 완료</button>`
-        : `<button onclick="deletePjCodeReq('${r.id}')" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:11px;cursor:pointer;font-family:var(--s)">삭제</button>`
+      <td style="text-align:center;white-space:nowrap">${isPending
+        ? `<button onclick="completePjCodeReq('${r.id}')" style="padding:4px 10px;border-radius:6px;border:none;background:var(--g);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">✅ 완료</button>
+           <button onclick="deletePjCodeReq('${r.id}')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--r);background:transparent;color:var(--r);font-size:11px;cursor:pointer;font-family:var(--s);margin-left:3px">🗑️</button>`
+        : `<button onclick="deletePjCodeReq('${r.id}')" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--t3);font-size:11px;cursor:pointer;font-family:var(--s)">🗑️ 삭제</button>`
       }</td>
     </tr>`;
   }).join("");
