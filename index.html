@@ -369,13 +369,14 @@
         <span id="dbGroupArrow" style="font-size:11px;color:var(--t3);transition:transform .2s">▶</span>
       </div>
       <div id="dbGroupItems" style="display:none;overflow:hidden">
-        <div class="ni sb-sub-item" onclick="go('quote-db',this)" style="padding-left:22px">📄 견적서 DB <span class="nb nbg" id="badge-qdb">0</span></div>
         <div class="ni sb-sub-item" onclick="go('sales-meeting',this)" style="padding-left:22px">📝 회의록 DB <span class="nb nbg" id="badge-sm">0</span></div>
+        <div class="ni sb-sub-item" onclick="go('proposal-db',this)" style="padding-left:22px">📂 자료 DB <span class="nb nbg" id="badge-pdb">0</span></div>
+        <div class="ni sb-sub-item" onclick="go('quote-db',this)" style="padding-left:22px">📄 견적서 DB <span class="nb nbg" id="badge-qdb">0</span></div>
+        <div class="ni sb-sub-item" onclick="go('order-db',this)" style="padding-left:22px">📦 발주서 DB <span class="nb nbg" id="badge-ord">0</span></div>
+        <div class="ni sb-sub-item" onclick="go('contract-db',this)" style="padding-left:22px">📑 계약서 DB <span class="nb nbg" id="badge-ctr">0</span></div>
         <div class="ni sb-sub-item" onclick="go('delivery-db',this)" style="padding-left:22px">🚚 거래명세서 DB <span class="nb nbg" id="badge-dlv">0</span></div>
         <div class="ni sb-sub-item" onclick="go('tax-db',this)" style="padding-left:22px">🧾 세금계산서 DB <span class="nb nbg" id="badge-tax">0</span></div>
-        <div class="ni sb-sub-item" onclick="go('order-db',this)" style="padding-left:22px">📦 발주서 DB <span class="nb nbg" id="badge-ord">0</span></div>
         <div class="ni sb-sub-item" onclick="go('confirm-db',this)" style="padding-left:22px">✅ 납품확인서 DB <span class="nb nbg" id="badge-cfm">0</span></div>
-        <div class="ni sb-sub-item" onclick="go('contract-db',this)" style="padding-left:22px">📑 계약서 DB <span class="nb nbg" id="badge-ctr">0</span></div>
       </div>
       <div class="ni" onclick="go('customer',this)">🏭 고객사 DB <span class="nb nbg" id="badge-ct">-</span></div>
       <div class="sb-sec">마케팅</div>
@@ -2907,6 +2908,88 @@
       </div>
     </div>
 
+    <!-- 📂 자료 DB 탭 -->
+    <div class="page" id="tab-proposal-db">
+      <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
+        <div class="kpi"><div class="kl">📂 총 건수</div><div class="kv" id="pdb-tot">0</div><div class="ks">건</div></div>
+        <div class="kpi"><div class="kl">🏭 거래처 수</div><div class="kv" id="pdb-co-cnt">0</div><div class="ks">곳</div></div>
+        <div class="kpi"><div class="kl">📁 폴더 수</div><div class="kv" id="pdb-folder-cnt">0</div><div class="ks">개</div></div>
+        <div class="kpi"><div class="kl">📅 최근 등록</div><div class="kv" id="pdb-last-date" style="font-size:14px">-</div><div class="ks"></div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:16px;font-weight:800">📂 자료 DB</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input class="si" type="text" id="pdb-search" placeholder="🔍 거래처/프로젝트/폴더명..." style="width:180px;font-size:13px" oninput="renderProposalDB()">
+            <button onclick="openProposalModal()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="tbl" style="min-width:800px">
+          <thead><tr>
+            <th style="min-width:80px">등록일</th>
+            <th style="min-width:120px">거래처</th>
+            <th style="min-width:100px">프로젝트코드</th>
+            <th style="min-width:120px">폴더명(자료구분)</th>
+            <th style="min-width:120px">파일명</th>
+            <th style="min-width:80px">고객담당자</th>
+            <th style="min-width:80px">영업담당자</th>
+            <th style="min-width:60px">파일</th>
+            <th style="min-width:50px"></th>
+          </tr></thead>
+          <tbody id="pdbBody"><tr><td colspan="9"><div class="empty"><div class="ei">📂</div><div class="et">자료 없음</div><div style="font-size:13px;color:var(--t3);margin-top:6px">영업활동 탭에서 자료 업로드 시 자동 등록됩니다</div></div></td></tr></tbody>
+        </table></div>
+        <div style="font-size:13px;color:var(--t3);margin-top:8px;text-align:right" id="pdb-cnt"></div>
+      </div>
+    </div>
+
+    <!-- 📂 자료 입력 모달 -->
+    <div id="pdbModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto">
+        <div style="background:linear-gradient(135deg,#0f766e,#14b8a6);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:16px;font-weight:900" id="pdbModalTitle">📂 자료 등록</div>
+          <button onclick="document.getElementById('pdbModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
+        </div>
+        <div style="padding:16px 18px">
+          <!-- 파일 업로드 -->
+          <div style="margin-bottom:14px;padding:12px;background:#f0fdfa;border-radius:10px;border:1.5px solid #99f6e4">
+            <div style="font-size:13px;font-weight:700;color:#0f766e;margin-bottom:8px">📁 파일 업로드 (선택)</div>
+            <input type="file" id="pdbFileInput" style="display:none" accept="*/*" onchange="handlePdbFileSelect(this.files)">
+            <label for="pdbFileInput" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:2px dashed #99f6e4;border-radius:8px;cursor:pointer;background:#fff;font-size:13px;color:#0f766e;font-weight:700">
+              📎 파일 선택 (업로드 후 정보 자동입력)
+            </label>
+            <div id="pdbFileStatus" style="font-size:12px;color:var(--t2);margin-top:6px;display:none"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 등록일 *</label><input class="si" type="date" id="pdb-date" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 거래처 *</label><input class="si" type="text" id="pdb-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="pdb-pjcode" placeholder="BP26001" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📁 폴더명(자료구분)</label>
+              <select class="si" id="pdb-folder" style="width:100%;font-size:13px" onchange="this.value==='__직접입력__'&&(document.getElementById('pdb-folder-custom').style.display='block')">
+                <option value="제안서">제안서</option>
+                <option value="교육자료">교육자료</option>
+                <option value="샘플test보고서">샘플test보고서</option>
+                <option value="기술문서">기술문서</option>
+                <option value="카탈로그">카탈로그</option>
+                <option value="시험성적서">시험성적서</option>
+                <option value="__직접입력__">+ 직접입력</option>
+              </select>
+              <input class="si" type="text" id="pdb-folder-custom" placeholder="폴더명 직접 입력" style="width:100%;font-size:13px;display:none;margin-top:4px">
+            </div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📄 파일명</label><input class="si" type="text" id="pdb-filename" placeholder="자동입력 또는 직접입력" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">👤 고객담당자</label><input class="si" type="text" id="pdb-cust-mgr" placeholder="김과장" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">👤 영업담당자</label><input class="si" type="text" id="pdb-sales-mgr" placeholder="이형동" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="pdb-note" placeholder="메모" style="width:100%;font-size:13px"></div>
+          </div>
+          <input type="hidden" id="pdb-edit-id">
+          <input type="hidden" id="pdb-file-url">
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button onclick="document.getElementById('pdbModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+            <button onclick="saveProposalEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 📑 계약서 DB 탭 -->
     <div class="page" id="tab-contract-db">
       <div class="kr" style="grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:9px">
@@ -3390,13 +3473,14 @@
     <span id="mobDbArrow" style="font-size:11px;color:var(--t3)">▶</span>
   </div>
   <div id="mobDbItems" style="display:none">
-    <div class="mob-more-item" onclick="go('quote-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📄</span>견적서 DB</div>
     <div class="mob-more-item" onclick="go('sales-meeting',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📝</span>회의록 DB</div>
+    <div class="mob-more-item" onclick="go('proposal-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📂</span>자료 DB</div>
+    <div class="mob-more-item" onclick="go('quote-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📄</span>견적서 DB</div>
+    <div class="mob-more-item" onclick="go('order-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📦</span>발주서 DB</div>
+    <div class="mob-more-item" onclick="go('contract-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📑</span>계약서 DB</div>
     <div class="mob-more-item" onclick="go('delivery-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">🚚</span>거래명세서 DB</div>
     <div class="mob-more-item" onclick="go('tax-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">🧾</span>세금계산서 DB</div>
-    <div class="mob-more-item" onclick="go('order-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📦</span>발주서 DB</div>
     <div class="mob-more-item" onclick="go('confirm-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">✅</span>납품확인서 DB</div>
-    <div class="mob-more-item" onclick="go('contract-db',this);closeMobMore()" style="padding-left:32px"><span class="mob-icon">📑</span>계약서 DB</div>
   </div>
   <div class="mob-more-item" onclick="go('marketing',this);closeMobMore()"><span class="mob-icon">📣</span>마케팅</div>
   <div class="mob-more-item" onclick="go('cashflow',this);closeMobMore()"><span class="mob-icon">💰</span>현금흐름</div>
@@ -3584,8 +3668,17 @@ PD = PD_STATIC.map(r => Object.assign({
 async function syncAll() {
   setSS("spin","동기화 중...");
   try {
-    await loadSalesAndProject();   // 매출자료 파일 하나로 SD + PD 모두 로드
-    await loadContacts();          // 연락처 별도
+    // 매출+프로젝트 먼저, 영업활동 병렬
+    const [, ] = await Promise.all([
+      loadSalesAndProject(),
+      loadContacts(),
+    ]);
+    // 영업활동 로드 (파이프라인 신규 동기화 위해)
+    try {
+      await loadSLFromSP();
+    } catch(e) { console.warn("영업활동 로드 실패:", e.message); }
+    // 두 데이터 모두 로드된 후 신규 동기화
+    syncPipelineFromSL();
     setSS("live","실시간 연동"); $("lsync","동기화: "+new Date().toLocaleTimeString("ko-KR"));
   } catch(e) { console.error(e); setSS("","연동 실패"); }
 }
@@ -7240,6 +7333,59 @@ async function ensureSLChannelId() {
   return SL_TEAMS_CHANNEL_ID;
 }
 const SL_SP_BASE   = "📦영업/7.영업활동";
+
+// ━━ 영업활동 폴더/파일명 헬퍼 ━━
+// 폴더 구조: 📦영업/7.영업활동/YYYY년/프로젝트코드 YYMMDD 고객사/문서종류/
+// 파일명:     프로젝트코드_고객사_문서종류_작성일자_담당자_고객담당자.ext
+
+function slSanitize(s) {
+  return (s||"").replace(/[\/:*?"<>|]/g,"").trim();
+}
+
+function slYearFolder(act) {
+  // 연도 폴더: 활동 날짜의 연도
+  const d = act.date || act.start || new Date().toISOString().substring(0,10);
+  return d.substring(0,4)+"년";
+}
+
+function slProjectFolder(act) {
+  // 프로젝트 폴더: "프로젝트코드 YYMMDD 고객사"
+  const pj   = slSanitize(act.pjcode) || "신규";
+  const co   = slSanitize(act.company);
+  const d    = (act.date||act.start||new Date().toISOString().substring(0,10)).replace(/-/g,"").substring(2,8); // YYMMDD
+  return `${pj} ${d} ${co}`;
+}
+
+function slFolderPath(act, docType) {
+  // 전체 경로: SL_SP_BASE/YYYY년/프로젝트코드 YYMMDD 고객사/문서종류
+  const FOLDER_MAP = {
+    minutes:"회의록", proposal:"자료", estimate:"견적서",
+    order:"발주서", contract:"계약서", delivery:"거래명세서",
+    tax:"세금계산서", confirm:"납품확인서"
+  };
+  const docFolder = FOLDER_MAP[docType] || docType || "";
+  const base = `${SL_SP_BASE}/${slYearFolder(act)}/${slProjectFolder(act)}`;
+  return docFolder ? base+"/"+docFolder : base;
+}
+
+function slFileName(act, docType, originalName) {
+  // 파일명: 프로젝트코드_고객사_문서종류_작성일자_담당자_고객담당자.ext
+  const LABEL_MAP = {
+    minutes:"회의록", proposal:"자료", estimate:"견적서",
+    order:"발주서", contract:"계약서", delivery:"거래명세서",
+    tax:"세금계산서", confirm:"납품확인서"
+  };
+  const ext  = (originalName||"").includes(".") ? "."+originalName.split(".").pop() : "";
+  const pj   = slSanitize(act.pjcode) || "신규";
+  const co   = slSanitize(act.company);
+  const doc  = LABEL_MAP[docType] || slSanitize(docType);
+  const date = (act.date||act.start||new Date().toISOString().substring(0,10)).replace(/-/g,"").substring(2,8);
+  const mgr  = slSanitize(act.salesMgr||act.담당자||"");
+  const cust = slSanitize(act.custMgr||act.고객담당자||"");
+  const parts = [pj, co, doc, date, mgr, cust].filter(Boolean);
+  return parts.join("_") + ext;
+}
+
 const SL_SP_JSON   = "📦영업/99.Dashboard(real-time)/sales-activities.json";
 const MTG_LOG_SP_PATH = "📦영업/99.Dashboard(real-time)/mtg-logs.json";
 const SL_ADMIN_EMAIL = "baekhoon@enjet.co.kr";
@@ -7289,13 +7435,51 @@ async function loadSLFromSP() {
     }
     renderSLAll();
     $("slUpd","로드: "+new Date().toLocaleTimeString("ko-KR"));
-    // ← 로드 완료 후 파이프라인 신규 동기화
-    syncPipelineFromSL();
+    // PD가 이미 로드된 경우에만 동기화 (없으면 loadSalesAndProject 완료 후 호출됨)
+    if(Array.isArray(PD) && PD.length > 0) {
+      syncPipelineFromSL();
+    }
   } catch(e) {
     slData = [];
     renderSLAll();
   }
 }
+
+
+// ━━ DB 탭 파일 저장 경로/파일명 헬퍼 ━━
+// 경로: 📦영업/7.영업활동/YYYY년/프로젝트코드 YYMMDD 고객사/문서종류/
+// 파일명: 프로젝트코드_고객사_문서종류_YYMMDD_담당자.ext
+function dbFolderPath(docType, pjcode, company, dateStr) {
+  const safe = s => (s||"").replace(/[\\/:*?"<>|]/g,"").trim();
+  const pj   = safe(pjcode) || "미지정";
+  const co   = safe(company);
+  const d    = (dateStr||new Date().toISOString().substring(0,10));
+  const yyyy = d.substring(0,4)+"년";
+  const yymmdd = d.replace(/-/g,"").substring(2,8);
+  const FOLDER_MAP = {
+    estimate:"견적서", order:"발주서", contract:"계약서",
+    delivery:"거래명세서", tax:"세금계산서", confirm:"납품확인서"
+  };
+  const docFolder = FOLDER_MAP[docType] || docType;
+  return `${SL_SP_BASE}/${yyyy}/${pj} ${yymmdd} ${co}/${docFolder}`;
+}
+
+function dbFileName(docType, pjcode, company, dateStr, originalName, salesMgr) {
+  const safe = s => (s||"").replace(/[\\/:*?"<>|]/g,"").trim();
+  const ext  = (originalName||"").includes(".") ? "."+originalName.split(".").pop() : "";
+  const LABEL_MAP = {
+    estimate:"견적서", order:"발주서", contract:"계약서",
+    delivery:"거래명세서", tax:"세금계산서", confirm:"납품확인서"
+  };
+  const pj   = safe(pjcode) || "미지정";
+  const co   = safe(company);
+  const doc  = LABEL_MAP[docType] || safe(docType);
+  const d    = (dateStr||new Date().toISOString().substring(0,10)).replace(/-/g,"").substring(2,8);
+  const mgr  = safe(salesMgr||"");
+  const parts = [pj, co, doc, d, mgr].filter(Boolean);
+  return parts.join("_") + ext;
+}
+
 
 // ━━ SP 엑셀 프로젝트현황 시트에 신규 행 추가 ━━
 async function addSLToProjectSheet(act) {
@@ -7803,9 +7987,7 @@ async function openSLSubfolderModal(actId) {
   document.getElementById("slSubfolderModal").style.display = "flex";
 
   // SP에서 기존 폴더 목록 로드
-  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-  const pjFolder = act.pjcode || "신규";
-  const basePath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/자료";
+  const basePath = slFolderPath(act, "proposal");
   const extraEl = document.getElementById("slSubfolderExtra");
   extraEl.innerHTML = "";
 
@@ -7850,9 +8032,7 @@ async function uploadSLFileToSubfolder(actId, subfolderName) {
   const act = slData.find(x=>x.id===actId);
   if(!act) return;
 
-  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-  const pjFolder = act.pjcode || "신규";
-  const spPath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/자료/"+subfolderName;
+  const spPath = slFolderPath(act, "proposal");
 
   const input = document.createElement("input");
   input.type = "file"; input.multiple = true;
@@ -7891,6 +8071,8 @@ async function uploadSLFileToSubfolder(actId, subfolderName) {
       const advancedSub = autoAdvanceStatusByFile(act, "proposal");
       await saveSLToSP();
       renderSLAll();
+      // 📂 자료DB에 자동 등록
+      uploaded.forEach(f => syncProposalToDB(act, f.name, f.url, subfolderName));
       $("slUpd","✅ "+uploaded.length+"개 업로드 완료 → 자료/"+subfolderName);
       let alertMsg = "✅ "+uploaded.length+"개 파일 업로드 완료!\n폴더: "+spPath;
       if(advancedSub) {
@@ -7925,9 +8107,7 @@ async function openSLProposalFiles(actId) {
   modal.style.display = "flex";
   body.innerHTML = '<div class="sw"><div class="spr"></div></div>';
 
-  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-  const pjFolder = act.pjcode || "신규";
-  const basePath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/자료";
+  const basePath = slFolderPath(act, "proposal");
 
   try {
     await getIds();
@@ -8061,10 +8241,8 @@ async function _createProposalSubfolder(actId) {
   if(!name) { alert("폴더명을 입력해주세요."); return; }
   const act = slData.find(x=>x.id===actId);
   if(!act) return;
-  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-  const pjFolder = act.pjcode || "신규";
   try {
-    await ensureSPFolder(SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/자료/"+name);
+    await ensureSPFolder(slFolderPath(act, "proposal")+"/"+name);
     await openSLProposalFiles(actId);
   } catch(e) { alert("폴더 생성 실패: "+e.message); }
 }
@@ -8860,9 +9038,7 @@ async function saveMtgDirectAsFile() {
   try {
     await getIds();
     const t = await getToken();
-    const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-    const pjFolder = act.pjcode||"신규";
-    const spPath = `${SL_SP_BASE}/${coFolder}/${pjFolder}/회의록`;
+    const spPath = slFolderPath(act, "minutes");
     await ensureSPFolder(spPath);
     const enc = spPath.split("/").map(encodeURIComponent).join("/");
     const r = await fetch(
@@ -8989,9 +9165,7 @@ async function uploadSLMtgRawFiles() {
   try {
     await getIds();
     const t = await getToken();
-    const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-    const pjFolder = act.pjcode||"신규";
-    const spPath = `${SL_SP_BASE}/${coFolder}/${pjFolder}/회의록`;
+    const spPath = slFolderPath(act, "minutes");
     await ensureSPFolder(spPath);
     if(!act.files) act.files={};
     if(!act.files.minutes) act.files.minutes=[];
@@ -9032,9 +9206,7 @@ async function loadSLMinutesFiles(actId) {
   const body = document.getElementById("slMinutesFileBody");
   body.innerHTML = '<div class="sw"><div class="spr"></div></div>';
 
-  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-  const pjFolder = act.pjcode || "신규";
-  const spPath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/회의록";
+  const spPath = slFolderPath(act, "minutes");
 
   try {
     await getIds();
@@ -9265,9 +9437,7 @@ async function saveSLMtgResult() {
   const location = document.getElementById("slMtgLocationCommon")?.value||"";
   const baseName = today+"_"+act.company.replace(/[\/:*?"<>|]/g,"")+(location?"_"+location.replace(/[\/:*?"<>|]/g,""):"");
   const fileName = baseName+"_회의록.txt";
-  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-  const pjFolder = act.pjcode || "신규";
-  const spPath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/회의록";
+  const spPath = slFolderPath(act, "minutes");
 
   try {
     await ensureSPFolder(spPath);
@@ -9805,6 +9975,10 @@ function syncSLActivityFromEvent(evt, save) {
     };
     slData.push(newAct);
     if(save) saveSLToSP().then(()=>renderSLAll());
+    // SP 엑셀 프로젝트현황 시트에도 행 추가
+    addSLToProjectSheet(newAct).then(added => {
+      if(added) setTimeout(()=> loadSalesAndProject().catch(()=>{}), 2000);
+    });
     return "created";
   }
 }
@@ -12519,9 +12693,7 @@ async function generateQuoteExcel(isDraft=false) {
       const blob = new Blob([wbOut], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
       await getIds();
       const t = await getToken();
-      const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-      const pjFolder = act.pjcode||"신규";
-      const spPath = `${SL_SP_BASE}/${coFolder}/${pjFolder}/견적서`;
+      const spPath = slFolderPath(act, "estimate");
       await ensureSPFolder(spPath);
       const enc = spPath.split("/").map(encodeURIComponent).join("/");
       const r = await fetch(
@@ -12639,9 +12811,7 @@ async function uploadQuoteFile() {
     try {
       await getIds();
       const t = await getToken();
-      const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-      const pjFolder = act.pjcode||"신규";
-      const spPath = `${SL_SP_BASE}/${coFolder}/${pjFolder}/견적서`;
+      const spPath = slFolderPath(act, "estimate");
       await ensureSPFolder(spPath);
       if(!act.files) act.files={};
       if(!act.files.estimate) act.files.estimate=[];
@@ -13594,12 +13764,7 @@ async function saveSLActivity() {
 
 // ─── SP 폴더 구조 생성 ───
 async function createSLFolders(act) {
-  // 고객사 폴더명 (특수문자 제거)
-  const coFolder = act.company.replace(/[\\/:*?"<>|]/g,"").trim();
-  // 프로젝트 폴더명 (신규면 "신규", 코드 있으면 코드)
-  const pjFolder = act.pjcode || "신규";
-
-  const basePath = SL_SP_BASE+"/"+coFolder;
+  const basePath = slFolderPath(act, null);
   const infoPath = basePath+"/기본정보";
   const pjPath   = basePath+"/"+pjFolder;
 
@@ -13618,9 +13783,9 @@ async function renameSLFolder(act, oldPjCode) {
   try {
     await getIds();
     const t = await getToken();
-    const coFolder = act.company.replace(/[\\/:*?"<>|]/g,"").trim();
-    const oldPath = SL_SP_BASE+"/"+coFolder+"/"+(oldPjCode||"신규");
-    const newName  = act.pjcode;
+    const oldPjAct = Object.assign({}, act, {pjcode: oldPjCode||"신규"});
+    const oldPath = slFolderPath(oldPjAct, null);
+    const newName  = slProjectFolder(act);
     const enc = oldPath.split("/").map(encodeURIComponent).join("/");
     const r = await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc,{
       method:"PATCH", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
@@ -13894,9 +14059,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
     ? "자료/"+subFolderOverride
     : FOLDER_MAP[fileType];
 
-  const coFolder  = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-  const pjFolder  = act.pjcode||"신규";
-  const spPath    = SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/"+subFolder;
+  const spPath    = slFolderPath(act, fileType==="proposal" ? null : fileType) + (fileType==="proposal" && subFolderOverride ? "/"+subFolderOverride : "");
 
   const input = document.createElement("input");
   input.type="file"; input.multiple=true;
@@ -13924,11 +14087,13 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
       await ensureSPFolder(spPath);
       const t=await getToken(); const uploaded=[];
       for(const file of files){
+        // 새 파일명 규칙: 프로젝트코드_고객사_문서종류_작성일자_담당자_고객담당자.ext
+        const newFileName = fileType==="proposal" ? file.name : slFileName(act, fileType, file.name);
         const enc=spPath.split("/").map(encodeURIComponent).join("/");
-        const r=await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+"/"+encodeURIComponent(file.name)+":/content",{
+        const r=await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+"/"+encodeURIComponent(newFileName)+":/content",{
           method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":file.type||"application/octet-stream"},body:file
         });
-        if(r.ok){const d=await r.json();uploaded.push({name:file.name,url:d.webUrl,size:file.size,uploadedAt:new Date().toISOString()});}
+        if(r.ok){const d=await r.json();uploaded.push({name:newFileName,url:d.webUrl,size:file.size,uploadedAt:new Date().toISOString()});}
       }
       if(!act.files) act.files={};
       if(!act.files[fileType]) act.files[fileType]=[];
@@ -14065,11 +14230,8 @@ async function openSLFileModal(actId, fileType) {
   modal.style.display="flex";
   body.innerHTML='<div class="sw"><div class="spr"></div></div>';
 
-  const coFolder=act.company.replace(/[\\/:*?"<>|]/g,"").trim();
-  const pjFolder=act.pjcode||"신규";
   // 자료 타입은 서브폴더 포함 경로
-  const folderBase = FOLDER_MAP[fileType];
-  const spPath=SL_SP_BASE+"/"+coFolder+"/"+pjFolder+"/"+folderBase;
+  const spPath=slFolderPath(act, fileType);
   try {
     await getIds();
     const enc=spPath.split("/").map(encodeURIComponent).join("/");
@@ -14120,9 +14282,7 @@ async function deleteSLActivity(id) {
   const act = slData.find(x=>x.id===id);
   if(!act) return;
 
-  const coFolder = act.company.replace(/[\/:*?"<>|]/g,"").trim();
-  const pjFolder = act.pjcode || "신규";
-  const spFolderPath = SL_SP_BASE+"/"+coFolder+"/"+pjFolder;
+  const spFolderPath = slFolderPath(act, null);
 
   const msg = [
     `"${act.company}" (${pjFolder}) 영업활동을 삭제할까요?`,
@@ -14228,7 +14388,7 @@ async function deleteSLActivity(id) {
 // 영업활동 탭 자동로드 → 통합 go 함수에서 처리
 
 // ━━ 탭/유틸 ━━
-const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB","delivery-db":"🚚 거래명세서 DB","tax-db":"🧾 세금계산서 DB","order-db":"📦 발주서 DB","confirm-db":"✅ 납품확인서 DB","contract-db":"📑 계약서 DB",marketing:"📣 마케팅 활동","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
+const TITLES={sales:"📊 매출 현황",cashflow:"💰 현금흐름",pipeline:"🔄 파이프라인",customer:"🏭 고객사 DB",orgchart:"🏢 조직도","sales-log":"📋 영업활동","sales-todo":"✅ 영업Todo","quote-db":"📄 견적서 DB","sales-meeting":"📝 회의록 DB","delivery-db":"🚚 거래명세서 DB","tax-db":"🧾 세금계산서 DB","order-db":"📦 발주서 DB","proposal-db":"📂 자료 DB","confirm-db":"✅ 납품확인서 DB","contract-db":"📑 계약서 DB",marketing:"📣 마케팅 활동","exh-prep-db":"📁 자료 DB","exh-result-db":"📊 전시회결과 DB",exhibition:"🎪 전시회고객 DB"};
 
 // ━━ 통합 탭 전환 함수 (모든 탭 자동로드 포함) ━━
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -16662,7 +16822,7 @@ function go(id, el) {
   $("ptitle", TITLES[id]||id);
 
   // DB 탭으로 이동 시 DB 그룹 자동 펼치기
-  const DB_TABS = ["quote-db","sales-meeting","delivery-db","tax-db","order-db","confirm-db","contract-db"];
+  const DB_TABS = ["sales-meeting","proposal-db","quote-db","order-db","contract-db","delivery-db","tax-db","confirm-db"];
   if(DB_TABS.includes(id)) {
     openDbGroup();
     // DB 토글 버튼도 on 표시
@@ -16773,6 +16933,7 @@ function go(id, el) {
   if(id==="delivery-db") { loadDeliveryDB(); }
   if(id==="tax-db") { loadTaxDB(); }
   if(id==="order-db") { loadOrderDB(); }
+  if(id==="proposal-db") { loadProposalDB(); }
   if(id==="confirm-db") { loadConfirmDB(); }
   if(id==="contract-db") { loadContractDB(); }
   // 고객사 관리 탭
@@ -17075,14 +17236,19 @@ function openOrderModal(id) {
 
 async function parseOrderPdf(file) {
   if(!file) return;
+  // SP 저장은 AI 파싱 후 폼 값이 채워지면 saveOrderEntry에서 처리
+  // 여기서는 임시로 날짜 기반 경로에 저장 (pjcode/company 모름)
   try {
     await getIds(); const t = await getToken();
-    const safeName = file.name.replace(/[^a-zA-Z0-9가-힣._-]/g,"_");
-    const spPath = `📦영업/9.거래문서/발주서/${new Date().toISOString().substring(0,7)}`;
+    const today = new Date().toISOString().substring(0,10);
+    const pjcode = document.getElementById("order-pjcode")?.value?.trim() || "";
+    const company = document.getElementById("order-company")?.value?.trim() || "";
+    const spPath = dbFolderPath("order", pjcode, company, today);
+    const newName = dbFileName("order", pjcode, company, today, file.name, "");
     await ensureSPFolder(spPath);
     const enc = spPath.split("/").map(encodeURIComponent).join("/");
-    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(safeName)}:/content`,
-      {method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":"application/pdf"},body:file});
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(newName)}:/content`,
+      {method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":file.type||"application/pdf"},body:file});
     if(r.ok){const d=await r.json();const el=document.getElementById("order-file-url");if(el)el.value=d.webUrl||"";}
   } catch(e){console.warn("발주서 SP 저장 실패:",e.message);}
 
@@ -17528,11 +17694,14 @@ async function parseDlvPdf(file) {
   if(!file) return;
   try {
     await getIds();const t=await getToken();
-    const safeName=file.name.replace(/[^a-zA-Z0-9가-힣._-]/g,"_");
-    const spPath=`📦영업/9.거래문서/거래명세서/${new Date().toISOString().substring(0,7)}`;
+    const today = new Date().toISOString().substring(0,10);
+    const pjcode = document.getElementById("dlv-pjcode")?.value?.trim() || "";
+    const company = document.getElementById("dlv-company")?.value?.trim() || "";
+    const spPath = dbFolderPath("delivery", pjcode, company, today);
+    const newName = dbFileName("delivery", pjcode, company, today, file.name, "");
     await ensureSPFolder(spPath);
     const enc=spPath.split("/").map(encodeURIComponent).join("/");
-    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(safeName)}:/content`,{method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":"application/pdf"},body:file});
+    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(newName)}:/content`,{method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":file.type||"application/pdf"},body:file});
     if(r.ok){const d=await r.json();const el=document.getElementById("dlv-file-url");if(el)el.value=d.webUrl||"";}
   } catch(e){console.warn("거래명세서 SP 저장 실패:",e.message);}
   await parsePdfWithAI(file,"dlv","dlvParseStatus",(json)=>{
@@ -17545,11 +17714,14 @@ async function parseTaxPdf(file) {
   if(!file) return;
   try {
     await getIds();const t=await getToken();
-    const safeName=file.name.replace(/[^a-zA-Z0-9가-힣._-]/g,"_");
-    const spPath=`📦영업/9.거래문서/세금계산서/${new Date().toISOString().substring(0,7)}`;
+    const today = new Date().toISOString().substring(0,10);
+    const pjcode = document.getElementById("tax-mgmt")?.value?.trim() || "";
+    const company = document.getElementById("tax-company")?.value?.trim() || "";
+    const spPath = dbFolderPath("tax", pjcode, company, today);
+    const newName = dbFileName("tax", pjcode, company, today, file.name, "");
     await ensureSPFolder(spPath);
     const enc=spPath.split("/").map(encodeURIComponent).join("/");
-    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(safeName)}:/content`,{method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":"application/pdf"},body:file});
+    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(newName)}:/content`,{method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":file.type||"application/pdf"},body:file});
     if(r.ok){const d=await r.json();const el=document.getElementById("tax-file-url");if(el)el.value=d.webUrl||"";}
   } catch(e){console.warn("세금계산서 SP 저장 실패:",e.message);}
   await parsePdfWithAI(file,"tax","taxParseStatus",(json)=>{
@@ -17682,6 +17854,21 @@ async function deleteConfirmEntry(id) {
 
 async function parseCfmPdf(file) {
   if(!file) return;
+  // SP에 파일 저장
+  try {
+    await getIds(); const t = await getToken();
+    const today = new Date().toISOString().substring(0,10);
+    const pjcode = document.getElementById("cfm-pjcode")?.value?.trim() || "";
+    const company = document.getElementById("cfm-company")?.value?.trim() || "";
+    const spPath = dbFolderPath("confirm", pjcode, company, today);
+    const newName = dbFileName("confirm", pjcode, company, today, file.name, "");
+    await ensureSPFolder(spPath);
+    const enc = spPath.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(newName)}:/content`,
+      {method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":file.type||"application/pdf"},body:file});
+    if(r.ok){const d=await r.json();const el=document.getElementById("cfm-file-url");if(el)el.value=d.webUrl||"";}
+  } catch(e){console.warn("납품확인서 SP 저장 실패:",e.message);}
+
   const statusEl = document.getElementById("cfmParseStatus");
   statusEl.style.display="block"; statusEl.textContent="🤖 AI 분석 중...";
   const engine = document.querySelector('input[name="cfmAiEngine"]:checked')?.value||"gemini";
@@ -17825,6 +18012,21 @@ async function deleteContractEntry(id) {
 
 async function parseCtrPdf(file) {
   if(!file) return;
+  // SP에 파일 저장
+  try {
+    await getIds(); const t = await getToken();
+    const today = new Date().toISOString().substring(0,10);
+    const pjcode = document.getElementById("ctr-pjcode")?.value?.trim() || "";
+    const company = document.getElementById("ctr-company")?.value?.trim() || "";
+    const spPath = dbFolderPath("contract", pjcode, company, today);
+    const newName = dbFileName("contract", pjcode, company, today, file.name, "");
+    await ensureSPFolder(spPath);
+    const enc = spPath.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(newName)}:/content`,
+      {method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":file.type||"application/pdf"},body:file});
+    if(r.ok){const d=await r.json();const el=document.getElementById("ctr-file-url");if(el)el.value=d.webUrl||"";}
+  } catch(e){console.warn("계약서 SP 저장 실패:",e.message);}
+
   const statusEl = document.getElementById("ctrParseStatus");
   statusEl.style.display="block"; statusEl.textContent="🤖 AI 분석 중...";
   const engine = document.querySelector('input[name="ctrAiEngine"]:checked')?.value||"gemini";
@@ -17844,6 +18046,221 @@ async function parseCtrPdf(file) {
       statusEl.textContent = "✅ AI 추출 완료!";
     } else { statusEl.textContent = "⚠️ 추출 실패 - 직접 입력해주세요"; }
   } catch(e) { statusEl.textContent = "❌ 오류: "+e.message; }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📂 자료 DB
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const PDB_SP_PATH = "📦영업/99.Dashboard(real-time)/proposal-db.json";
+let _pdbData = [];
+
+async function saveProposalToSP() {
+  await getIds(); const t = await getToken();
+  const enc = PDB_SP_PATH.split("/").map(encodeURIComponent).join("/");
+  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
+    method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+    body: JSON.stringify(_pdbData)
+  });
+  $("badge-pdb", _pdbData.length);
+}
+
+async function loadProposalDB() {
+  try {
+    await getIds(); const t = await getToken();
+    const enc = PDB_SP_PATH.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {headers:{"Authorization":"Bearer "+t}});
+    if(r.ok) _pdbData = await r.json();
+  } catch(e) { _pdbData = []; }
+  $("badge-pdb", _pdbData.length);
+  renderProposalDB();
+}
+
+function renderProposalDB() {
+  const q = (document.getElementById("pdb-search")?.value||"").toLowerCase();
+  const filtered = _pdbData.filter(d =>
+    !q || (d.company||"").toLowerCase().includes(q) ||
+    (d.pjcode||"").toLowerCase().includes(q) ||
+    (d.folder||"").toLowerCase().includes(q) ||
+    (d.filename||"").toLowerCase().includes(q)
+  );
+  const cos = [...new Set(_pdbData.map(d=>d.company).filter(Boolean))];
+  const folders = [...new Set(_pdbData.map(d=>d.folder).filter(Boolean))];
+  $("pdb-tot", _pdbData.length);
+  $("pdb-co-cnt", cos.length);
+  $("pdb-folder-cnt", folders.length);
+  const sorted = [..._pdbData].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+  $("pdb-last-date", sorted[0]?.date||"-");
+  const body = document.getElementById("pdbBody");
+  if(!body) return;
+  if(!filtered.length) { body.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📂</div><div class="et">자료 없음</div></div></td></tr>'; return; }
+  body.innerHTML = [...filtered].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(d => `<tr>
+    <td style="font-size:13px;white-space:nowrap">${d.date||""}</td>
+    <td style="font-size:13px;font-weight:700">${d.company||""}</td>
+    <td style="font-size:12px;color:var(--p)">${d.pjcode||""}</td>
+    <td style="font-size:12px"><span style="background:var(--pd);color:var(--p);padding:2px 8px;border-radius:6px;font-weight:700">${d.folder||""}</span></td>
+    <td style="font-size:12px;color:var(--t2)">${d.filename||""}</td>
+    <td style="font-size:12px">${d.custMgr||""}</td>
+    <td style="font-size:12px">${d.salesMgr||""}</td>
+    <td style="text-align:center">${d.fileUrl?`<a href="${d.fileUrl}" target="_blank" style="font-size:12px;color:var(--p)">📎</a>`:"-"}</td>
+    <td style="text-align:center;white-space:nowrap">
+      <button onclick="openProposalModal('${d.id}')" style="padding:3px 8px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer">✏️</button>
+      <button onclick="deleteProposalEntry('${d.id}')" style="padding:3px 8px;border-radius:5px;border:1px solid var(--r);background:transparent;color:var(--r);font-size:12px;cursor:pointer;margin-left:3px">🗑️</button>
+    </td>
+  </tr>`).join("");
+  $("pdb-cnt", filtered.length+"건");
+}
+
+function openProposalModal(id) {
+  const modal = document.getElementById("pdbModal");
+  if(id) {
+    const d = _pdbData.find(x=>x.id===id); if(!d) return;
+    document.getElementById("pdb-edit-id").value = id;
+    document.getElementById("pdbModalTitle").textContent = "📂 자료 수정";
+    ["date","company","pjcode","filename","cust-mgr","sales-mgr","note"].forEach(f=>{
+      const el=document.getElementById("pdb-"+f); if(el) el.value=d[f.replace("-","Mgr").replace("cust","cust").replace("sales","sales")]||d[f]||"";
+    });
+    // 특별 필드
+    document.getElementById("pdb-date").value = d.date||"";
+    document.getElementById("pdb-company").value = d.company||"";
+    document.getElementById("pdb-pjcode").value = d.pjcode||"";
+    document.getElementById("pdb-filename").value = d.filename||"";
+    document.getElementById("pdb-cust-mgr").value = d.custMgr||"";
+    document.getElementById("pdb-sales-mgr").value = d.salesMgr||"";
+    document.getElementById("pdb-note").value = d.note||"";
+    document.getElementById("pdb-file-url").value = d.fileUrl||"";
+    // 폴더 선택
+    const folderSel = document.getElementById("pdb-folder");
+    const folderCustom = document.getElementById("pdb-folder-custom");
+    const standardFolders = ["제안서","교육자료","샘플test보고서","기술문서","카탈로그","시험성적서"];
+    if(standardFolders.includes(d.folder||"")) {
+      folderSel.value = d.folder;
+      folderCustom.style.display = "none";
+    } else {
+      folderSel.value = "__직접입력__";
+      folderCustom.style.display = "block";
+      folderCustom.value = d.folder||"";
+    }
+  } else {
+    document.getElementById("pdb-edit-id").value = "";
+    document.getElementById("pdbModalTitle").textContent = "📂 자료 등록";
+    ["pdb-date","pdb-company","pdb-pjcode","pdb-filename","pdb-cust-mgr","pdb-sales-mgr","pdb-note"].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value="";
+    });
+    document.getElementById("pdb-date").value = new Date().toISOString().split("T")[0];
+    document.getElementById("pdb-folder").value = "제안서";
+    document.getElementById("pdb-folder-custom").style.display = "none";
+    document.getElementById("pdb-file-url").value = "";
+    document.getElementById("pdbFileStatus").style.display = "none";
+    // 영업담당자 자동입력
+    const me = (typeof userInfo !== "undefined" && userInfo?.displayName) || "";
+    if(me) document.getElementById("pdb-sales-mgr").value = me;
+  }
+  modal.style.display = "flex";
+}
+
+async function handlePdbFileSelect(files) {
+  if(!files?.length) return;
+  const file = files[0];
+  const statusEl = document.getElementById("pdbFileStatus");
+  statusEl.style.display = "block";
+  statusEl.textContent = "⏳ 업로드 중...";
+  try {
+    const company  = document.getElementById("pdb-company").value.trim();
+    const pjcode   = document.getElementById("pdb-pjcode").value.trim();
+    const date     = document.getElementById("pdb-date").value || new Date().toISOString().substring(0,10);
+    const folderSel= document.getElementById("pdb-folder").value;
+    const folder   = folderSel === "__직접입력__"
+      ? (document.getElementById("pdb-folder-custom").value.trim() || "자료")
+      : folderSel;
+    const salesMgr = document.getElementById("pdb-sales-mgr").value.trim();
+    const custMgr  = document.getElementById("pdb-cust-mgr").value.trim();
+
+    // 파일명 자동생성: 프로젝트코드_고객사_폴더명_작성일자_담당자_고객담당자.ext
+    const ext = file.name.includes(".") ? "."+file.name.split(".").pop() : "";
+    const safe = s => (s||"").replace(/[\/:*?"<>|]/g,"").trim();
+    const yymmdd = date.replace(/-/g,"").substring(2,8);
+    const parts = [safe(pjcode)||"자료", safe(company), safe(folder), yymmdd, safe(salesMgr), safe(custMgr)].filter(Boolean);
+    const newName = parts.join("_") + ext;
+
+    // SP 경로: SL_SP_BASE/YYYY년/프로젝트코드 YYMMDD 고객사/자료/폴더명/
+    const yrFolder = date.substring(0,4)+"년";
+    const pjFolderName = (safe(pjcode)||"자료")+" "+yymmdd+" "+safe(company);
+    const spPath = `${SL_SP_BASE}/${yrFolder}/${pjFolderName}/자료/${folder}`;
+    await ensureSPFolder(spPath);
+    await getIds(); const t = await getToken();
+    const enc = spPath.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}/${encodeURIComponent(newName)}:/content`,
+      {method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":file.type||"application/octet-stream"},body:file});
+    if(r.ok) {
+      const d = await r.json();
+      document.getElementById("pdb-file-url").value = d.webUrl||"";
+      document.getElementById("pdb-filename").value = newName;
+      statusEl.textContent = `✅ 업로드 완료: ${newName}`;
+      statusEl.style.color = "var(--g)";
+    } else throw new Error("업로드 실패 "+r.status);
+  } catch(e) {
+    statusEl.textContent = "❌ 오류: "+e.message;
+    statusEl.style.color = "var(--r)";
+    // 파일명만 자동입력
+    document.getElementById("pdb-filename").value = file.name;
+  }
+}
+
+async function saveProposalEntry() {
+  const company = document.getElementById("pdb-company")?.value?.trim();
+  const date    = document.getElementById("pdb-date")?.value;
+  if(!company||!date) { alert("등록일과 거래처는 필수입니다"); return; }
+  const folderSel = document.getElementById("pdb-folder").value;
+  const folder = folderSel === "__직접입력__"
+    ? (document.getElementById("pdb-folder-custom").value.trim() || "자료")
+    : folderSel;
+  const editId = document.getElementById("pdb-edit-id").value;
+  const entry = {
+    id: editId || "pdb_"+Date.now(),
+    date, company,
+    pjcode:   document.getElementById("pdb-pjcode").value,
+    folder,
+    filename: document.getElementById("pdb-filename").value,
+    custMgr:  document.getElementById("pdb-cust-mgr").value,
+    salesMgr: document.getElementById("pdb-sales-mgr").value,
+    note:     document.getElementById("pdb-note").value,
+    fileUrl:  document.getElementById("pdb-file-url").value,
+    createdAt: editId ? (_pdbData.find(x=>x.id===editId)?.createdAt||new Date().toISOString()) : new Date().toISOString(),
+  };
+  if(editId){ const i=_pdbData.findIndex(x=>x.id===editId); if(i>=0)_pdbData[i]=entry; else _pdbData.unshift(entry); }
+  else _pdbData.unshift(entry);
+  await saveProposalToSP();
+  renderProposalDB();
+  document.getElementById("pdbModal").style.display = "none";
+}
+
+async function deleteProposalEntry(id) {
+  if(!confirm("자료를 삭제할까요?")) return;
+  _pdbData = _pdbData.filter(x=>x.id!==id);
+  await saveProposalToSP();
+  renderProposalDB();
+}
+
+// 영업활동 자료 업로드 시 자료 DB에 자동 등록
+async function syncProposalToDB(act, fileName, fileUrl, folderName) {
+  if(!Array.isArray(_pdbData)) _pdbData = [];
+  const entry = {
+    id: "pdb_sl_"+Date.now(),
+    date: act.date || new Date().toISOString().substring(0,10),
+    company: act.company || "",
+    pjcode: act.pjcode || "",
+    folder: folderName || "자료",
+    filename: fileName || "",
+    custMgr: act.custMgr || "",
+    salesMgr: act.salesMgr || "",
+    note: "",
+    fileUrl: fileUrl || "",
+    createdAt: new Date().toISOString(),
+    _slId: act.id,
+  };
+  _pdbData.unshift(entry);
+  $("badge-pdb", _pdbData.length);
+  saveProposalToSP().catch(e=>console.warn("자료DB 저장 실패:",e));
 }
 
 async function saveDeliveryEntry() {
