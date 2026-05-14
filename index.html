@@ -3435,6 +3435,38 @@ function filterSD(type,yr,sub) {
 }
 
 function updateSalesAll() {
+  // 매출 로드 완료 → PD 상태 재보정 (SD 기준)
+  if(typeof PD !== "undefined" && PD.length > 0 && SD.length > 0) {
+    const sdMap = {};
+    SD.forEach(r=>{
+      const pj = String(r.프번||"").trim();
+      if(!pj) return;
+      if(!sdMap[pj]) sdMap[pj] = {공급:0, 잔금:0, 달러잔액:0};
+      sdMap[pj].공급 += r.공급||0;
+      sdMap[pj].잔금 += r.잔금||0;
+      sdMap[pj].달러잔액 += r.달러잔액||0;
+    });
+    PD.forEach(p=>{
+      if(p._overrideStatus) return;     // 수동 편집 우선
+      if(p.진행구분 === "중단") return; // 중단 유지
+      const m = sdMap[p.프로젝트번호];
+      if(m && m.공급 > 0) {
+        p.진행구분 = m.잔금 > 0 ? "잔금" : "완료";
+        if(m.달러잔액 > 0) p.달러금액 = m.달러잔액;
+      } else {
+        // 매출없음 → 진행 (단, pipeline-links에 완료로 표시된 경우 유지)
+        if(p._fromLinks === "완료" || p._fromLinks === "잔금") {
+          p.진행구분 = p._fromLinks;
+        } else {
+          p.진행구분 = "진행";
+        }
+      }
+    });
+    updPlKPI();
+    try { filterPL(); } catch(_){}
+    console.log("✅ 매출 로드 후 파이프라인 상태 재보정 완료");
+  }
+
   // 전체 기준 KPI
   updKPI(SD,"all");
   // 고객사 바 차트
