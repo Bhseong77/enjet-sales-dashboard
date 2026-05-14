@@ -13314,13 +13314,14 @@ async function saveSLActivity() {
   await saveSLToSP();
 
   // 🆕 영업활동 신규생성 시 → 파이프라인에 신규 상태로 추가
-  if(!slEditId && act.pjcode) {
-    const pjNo = act.pjcode;
-    const existInPD = PD.some(p => p.프로젝트번호 === pjNo);
+  if(!slEditId) {
+    const pjNo = act.pjcode || act.id; // 프로젝트코드 없으면 활동ID 임시 사용
+    const displayCode = act.pjcode || ("신규-"+act.company.substring(0,4)+"-"+new Date().getFullYear().toString().slice(2));
+    const existInPD = PD.some(p => p.프로젝트번호 === pjNo || p._slId === act.id);
     if(!existInPD) {
       PD.unshift({
-        프로젝트번호: pjNo,
-        프로젝트명:   act.title || "",
+        프로젝트번호: act.pjcode || displayCode,
+        프로젝트명:   act.title || act.company || "",
         거래처:       act.company || "",
         유형:         "",
         종사업장구분: "본사",
@@ -13330,19 +13331,31 @@ async function saveSLActivity() {
         연도:         act.date ? parseInt(act.date.substring(0,4)) : new Date().getFullYear(),
         구분:         "",
         _overrideStatus: null,
-        _fromSL: true,  // 영업활동에서 생성됨 표시
+        _fromSL: true,
+        _slId: act.id,
         files_견적서:[], files_발주서:[], files_거래명세서:[],
         files_세금계산서:[], files_납품확인서:[], files_기타:[],
       });
       updPlKPI();
-      console.log(`✅ 파이프라인 신규 추가: ${pjNo} (영업활동 생성)`);
-    } else {
-      // 기존 프로젝트가 신규 상태이면 거래처/날짜 업데이트
-      const p = PD.find(x => x.프로젝트번호 === pjNo);
-      if(p && p.진행구분 === "신규") {
+      // 파이프라인 탭에서 바로 확인 가능하도록 필터 초기화 후 렌더
+      try {
+        const stSel = document.getElementById("plSt");
+        if(stSel) stSel.value = "";
+        plQF = "";
+        document.querySelectorAll(".qb").forEach(b => {
+          b.classList.toggle("on", b.textContent.includes("전체"));
+        });
+        filterPL();
+      } catch(_){}
+      console.log(`✅ 파이프라인 신규 추가: ${act.pjcode||displayCode} ← ${act.company} (영업활동 생성)`);
+    } else if(act.pjcode) {
+      // 기존 프로젝트 거래처/프로젝트명 업데이트
+      const p = PD.find(x => x.프로젝트번호 === act.pjcode || x._slId === act.id);
+      if(p) {
+        if(act.pjcode) p.프로젝트번호 = act.pjcode; // 코드 업데이트
         if(act.company) p.거래처 = act.company;
         if(act.title) p.프로젝트명 = act.title;
-        updPlKPI();
+        if(p.진행구분 === "신규") updPlKPI();
       }
     }
   }
