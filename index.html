@@ -384,6 +384,7 @@
     <div class="topbar">
       <div class="tb-t" id="ptitle">📊 매출 현황</div><div class="tbs"></div>
       <button class="bsm p" id="btnRefresh" onclick="syncAll()">🔄 새로고침</button>
+      <button class="bsm" id="btnUpdate" onclick="updateData()" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:6px 14px;border-radius:7px;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">📥 업데이트</button>
       <!-- 모바일: 아이콘만 -->
       <button onclick="syncAll()" style="display:none" id="btnRefreshMob"
         class="mob-topbtn">🔄</button>
@@ -621,7 +622,7 @@
           </table></div>
           <div style="font-size:14px;color:var(--t3);margin-top:7px;text-align:right" id="pl-cnt2"></div>
         </div>
-        <div class="cn">※ SharePoint 99.Dashboard(real-time) 폴더의 [프로젝트List]... 파일 자동 연동 · 상태/거래처/금액 클릭 편집 가능</div>
+        <div class="cn">※ [매출자료] 파일의 프로젝트현황 시트 자동 연동 · 데이터 업데이트 시 상단 [🔄 업데이트] 클릭</div>
       </div>
     </div>
 
@@ -3203,7 +3204,7 @@ const SP_SITE   = "enjetco.sharepoint.com:/sites/06.BackOffice";
 const SP_FOLDER = "📦영업/99.Dashboard(real-time)";
 const PX_SALES   = "[매출자료]";
 const PX_CONTACT = "[연락처]";
-const PX_PROJECT = "[프로젝트List]";
+// PX_PROJECT 제거 - 프로젝트현황 시트를 [매출자료] 파일에서 직접 로드
 const PX_PL_LINKS = "📦영업/99.Dashboard(real-time)/pipeline-links.json"; // 파일링크 DB
 const SCOPES = [
   "User.Read","Files.Read.All","Sites.Read.All",
@@ -3371,31 +3372,33 @@ PD = PD_STATIC.map(r => Object.assign({
 async function syncAll() {
   setSS("spin","동기화 중...");
   try {
-    await loadSales();                              // 매출 먼저 (SD 구성)
-    await Promise.allSettled([loadProject(), loadContacts()]); // 나머지 병렬
+    await loadSalesAndProject();   // 매출자료 파일 하나로 SD + PD 모두 로드
+    await loadContacts();          // 연락처 별도
     setSS("live","실시간 연동"); $("lsync","동기화: "+new Date().toLocaleTimeString("ko-KR"));
   } catch(e) { console.error(e); setSS("","연동 실패"); }
 }
 
-// ━━ 매출 로드 ━━
-async function loadSales() {
+// ━━ 매출자료 파일로 SD + PD 통합 로드 ━━
+async function loadSalesAndProject() {
   try {
-    const {wb,name}=await readSP(PX_SALES,{cellDates:true});
-    const sh = wb.Sheets["매출_전체"] || wb.Sheets["매출_세금계산서"];
-    if(!sh) throw new Error("매출 시트 없음");
-    const raw=XLSX.utils.sheet_to_json(sh,{defval:"",range:1});
+    const {wb, name} = await readSP(PX_SALES, {cellDates:true});
 
-    // 환율 실시간 조회 (USD→KRW)
-    let usdRate = 1380; // fallback
+    // ── 1. 매출_전체 시트 → SD ──
+    const shSales = wb.Sheets["매출_전체"] || wb.Sheets["매출_세금계산서"];
+    if(!shSales) throw new Error("매출_전체 시트 없음");
+    const rawSales = XLSX.utils.sheet_to_json(shSales, {defval:"", range:1});
+
+    let usdRate = 1380;
     try {
       const fx = await fetch("https://open.er-api.com/v6/latest/USD");
       if(fx.ok){ const fxd=await fx.json(); usdRate=fxd.rates?.KRW||1380; }
     } catch(_){}
-    console.log(`💱 USD/KRW 환율: ${usdRate.toLocaleString()}원`);
+    window._usdRate = usdRate;
+    console.log(`💱 USD/KRW: ${usdRate.toLocaleString()}원`);
 
-    SD=raw.filter(r=>{
-      const co=r["거래처"]||"";
-      return co&&String(co).trim()&&String(co).trim()!=="거래처";
+    SD = rawSales.filter(r=>{
+      const co = r["거래처"]||"";
+      return co && String(co).trim() && String(co).trim()!=="거래처";
     }).map(r=>{
       const 공급 = N(r["공급가액"]);
       const 입금 = N(r["입금액"]);
@@ -3403,48 +3406,181 @@ async function loadSales() {
       const 달러잔액 = N(r["잔액(달러$)"]||r["달러잔액"]);
       const 구분 = String(r["Local구분"]||r["구분"]||"");
       const 국내 = 구분==="국내"||구분==="내수";
-
-      // 잔금: 국내=원화잔액, 해외=달러잔액×환율
       let 잔금;
-      if(달러잔액 > 0) {
-        잔금 = 달러잔액 * usdRate; // 실시간 환율 적용
-      } else if(잔액원화 > 0) {
-        잔금 = 잔액원화;
-      } else {
-        잔금 = Math.max(0, 공급 - 입금);
-      }
+      if(달러잔액>0) 잔금=달러잔액*usdRate;
+      else if(잔액원화>0) 잔금=잔액원화;
+      else 잔금=Math.max(0,공급-입금);
       return {
-        날짜: r["수익인식일"]||r["매출채권인식일"]||"",
-        연도: N(r["연도"]),
-        월:   N(r["월"]),
-        거래처: String(r["거래처"]||""),
-        구분,
-        프번:   String(r["프로젝트코드"]||""),
-        품목:   String(r["품목"]||""),
-        공급,
-        입금:   Math.max(0, 공급 - 잔금),
-        잔금,
-        달러잔액,         // 원래 달러 금액 보존
-        잔금원화: 잔금,   // 환율 적용된 원화
-        국내,
+        날짜:r["수익인식일"]||"", 연도:N(r["연도"]), 월:N(r["월"]),
+        거래처:String(r["거래처"]||""), 구분, 프번:String(r["프로젝트코드"]||""),
+        품목:String(r["품목"]||""), 공급, 입금:Math.max(0,공급-잔금),
+        잔금, 달러잔액, 잔금원화:잔금, 국내,
       };
     });
 
     const 공급합 = SD.reduce((s,r)=>s+r.공급,0);
-    const 국내잔금 = SD.filter(r=>r.국내).reduce((s,r)=>s+r.잔금,0);
-    const 해외달러 = SD.reduce((s,r)=>s+r.달러잔액,0);
-    const 해외잔금원화 = SD.filter(r=>!r.국내).reduce((s,r)=>s+r.잔금,0);
-
-    // 환율 정보 전역 저장 (KPI 업데이트용)
-    window._usdRate = usdRate;
-    window._해외달러잔액 = 해외달러;
-
-    console.log(`✅ 매출 로드: ${SD.length}건 ← ${name}`);
-    console.log(`   공급 ${(공급합/1e8).toFixed(2)}억 | 국내미수 ${(국내잔금/1e8).toFixed(2)}억 | 해외미수 $${해외달러.toFixed(0)} (${(해외잔금원화/1e8).toFixed(2)}억, 환율${usdRate})`);
+    console.log(`✅ 매출: ${SD.length}건 / 공급 ${(공급합/1e8).toFixed(1)}억`);
     updateSalesAll();
+
+    // ── 2. 프로젝트현황 시트 → PD ──
+    const shProj = wb.Sheets["프로젝트현황"];
+    if(!shProj) {
+      console.warn("⚠️ 프로젝트현황 시트 없음 - PD_STATIC 유지");
+      // PD_STATIC이 있으면 그대로 사용
+      if(typeof PD_STATIC !== "undefined") {
+        PD = PD_STATIC.map(r=>Object.assign({
+          files_견적서:[], files_발주서:[], files_거래명세서:[],
+          files_세금계산서:[], files_납품확인서:[], files_기타:[],
+        }, r));
+        updPlKPI(); try{filterPL();}catch(_){}
+      }
+      $("pl-lbl", name+"(프로젝트현황 시트 없음)");
+      return;
+    }
+
+    const rawProj = XLSX.utils.sheet_to_json(shProj, {defval:""});
+    PD = [];
+    for(const r of rawProj) {
+      const code = String(r["프로젝트번호"]||r["번호"]||"").trim();
+      if(!code) continue;
+      const yrM = code.match(/^(?:\d{2})?([BTRE])[PMSRGE](\d{2})/);
+      const pjYear = yrM ? (2000+parseInt(yrM[2])) : (r["연도"]?parseInt(r["연도"]):0);
+      PD.push({
+        프로젝트번호: code,
+        프로젝트명:   String(r["프로젝트명"]||""),
+        거래처:       String(r["거래처"]||""),
+        유형:         String(r["유형"]||""),
+        종사업장구분: String(r["종사업장구분"]||r["사업장"]||"본사"),
+        진행구분:     String(r["진행구분"]||r["상태"]||"진행"),
+        원화금액:     N(r["합계(세포함)"]||r["합계"]||0),
+        공급가액:     N(r["공급가액"]||0),
+        입금액:       N(r["입금액"]||0),
+        잔액원화:     N(r["잔액(원화)"]||0),
+        달러금액:     N(r["잔액(달러$)"]||r["잔액($)"]||0),
+        계약일:       String(r["계약일"]||""),
+        연도:         pjYear,
+        구분:         String(r["구분(국내해외)"]||r["구분"]||""),
+        책임자:       String(r["책임자"]||""),
+        PM:           String(r["PM"]||""),
+        _overrideStatus: null,
+        files_견적서:[], files_발주서:[], files_거래명세서:[],
+        files_세금계산서:[], files_납품확인서:[], files_기타:[],
+      });
+    }
+
+    console.log(`✅ 프로젝트현황: ${PD.length}건 ← ${name}`);
+
+    // 유형/연도 필터 갱신
+    const tp=[...new Set(PD.map(r=>r.유형).filter(Boolean))].sort();
+    const yrs=[...new Set(PD.map(r=>r.연도).filter(y=>y>2000))].sort((a,b)=>b-a);
+    const ts=document.getElementById("plTp"); const ys=document.getElementById("plYr");
+    if(ts){while(ts.options.length>1)ts.remove(1); tp.forEach(t=>{const o=new Option(t,t);ts.add(o);});}
+    if(ys){while(ys.options.length>1)ys.remove(1); yrs.forEach(y=>{const o=new Option(y+"년",y);ys.add(o);});}
+
+    $("pl-upd","동기화: "+new Date().toLocaleTimeString("ko-KR"));
+    $("pl-lbl", name);
+
+    // 파일링크 병합
+    loadPLLinksFromSP().then(()=>{
+      if(dashProjects.length===0){
+        loadDashProjectsFromSP().then(()=>{try{filterPL();}catch(_){}});
+      } else {
+        mergeDashProjectsIntoPD();
+        try{filterPL();}catch(_){}
+      }
+    }).catch(()=>{
+      mergeDashProjectsIntoPD();
+      try{filterPL();}catch(_){}
+    });
+
   } catch(e) {
-    console.error("❌ 매출 실패:", e.message);
-    $("k-badge","연동 실패");
+    console.error("❌ 매출자료 로드 실패:", e.message);
+    setSS("","연동 실패 - "+e.message);
+    $("pl-lbl","로드 실패: "+e.message);
+  }
+}
+
+// ━━ 매출 로드 (하위 호환) ━━
+async function loadSales() {
+  return loadSalesAndProject();
+}
+
+// ━━ 프로젝트 로드 (하위 호환 - loadProject 호출 시 loadSalesAndProject로 위임) ━━
+async function loadProject() {
+  // 이미 SD 로드와 함께 처리됨 - 단독 호출 시 PD만 갱신
+  try {
+    const {wb,name} = await readSP(PX_SALES,{cellDates:true});
+    const shProj = wb.Sheets["프로젝트현황"];
+    if(!shProj){ console.warn("프로젝트현황 시트 없음"); return; }
+    const rawProj = XLSX.utils.sheet_to_json(shProj,{defval:""});
+    PD=[];
+    for(const r of rawProj){
+      const code=String(r["프로젝트번호"]||r["번호"]||"").trim();
+      if(!code) continue;
+      const yrM=code.match(/^(?:\d{2})?([BTRE])[PMSRGE](\d{2})/);
+      const pjYear=yrM?(2000+parseInt(yrM[2])):(r["연도"]?parseInt(r["연도"]):0);
+      PD.push({
+        프로젝트번호:code, 프로젝트명:String(r["프로젝트명"]||""),
+        거래처:String(r["거래처"]||""), 유형:String(r["유형"]||""),
+        종사업장구분:String(r["종사업장구분"]||r["사업장"]||"본사"),
+        진행구분:String(r["진행구분"]||r["상태"]||"진행"),
+        원화금액:N(r["합계(세포함)"]||r["합계"]||0),
+        공급가액:N(r["공급가액"]||0), 입금액:N(r["입금액"]||0),
+        잔액원화:N(r["잔액(원화)"]||0), 달러금액:N(r["잔액(달러$)"]||r["잔액($)"]||0),
+        계약일:String(r["계약일"]||""), 연도:pjYear,
+        구분:String(r["구분(국내해외)"]||r["구분"]||""),
+        책임자:String(r["책임자"]||""), PM:String(r["PM"]||""),
+        _overrideStatus:null,
+        files_견적서:[],files_발주서:[],files_거래명세서:[],
+        files_세금계산서:[],files_납품확인서:[],files_기타:[],
+      });
+    }
+    if(typeof SD!=="undefined"&&SD.length>0) updateSalesAll();
+    updPlKPI(); try{filterPL();}catch(_){}
+    $("pl-upd","동기화: "+new Date().toLocaleTimeString("ko-KR")); $("pl-lbl",name);
+    console.log(`✅ 프로젝트(단독): ${PD.length}건`);
+  } catch(e){ console.error("❌ loadProject:", e.message); }
+}
+
+// ━━ 데이터 업데이트 (매출자료 파일 재로드) ━━
+async function updateData() {
+  const btn = document.getElementById("btnUpdate");
+  if(btn){ btn.disabled=true; btn.textContent="⏳ 업데이트 중..."; }
+  setSS("spin","업데이트 중...");
+  try {
+    // PD 수동편집 상태 백업
+    const overrides = {};
+    PD.forEach(p=>{ if(p._overrideStatus) overrides[p.프로젝트번호]=p._overrideStatus; });
+
+    await loadSalesAndProject();
+
+    // 수동편집 복원
+    PD.forEach(p=>{
+      if(overrides[p.프로젝트번호]) {
+        p._overrideStatus = overrides[p.프로젝트번호];
+        p.진행구분 = overrides[p.프로젝트번호];
+      }
+    });
+
+    // 파일링크도 재병합
+    loadPLLinksFromSP().then(()=>{ try{filterPL();}catch(_){} });
+
+    setSS("live","업데이트 완료");
+    $("lsync","업데이트: "+new Date().toLocaleTimeString("ko-KR"));
+    if(btn){ btn.disabled=false; btn.textContent="📥 업데이트"; }
+
+    // 완료 토스트
+    const toast = document.createElement("div");
+    toast.style.cssText="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:700;z-index:99999;font-family:var(--s)";
+    toast.textContent="✅ 데이터 업데이트 완료!";
+    document.body.appendChild(toast);
+    setTimeout(()=>toast.remove(), 3000);
+
+    console.log("✅ 데이터 업데이트 완료");
+  } catch(e) {
+    setSS("","업데이트 실패");
+    if(btn){ btn.disabled=false; btn.textContent="📥 업데이트"; }
+    alert("업데이트 실패: "+e.message);
   }
 }
 
@@ -3808,11 +3944,9 @@ async function loadProject() {
             <div style="text-align:left;background:#fff7e6;border:1.5px solid #ffd591;border-radius:10px;padding:16px;margin-bottom:12px">
               <div style="font-size:14px;font-weight:700;color:var(--a);margin-bottom:8px">💡 해결 방법 (가장 간단)</div>
               <div style="font-size:13px;color:var(--t2);line-height:1.7">
-                <b>1.</b> Teams 또는 SharePoint에서 <b>[프로젝트List]...xlsx</b> 파일을 엽니다<br>
-                <b>2.</b> Excel이 열리면 위쪽 <b>[파일] → [다른 이름으로 저장]</b><br>
-                <b>3.</b> 같은 폴더(99.Dashboard real-time)에 <b>같은 이름으로 저장</b><br>
-                <b>4.</b> 기존 파일 덮어쓰기 → 형식은 <b>Excel 통합 문서 (*.xlsx)</b><br>
-                <b>5.</b> 이 대시보드에서 [새로고침] 클릭
+                <b>1.</b> Teams/SharePoint에서 <b>[매출자료]...xlsx</b> 열기<br>
+                <b>2.</b> <b>[파일] → [다른 이름으로 저장]</b> → 같은 이름으로 덮어쓰기<br>
+                <b>3.</b> 대시보드에서 <b>[🔄 업데이트]</b> 클릭
               </div>
             </div>
             <div style="font-size:12px;color:var(--t3);margin-top:10px">왜? ERP가 만든 .xlsx는 Microsoft Excel 표준과 살짝 다른 스타일 정보를 포함해서 JavaScript로 읽을 때 에러가 납니다. Excel로 한번 다시 저장하면 표준 형식으로 정리됩니다.</div>
