@@ -3769,6 +3769,11 @@ async function loadProject() {
     if(ms){while(ms.options.length>1)ms.remove(1); mg.forEach(m=>{const o=new Option(m,m);ms.add(o);});}
     $("pl-upd","동기화: "+new Date().toLocaleTimeString("ko-KR")); $("pl-lbl",name);
     console.log("✅ 프로젝트:", PD.length, "건 ←", name);
+    // SD가 이미 로드된 경우 즉시 상태 재보정 (SD 먼저 로드된 경우 대비)
+    if(typeof SD !== "undefined" && SD.length > 0) {
+      updateSalesAll();
+      console.log("✅ PD 로드 완료 → SD 기준 상태 즉시 재보정");
+    }
     // 파일링크 DB 병합 (pipeline-links.json)
     loadPLLinksFromSP().then(()=>{
       // 대시보드 자체등록 프로젝트도 머지
