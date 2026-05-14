@@ -566,6 +566,7 @@
     <div class="page" id="tab-pipeline">
       <div class="kr" style="grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:9px">
         <div class="kpi c1" onclick="go('pipeline');qfNav('',null)" style="cursor:pointer" title="전체 보기"><div class="kl">전체 프로젝트</div><div class="kv"><span id="pl-tot">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks">매출자료 기준</div></div>
+        <div class="kpi" style="border-top:3px solid #f59e0b;cursor:pointer" onclick="go('pipeline');qfNav('신규',null)" title="신규 필터"><div class="kl">🆕 신규</div><div class="kv" style="color:#d97706"><span id="pl-neu">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks">신규 영업활동</div></div>
         <div class="kpi c2" onclick="go('pipeline');qfNav('진행',null)" style="cursor:pointer" title="진행 필터"><div class="kl">🔄 진행</div><div class="kv"><span id="pl-ing">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks"><span id="pl-act-amt">-억</span></div></div>
         <div class="kpi" style="border-top:3px solid #f59e0b;cursor:pointer" onclick="go('pipeline');qfNav('잔금',null)" title="잔금 필터"><div class="kl">💰 잔금</div><div class="kv" style="color:#d97706"><span id="pl-bal">-</span><span style="font-size:15px;color:var(--t2)">건</span></div><div class="ks" id="pl-bal-amt" style="color:#d97706;font-weight:700">-</div></div>
       </div>
@@ -616,7 +617,7 @@
         <div class="cb" style="padding:10px 14px">
           <div class="pc">
             <input class="si" type="text" placeholder="🔍 프로젝트명 / 번호 / 거래처..." id="plSrch" oninput="filterPL()">
-            <select class="ss" id="plSt" onchange="filterPL()"><option value="">전체 상태</option><option value="진행">🔄 진행</option><option value="잔금">💰 잔금</option><option value="완료">🏁 완료</option><option value="개발">🔬 개발</option><option value="국책과제">🏛️ 국책과제</option><option value="중단">⛔ 중단</option></select>
+            <select class="ss" id="plSt" onchange="filterPL()"><option value="">전체 상태</option><option value="신규">🆕 신규</option><option value="진행">🔄 진행</option><option value="잔금">💰 잔금</option><option value="완료">🏁 완료</option><option value="개발">🔬 개발</option><option value="국책과제">🏛️ 국책과제</option><option value="중단">⛔ 중단</option></select>
             <select class="ss" id="plTp" onchange="filterPL()"><option value="">전체 유형</option></select>
             <select class="ss" id="plMg" onchange="filterPL()"><option value="">전체 담당자</option></select>
             <select class="ss" id="plYr" onchange="filterPL()"><option value="">전체 연도</option></select>
@@ -629,6 +630,7 @@
           </div>
           <div class="qf">
             <button class="qb on" onclick="qf('',this)">전체 <span id="ql-a">-</span></button>
+            <button class="qb" onclick="qf('신규',this)">🆕신규 <span id="ql-신">-</span></button>
             <button class="qb" onclick="qf('진행',this)">진행 <span id="ql-진">-</span></button>
             <button class="qb" onclick="qf('잔금',this)">잔금 <span id="ql-잔">-</span></button>
             <button class="qb" onclick="qf('완료',this)">완료 <span id="ql-완">-</span></button>
@@ -4145,19 +4147,28 @@ function updPlKPI() {
   const bal  = PD.filter(r=>r.진행구분==="잔금").length;
   const stp  = PD.filter(r=>r.진행구분==="중단").length;
   const dev  = PD.filter(r=>r.진행구분==="개발").length;
+  const neu  = PD.filter(r=>r.진행구분==="신규").length;
   const gov  = PD.filter(r=>r.진행구분==="국책과제").length;
   const ingAmt = PD.filter(r=>r.진행구분==="진행").reduce((s,r)=>s+r.원화금액,0);
 
   $("pl-tot",  PD.length);
   $("pl-ing",  ing);
+  $("pl-neu",  neu);   // 🆕 신규
   $("pl-bal",  bal);
-  // 잔금 합계 (원화 + 달러환산)
+  // 잔금 합계 - SD(매출) 기준 우선, 없으면 PD 기준
   const usdR = window._usdRate||1380;
-  const balAmt = PD.filter(r=>r.진행구분==="잔금").reduce((s,r)=>{
-    const 원화 = r.잔액원화||0;
-    const 달러 = (r.달러금액||0) * usdR;
-    return s + 원화 + 달러;
-  }, 0);
+  let balAmt = 0;
+  if(typeof SD !== "undefined" && SD.length > 0) {
+    // SD 기준: 매출현황과 동일한 계산
+    balAmt = SD.reduce((s,r)=>s+(r.잔금||0), 0);
+  } else {
+    // SD 없을 때 PD 기준
+    balAmt = PD.filter(r=>r.진행구분==="잔금").reduce((s,r)=>{
+      const 원화 = r.잔액원화||0;
+      const 달러 = (r.달러금액||0) * usdR;
+      return s + 원화 + 달러;
+    }, 0);
+  }
   const balAmtEl = document.getElementById("pl-bal-amt");
   if(balAmtEl) balAmtEl.textContent = balAmt>0 ? (balAmt/1e8).toFixed(2)+"억" : "0억";
   $("pl-act",  ing+bal);      // 하위호환 (뱃지 등)
@@ -4176,6 +4187,7 @@ function updPlKPI() {
   $("ql-중",  stp);
   $("ql-잔",  bal);
   $("ql-진",  ing);
+  $("ql-신",  neu);
   $("ql-개",  dev);
   $("ql-국",  gov);
 
@@ -4231,10 +4243,10 @@ function filterPL() {
   renderPL(d);
 }
 
-const PL_STATUS_OPTS  = ["진행","잔금","완료","개발","국책과제","중단"];
-const PL_STATUS_SC    = {진행:"warn",잔금:"up",완료:"info",개발:"dev",국책과제:"gov",중단:"dn"};
-const PL_STATUS_ICON  = {진행:"🔄",잔금:"💰",완료:"🏁",개발:"🔬",국책과제:"🏛️",중단:"⛔"};
-const PL_STATUS_COLOR = {warn:"var(--a)",up:"var(--g)",info:"var(--p)",dev:"#7c3aed",gov:"#0369a1",dn:"var(--r)",gray:"var(--t3)"};
+const PL_STATUS_OPTS  = ["신규","진행","잔금","완료","개발","국책과제","중단"];
+const PL_STATUS_SC    = {신규:"new",진행:"warn",잔금:"up",완료:"info",개발:"dev",국책과제:"gov",중단:"dn"};
+const PL_STATUS_ICON  = {신규:"🆕",진행:"🔄",잔금:"💰",완료:"🏁",개발:"🔬",국책과제:"🏛️",중단:"⛔"};
+const PL_STATUS_COLOR = {new:"#f59e0b",warn:"var(--a)",up:"var(--g)",info:"var(--p)",dev:"#7c3aed",gov:"#0369a1",dn:"var(--r)",gray:"var(--t3)"};
 const PL_STATUS_BGMAP = {warn:"var(--yd)",up:"var(--gd)",info:"var(--pd)",dn:"var(--rd)"};
 
 function renderPL(data) {
@@ -4390,7 +4402,15 @@ function updatePLField(pjNo, field, value) {
   const p = PD.find(r=>r.프로젝트번호===pjNo);
   if(!p) return;
   p[field] = field==="원화금액" ? (parseFloat(value)||0) : value;
-  if(field==="진행구분") p._overrideStatus = value;
+  if(field==="진행구분") {
+    p._overrideStatus = value;
+    // 파이프라인 상태 변경 시 → 매출현황 KPI도 갱신
+    if(typeof SD !== "undefined" && SD.length > 0) {
+      updateSalesAll();
+    } else {
+      updPlKPI();
+    }
+  }
   updPlKPI();
   console.log(`✅ PL 편집: ${pjNo} → ${field}=${value}`);
 }
@@ -13292,6 +13312,40 @@ async function saveSLActivity() {
   else slData.push(act);
   renderSLAll();
   await saveSLToSP();
+
+  // 🆕 영업활동 신규생성 시 → 파이프라인에 신규 상태로 추가
+  if(!slEditId && act.pjcode) {
+    const pjNo = act.pjcode;
+    const existInPD = PD.some(p => p.프로젝트번호 === pjNo);
+    if(!existInPD) {
+      PD.unshift({
+        프로젝트번호: pjNo,
+        프로젝트명:   act.title || "",
+        거래처:       act.company || "",
+        유형:         "",
+        종사업장구분: "본사",
+        진행구분:     "신규",
+        원화금액:     0, 공급가액: 0, 입금액: 0, 잔액원화: 0, 달러금액: 0,
+        계약일:       act.date || "",
+        연도:         act.date ? parseInt(act.date.substring(0,4)) : new Date().getFullYear(),
+        구분:         "",
+        _overrideStatus: null,
+        _fromSL: true,  // 영업활동에서 생성됨 표시
+        files_견적서:[], files_발주서:[], files_거래명세서:[],
+        files_세금계산서:[], files_납품확인서:[], files_기타:[],
+      });
+      updPlKPI();
+      console.log(`✅ 파이프라인 신규 추가: ${pjNo} (영업활동 생성)`);
+    } else {
+      // 기존 프로젝트가 신규 상태이면 거래처/날짜 업데이트
+      const p = PD.find(x => x.프로젝트번호 === pjNo);
+      if(p && p.진행구분 === "신규") {
+        if(act.company) p.거래처 = act.company;
+        if(act.title) p.프로젝트명 = act.title;
+        updPlKPI();
+      }
+    }
+  }
 
   const optFolder = document.getElementById("sl-opt-folder")?.checked!==false;
   const optTeams  = document.getElementById("sl-opt-teams")?.checked!==false;
