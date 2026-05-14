@@ -2241,8 +2241,12 @@
                 <!-- 담당자 -->
                 <div>
                   <label style="font-size:12px;color:var(--t2);font-weight:700;display:block;margin-bottom:2px">담당자</label>
-                  <input id="q-manager" oninput="updateQuotePreview()" placeholder="예: 김대호 이사님"
-                    style="width:100%;padding:7px 9px;border:1.5px solid var(--border2);border-radius:6px;font-size:14px;font-family:var(--s)">
+                  <div style="display:flex;gap:5px;align-items:center">
+                    <input id="q-manager" oninput="updateQuotePreview()" placeholder="예: 김대호 이사님"
+                      style="flex:1;padding:7px 9px;border:1.5px solid var(--border2);border-radius:6px;font-size:14px;font-family:var(--s)">
+                    <button onclick="openQuoteContactPicker()" title="고객사DB에서 담당자 선택"
+                      style="padding:7px 10px;border-radius:6px;border:1.5px solid var(--p);background:var(--pd);color:var(--p);font-size:13px;cursor:pointer;white-space:nowrap;font-family:var(--s)">👤 찾기</button>
+                  </div>
                 </div>
                 <div><label style="font-size:12px;color:var(--t2);font-weight:700;display:block;margin-bottom:2px">연락처</label>
                   <input id="q-contact" oninput="updateQuotePreview()" placeholder="010-xxxx-xxxx" style="width:100%;padding:7px 9px;border:1.5px solid var(--border2);border-radius:6px;font-size:14px;font-family:var(--s)"></div>
@@ -10129,6 +10133,83 @@ async function cleanupDuplicateSLActivities() {
   return 0;
 }
 
+// ━━ 견적서 담당자 피커 (고객사DB 연동) ━━
+function openQuoteContactPicker() {
+  const recip = (document.getElementById("q-recipient")||{}).value || "";
+  let modal = document.getElementById("quoteContactPickerModal");
+  if(!modal) {
+    modal = document.createElement("div");
+    modal.id = "quoteContactPickerModal";
+    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10001;display:flex;align-items:center;justify-content:center";
+    modal.innerHTML = `
+      <div style="background:var(--bg);border-radius:14px;padding:20px;width:460px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:16px;font-weight:800;color:var(--t)">👤 담당자 선택 — 고객사DB</div>
+          <button onclick="document.getElementById('quoteContactPickerModal').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--t3)">✕</button>
+        </div>
+        <input id="qcp-srch" class="si" placeholder="🔍 이름 / 회사 / 직함 검색..." oninput="renderQuoteContactPicker()"
+          style="margin-bottom:10px;width:100%;font-size:14px">
+        <div id="qcp-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px"></div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  modal.style.display = "flex";
+  // 수신처 기반으로 자동 필터
+  const srch = document.getElementById("qcp-srch");
+  if(srch) srch.value = recip || "";
+  renderQuoteContactPicker();
+  setTimeout(()=>{ const s=document.getElementById("qcp-srch"); if(s)s.focus(); }, 100);
+}
+
+function renderQuoteContactPicker() {
+  const q = (document.getElementById("qcp-srch")?.value||"").toLowerCase();
+  const list = document.getElementById("qcp-list");
+  if(!list) return;
+
+  // CD (고객사DB) 에서 검색
+  let contacts = [];
+  if(typeof CD !== "undefined" && CD.length > 0) {
+    contacts = CD.filter(r => {
+      const nm   = String(r["성명"]||r["이름"]||"").toLowerCase();
+      const co   = String(r["회사"]||"").toLowerCase();
+      const title= String(r["직함"]||r["직위"]||"").toLowerCase();
+      return !q || nm.includes(q) || co.includes(q) || title.includes(q);
+    }).slice(0, 30);
+  }
+
+  if(!contacts.length) {
+    list.innerHTML = `<div style="text-align:center;padding:20px;color:var(--t3);font-size:14px">검색 결과 없음<br><span style="font-size:12px">고객사DB에 연락처를 먼저 등록해주세요</span></div>`;
+    return;
+  }
+
+  list.innerHTML = contacts.map(r => {
+    const nm    = String(r["성명"]||r["이름"]||"");
+    const co    = String(r["회사"]||"");
+    const title = String(r["직함"]||r["직위"]||"");
+    const phone = String(r["휴대폰"]||r["전화"]||"");
+    const display = nm + (title ? " "+title : "");
+    return `<div onclick="selectQuoteContact('${display.replace(/'/g,"\\'")}','${co.replace(/'/g,"\\'")}','${phone.replace(/'/g,"\\'")}');document.getElementById('quoteContactPickerModal').remove()"
+      style="padding:10px 12px;border-radius:8px;border:1px solid var(--border2);cursor:pointer;background:var(--bg2);display:flex;align-items:center;gap:10px"
+      onmouseover="this.style.background='var(--pd)'" onmouseout="this.style.background='var(--bg2)'">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0">${nm.charAt(0)||"?"}</div>
+      <div style="min-width:0">
+        <div style="font-weight:700;color:var(--t);font-size:14px">${nm} <span style="font-size:12px;color:var(--t3);font-weight:400">${title}</span></div>
+        <div style="font-size:12px;color:var(--t2)">${co}${phone?" · "+phone:""}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function selectQuoteContact(name, company, phone) {
+  const mgrEl     = document.getElementById("q-manager");
+  const contactEl = document.getElementById("q-contact");
+  const recipEl   = document.getElementById("q-recipient");
+  if(mgrEl)     { mgrEl.value = name; mgrEl.dispatchEvent(new Event("input")); }
+  if(contactEl && phone) { contactEl.value = phone; contactEl.dispatchEvent(new Event("input")); }
+  if(recipEl && company && !recipEl.value) { recipEl.value = company; recipEl.dispatchEvent(new Event("input")); }
+  updateQuotePreview();
+}
+
 // ━━ 고객담당자 검색/등록 모달 시스템 ━━
 let _custMgrPickerCtx = { actId: null, company: "" };
 
@@ -11911,64 +11992,99 @@ async function generateQuoteExcel(isDraft=false) {
     delete ws[addr].f; // 수식 제거하고 값으로
   };
 
-  setCell("C2", recipient);
-  setCell("C3", subject);
-  setCell("C4", dateStr);
-  setCell("C5", manager);
-  if(!isEN) setCell("C6", contact);  // 영문 템플릿엔 연락처 행 없음
-  setCell("C8", quoteNo || `Quo)${recipient.substring(0,3)}_Q1_${(dateVal||"").replace(/-/g,"").substring(2)}`);
-  setCell("I8", delivery);
-  setCell("C9", leadtime);
-  setCell("I9", validity);
-  setCell("C10", payment);
+  if(isEN) {
+    // ── 영문 템플릿 (enjet_quote_template_en_2.xlsx) 셀 매핑 ──
+    // 헤더: B2=Client, B3=Details, B4=Date, B5=Manager
+    // 입력: C2(거래처), C3(견적내용), C4(날짜), C5(담당자)
+    setCell("C2", recipient);
+    setCell("C3", subject);
+    setCell("C4", dateStr);
+    setCell("C5", manager);
+    // 견적 조건: B8=Quotation NO, F8=A place of delivery, B9=Delivery Date, F9=Validity, B10=Payment, F10=Trade Term
+    setCell("C8", quoteNo || `Quo)${recipient.substring(0,3)}_Q1_${(dateVal||"").replace(/-/g,"").substring(2)}`);
+    setCell("I8", delivery);
+    setCell("C9", leadtime);
+    setCell("I9", validity);
+    setCell("C10", payment);
 
-  // 품목 - 언어별 분기
-  const normalItems = _quoteItems.filter(x=>!x.isDiscount);
-  const discItems   = _quoteItems.filter(x=>x.isDiscount);
-  if(normalItems.length > 0) {
-    const it = normalItems[0];
-    setCell("C14", it.name||"");
-    if(isEN) {
-      // 영문: E14(Unit Price) 사용 안 함, J14에 amount 직접 입력
-      setCell("H14", it.qty||1);
-      setCell("I14", it.unit||"Set");
+    // 품목 (14행부터, 복수 품목 지원)
+    // 컬럼: A=NO, C14:E14=Description(병합), F=Q'ty, I:J=Total Price(병합), K=Remark
+    const normalItems = _quoteItems.filter(x=>!x.isDiscount);
+    const discItems   = _quoteItems.filter(x=>x.isDiscount);
+    let totalAmt = 0;
+    normalItems.forEach((it, idx) => {
+      const row = 14 + idx;
       const amt = (it.unitPrice||0) * (it.qty||1);
-      setCell("J14", amt, "#,##0");
-    } else {
-      // 한글: E14에 단가, J14는 템플릿 수식(=H14*E14) 유지
+      totalAmt += amt;
+      setCell(`A${row}`, idx+1);               // NO
+      setCell(`C${row}`, it.name||"");          // Description (병합 C:E)
+      setCell(`F${row}`, it.qty||1);            // Q'ty (병합 F:H)
+      setCell(`I${row}`, amt, "#,##0");         // Total Price (병합 I:J)
+      if(it.unit) setCell(`K${row}`, it.unit);  // Remark (단위)
+    });
+    // 할인 항목
+    if(discItems.length > 0) {
+      const discRow = 14 + normalItems.length;
+      const discAmt = discItems[0].unitPrice||0;
+      totalAmt += discAmt;
+      setCell(`C${discRow}`, discItems[0].name||"Special Discount");
+      setCell(`I${discRow}`, discAmt, "#,##0");
+    }
+    // 합계 (J17에 총액)
+    setCell("J17", totalAmt, "#,##0");
+    // Total Price 헤더 옆 총액 (J12 영역 - C12:I12 병합)
+    setCell("C12", totalAmt, "#,##0");
+
+    // Detailed Items (B19 라벨 유지, B20~부터 내용)
+    const specLines = spec.split("\n").filter(Boolean);
+    ["B20","B21","B22","B23","B24","B25","B26","B27","B28","B29","B30",
+     "B31","B32","B33","B34","B35","B36","B37","B38","B39","B40"].forEach((addr,i)=>{
+      setCell(addr, specLines[i]||"");
+    });
+
+    // 비고 (C55)
+    if(note) setCell("C55", note);
+    // 문서번호 (A57, 병합 A57:E57)
+    setCell("A57", docNoFinal);
+
+  } else {
+    // ── 한글 템플릿 셀 매핑 (기존 유지) ──
+    setCell("C2", recipient);
+    setCell("C3", subject);
+    setCell("C4", dateStr);
+    setCell("C5", manager);
+    setCell("C6", contact);
+    setCell("C8", quoteNo || `Quo)${recipient.substring(0,3)}_Q1_${(dateVal||"").replace(/-/g,"").substring(2)}`);
+    setCell("I8", delivery);
+    setCell("C9", leadtime);
+    setCell("I9", validity);
+    setCell("C10", payment);
+
+    const normalItems = _quoteItems.filter(x=>!x.isDiscount);
+    const discItems   = _quoteItems.filter(x=>x.isDiscount);
+    if(normalItems.length > 0) {
+      const it = normalItems[0];
+      setCell("C14", it.name||"");
       setCell("E14", it.unitPrice||0);
       setCell("H14", it.qty||1);
       setCell("I14", it.unit||"Set");
     }
-  }
-  if(discItems.length > 0) {
-    setCell("C16", discItems[0].name||"Special Discount");
-    setCell("E16", discItems[0].unitPrice||0);
-  } else {
-    setCell("C16", "");
-    setCell("E16", 0);
-  }
+    if(discItems.length > 0) {
+      setCell("C16", discItems[0].name||"Special Discount");
+      setCell("E16", discItems[0].unitPrice||0);
+    } else {
+      setCell("C16", ""); setCell("E16", 0);
+    }
 
-  // 상세항목 / 공통사양 (언어별 헤더)
-  const specLines = spec.split("\n").filter(Boolean);
-  if(isEN) {
-    // 영문: C19는 "Detailed Items" 라벨이 이미 템플릿에 있음 → 건드리지 않음
-    // C20부터 항목 시작
-    ["C20","C21","C22","C23","C24","C25","C26","C27","C28"].forEach((addr,i)=>{
-      setCell(addr, specLines[i]||"");
-    });
-  } else {
+    const specLines = spec.split("\n").filter(Boolean);
     setCell("C19", "공통사양");
     ["C20","C21","C22","C23","C24","C25","C26","C27","C28"].forEach((addr,i)=>{
       setCell(addr, specLines[i]||"");
     });
+
+    if(note) setCell("C55", note);
+    setCell("A57", docNoFinal);
   }
-
-  // 특이사항
-  if(note) setCell("C55", note);
-
-  // 문서번호 (자동 SEQ/REV) - 언어별
-  setCell("A57", docNoFinal);
 
   // 파일명 (언어별) - 임시저장은 [임시] 접미사
   const filePrefix = isEN ? "Quotation" : "견적서";
