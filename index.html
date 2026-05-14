@@ -3471,9 +3471,9 @@ function updateSalesAll() {
     });
     PD.forEach(p=>{
       if(p._overrideStatus) return;
-      if(p.진행구분 === "중단") return;
       if(p.진행구분 === "개발") return;     // 개발 유지
       if(p.진행구분 === "국책과제") return; // 국책과제 유지
+      // 중단도 매출자료 기준으로 재판단 (ERP 중단 무시)
       const m = sdMap[p.프로젝트번호];
       if(m && m.공급 > 0) {
         p.진행구분 = m.잔금 > 0 ? "잔금" : "완료";
@@ -3690,12 +3690,41 @@ async function loadProject() {
         PD.push({
           진행구분:v1, 프로젝트명:s(3), 프로젝트번호:v4,
           계약일:s(11), 유형:s(12), 거래처:s(13),
-          책임자:s(16), PM:s(17), 원화금액:sN(19),
-          달러금액:0,   // SD 매칭 후 채워짐
+          원화금액:sN(19), 입금액:0, 잔액원화:0, 달러금액:0,
           연도: pjYear,
           _overrideStatus: null,
+          files_견적서:[], files_발주서:[], files_거래명세서:[],
+          files_세금계산서:[], files_납품확인서:[], files_기타:[],
         });
       } catch(_){}
+    }
+    // ── PD_STATIC으로 상태/유형/거래처/금액 보강 ──
+    // ERP 파일의 상태값(중단 등) 대신 매출자료 기준 PD_STATIC을 우선 적용
+    if(typeof PD_STATIC !== "undefined" && PD_STATIC.length > 0) {
+      const staticMap = {};
+      PD_STATIC.forEach(s=>{ staticMap[s.프로젝트번호] = s; });
+      PD.forEach(p=>{
+        const st = staticMap[p.프로젝트번호];
+        if(st) {
+          // 매출자료 기준으로 덮어씀 (상태, 유형, 거래처, 금액)
+          p.진행구분 = st.진행구분;
+          p.유형      = st.유형 || p.유형;
+          p.거래처    = st.거래처 || p.거래처;
+          p.원화금액  = st.원화금액 || p.원화금액;
+          p.공급가액  = st.공급가액 || 0;
+          p.입금액    = st.입금액 || 0;
+          p.잔액원화  = st.잔액원화 || 0;
+          p.달러금액  = st.달러금액 || 0;
+          p.계약일    = st.계약일 || p.계약일;
+          p.구분      = st.구분 || '';
+          p.종사업장구분 = st.종사업장구분 || '본사';
+        } else {
+          // PD_STATIC에 없는 ERP 코드 (매출자료에 없음) → 무조건 '진행'
+          // ERP의 '중단' 상태도 무시 (매출자료 기준이 우선)
+          p.진행구분 = "진행";
+          p.입금액 = 0; p.잔액원화 = 0; p.달러금액 = 0; p.공급가액 = 0;
+        }
+      });
     }
     // ── 매출 데이터로 상태 자동 결정 + 달러금액 채우기 ──
     // 규칙: 중단→중단유지 / 매출+잔금0→완료 / 매출+잔금>0→잔금 / 매출없음→진행
@@ -3711,7 +3740,8 @@ async function loadProject() {
       });
       PD.forEach(p=>{
         if(p._overrideStatus) return;      // 수동 편집 우선
-        if(p.진행구분 === "중단") return;  // 중단은 절대 건드리지 않음
+        if(p.진행구분 === "개발") return;  // 개발 유지
+        if(p.진행구분 === "국책과제") return; // 국책과제 유지
         const m = sdMap[p.프로젝트번호];
         if(m && m.공급 > 0) {
           p.진행구분 = m.잔금 > 0 ? "잔금" : "완료";
