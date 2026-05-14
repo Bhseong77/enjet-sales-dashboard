@@ -7297,61 +7297,107 @@ async function loadSLFromSP() {
   }
 }
 
-// ━━ 영업활동 → 파이프라인 신규 동기화 ━━
-function syncPipelineFromSL() {
-  if(!Array.isArray(slData) || !slData.length || !Array.isArray(PD)) return;
+// ━━ SP 엑셀 프로젝트현황 시트에 신규 행 추가 ━━
+async function addSLToProjectSheet(act) {
+  try {
+    const {wb, name} = await readSP(PX_SALES, {cellDates: false});
+    let ws = wb.Sheets["프로젝트현황"];
+    if(!ws) { console.warn("프로젝트현황 시트 없음"); return false; }
 
-  let added = 0;
-  slData.forEach(act => {
-    // 신규/견적 단계 초기 활동만 대상 (발주 이상은 매출자료에서 관리)
-    const isEarly = !act.status || ["신규","제안","견적"].includes(act.status);
-    if(!isEarly) return;
+    const range = XLSX.utils.decode_range(ws["!ref"]||"A1");
+    const data = XLSX.utils.sheet_to_json(ws, {header:1});
+    const headerRow = data[0]||[];
+    const colMap = {};
+    headerRow.forEach((h,i)=>{ if(h) colMap[String(h).trim()]=i; });
 
-    const pjNo = act.pjcode || act.id;
-    const displayCode = act.pjcode || ("신규-"+(act.company||"").substring(0,4)+"-"+(act.date||"").substring(2,4));
+    const c번호  = colMap["프로젝트번호"]??colMap["번호"]??0;
+    const c명    = colMap["프로젝트명"]??1;
+    const c거래처= colMap["거래처"]??2;
+    const c유형  = colMap["유형"]??3;
+    const c사업장= colMap["종사업장구분"]??colMap["사업장"]??4;
+    const c상태  = colMap["진행구분"]??colMap["상태"]??5;
+    const c공급  = colMap["공급가액"]??6;
+    const c합계  = colMap["합계(세포함)"]??colMap["합계"]??7;
+    const c입금  = colMap["입금액"]??8;
+    const c잔원  = colMap["잔액(원화)"]??9;
+    const c잔달  = colMap["잔액(달러$)"]??colMap["잔액($)"]??10;
+    const c계약  = colMap["계약일"]??11;
+    const c연도  = colMap["연도"]??12;
+    const c구분  = colMap["구분(국내해외)"]??colMap["구분"]??13;
 
-    // 이미 파이프라인에 있는지 확인 (_slId 또는 프로젝트번호로)
-    const existInPD = PD.some(p =>
-      (act.pjcode && p.프로젝트번호 === act.pjcode) ||
-      p._slId === act.id
-    );
+    const displayCode = act.pjcode||("신규-"+(act.company||"").substring(0,4)+"-"+(act.date||new Date().toISOString()).substring(2,4));
 
-    if(!existInPD) {
-      PD.unshift({
-        프로젝트번호: act.pjcode || displayCode,
-        프로젝트명:   act.title || act.company || "",
-        거래처:       act.company || "",
-        유형:         "",
-        종사업장구분: "본사",
-        진행구분:     "신규",
-        원화금액:     0, 공급가액:0, 입금액:0, 잔액원화:0, 달러금액:0,
-        계약일:       act.date || "",
-        연도:         act.date ? parseInt(act.date.substring(0,4)) : new Date().getFullYear(),
-        구분:         "",
-        _overrideStatus: null,
-        _fromSL: true,
-        _slId: act.id,
-        files_견적서:[], files_발주서:[], files_거래명세서:[],
-        files_세금계산서:[], files_납품확인서:[], files_기타:[],
-      });
-      added++;
-    } else if(act.pjcode) {
-      // 기존 항목 거래처/프로젝트명 업데이트
-      const p = PD.find(x => x.프로젝트번호 === act.pjcode || x._slId === act.id);
-      if(p) {
-        if(act.pjcode && p.프로젝트번호 !== act.pjcode) p.프로젝트번호 = act.pjcode;
-        if(act.company) p.거래처 = act.company;
-        if(act.title) p.프로젝트명 = act.title;
-      }
-    }
-  });
+    // 중복 체크
+    const exists = data.slice(1).some(row=>String(row[c번호]||"").trim()===displayCode||String(row[c번호]||"").trim()===act.pjcode);
+    if(exists){ console.log("이미 있음: "+displayCode); return false; }
 
-  if(added > 0) {
-    updPlKPI();
-    try { filterPL(); } catch(_){}
-    console.log(`✅ 파이프라인 신규 동기화: ${added}건 추가`);
+    const maxCol = Math.max(c번호,c명,c거래처,c유형,c사업장,c상태,c공급,c합계,c입금,c잔원,c잔달,c계약,c연도,c구분)+1;
+    const newRow = new Array(maxCol).fill("");
+    newRow[c번호]  = act.pjcode||displayCode;
+    newRow[c명]    = act.title||"";
+    newRow[c거래처]= act.company||"";
+    newRow[c사업장]= "본사";
+    newRow[c상태]  = "신규";
+    newRow[c공급]  = 0; newRow[c합계]=0; newRow[c입금]=0; newRow[c잔원]=0; newRow[c잔달]=0;
+    newRow[c계약]  = act.date||"";
+    newRow[c연도]  = act.date?parseInt(act.date.substring(0,4)):new Date().getFullYear();
+    newRow[c구분]  = "국내";
+
+    XLSX.utils.sheet_add_aoa(ws, [newRow], {origin: range.e.r+1});
+    range.e.r = range.e.r+1;
+    if(range.e.c < maxCol-1) range.e.c=maxCol-1;
+    ws["!ref"] = XLSX.utils.encode_range(range);
+
+    const wbOut = XLSX.write(wb, {bookType:"xlsx", type:"array"});
+    const blob = new Blob([wbOut], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+
+    await getIds(); const t=await getToken();
+    let fd;
+    try { fd=await gGet("/drives/"+spDrive+"/root:/"+encodeURIComponent(SP_FOLDER)+":/children"); }
+    catch(e){ fd=await gGet("/drives/"+spDrive+"/root:/"+SP_FOLDER+":/children"); }
+    const spFile=(fd.value||[]).find(f=>f.name===name);
+    if(!spFile) throw new Error("SP 파일 못 찾음: "+name);
+
+    const up=await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/items/"+spFile.id+"/content",
+      {method:"PUT",headers:{"Authorization":"Bearer "+t,"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},body:blob});
+    if(!up.ok) throw new Error("업로드 "+up.status);
+
+    console.log("✅ 프로젝트현황 행 추가 + SP 저장: "+displayCode);
+    return true;
+  } catch(e) {
+    console.error("❌ 프로젝트현황 행 추가 실패:", e.message);
+    return false;
   }
 }
+
+// ━━ 영업활동 → 파이프라인 신규 동기화 (메모리) ━━
+function syncPipelineFromSL() {
+  if(!Array.isArray(slData)||!slData.length||!Array.isArray(PD)) return;
+  let added=0;
+  slData.forEach(act=>{
+    const isEarly=!act.status||["신규","제안","견적"].includes(act.status);
+    if(!isEarly) return;
+    const displayCode=act.pjcode||("신규-"+(act.company||"").substring(0,4)+"-"+(act.date||"").substring(2,4));
+    const existInPD=PD.some(p=>(act.pjcode&&p.프로젝트번호===act.pjcode)||p._slId===act.id||p.프로젝트번호===displayCode);
+    if(!existInPD){
+      PD.unshift({
+        프로젝트번호:act.pjcode||displayCode, 프로젝트명:act.title||act.company||"",
+        거래처:act.company||"", 유형:"", 종사업장구분:"본사", 진행구분:"신규",
+        원화금액:0, 공급가액:0, 입금액:0, 잔액원화:0, 달러금액:0,
+        계약일:act.date||"", 연도:act.date?parseInt(act.date.substring(0,4)):new Date().getFullYear(),
+        구분:"", _overrideStatus:null, _fromSL:true, _slId:act.id,
+        files_견적서:[],files_발주서:[],files_거래명세서:[],files_세금계산서:[],files_납품확인서:[],files_기타:[],
+      });
+      added++;
+    } else if(act.pjcode){
+      const p=PD.find(x=>x.프로젝트번호===act.pjcode||x._slId===act.id);
+      if(p){if(act.pjcode&&p.프로젝트번호!==act.pjcode)p.프로젝트번호=act.pjcode;if(act.company)p.거래처=act.company;if(act.title)p.프로젝트명=act.title;}
+    }
+  });
+  if(added>0){updPlKPI();try{filterPL();}catch(_){}console.log("✅ 파이프라인 신규 동기화(메모리): "+added+"건");}
+}
+
+// ━━ Teams 캘린더 동기화 ━━
 
 // ━━ Teams 캘린더 동기화 ━━
 
@@ -13462,13 +13508,21 @@ async function saveSLActivity() {
   renderSLAll();
   await saveSLToSP();
 
-  // 🆕 영업활동 신규생성 시 → 파이프라인에 신규 상태로 추가
+  // 🆕 영업활동 신규생성 시 → SP 엑셀(프로젝트현황) + 파이프라인 동기화
   if(!slEditId) {
+    // 1. 메모리(PD) 즉시 반영
     syncPipelineFromSL();
-    // 필터 초기화 (신규 건이 보이도록)
+    // 2. SP 엑셀 프로젝트현황 시트에 행 추가 (비동기)
+    addSLToProjectSheet(act).then(added => {
+      if(added) {
+        // 엑셀 업로드 후 파이프라인 다시 로드
+        setTimeout(()=> loadSalesAndProject().catch(()=>{}), 2000);
+      }
+    });
+    // 3. 필터 초기화
     try {
       const stSel = document.getElementById("plSt");
-      if(stSel && stSel.value === "잔금") { stSel.value = ""; plQF = ""; filterPL(); }
+      if(stSel && stSel.value !== "") { stSel.value = ""; plQF = ""; filterPL(); }
     } catch(_){}
   }
 
