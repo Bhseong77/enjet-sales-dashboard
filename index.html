@@ -2327,6 +2327,16 @@
                   <input id="q-validity" oninput="updateQuotePreview()" value="제출일로부터 30일" style="width:100%;padding:7px 9px;border:1.5px solid var(--border2);border-radius:6px;font-size:14px;font-family:var(--s)"></div>
                 <div><label style="font-size:12px;color:var(--t2);font-weight:700;display:block;margin-bottom:2px">결제 조건</label>
                   <input id="q-payment" oninput="updateQuotePreview()" value="납품 후 현금 100%" style="width:100%;padding:7px 9px;border:1.5px solid var(--border2);border-radius:6px;font-size:14px;font-family:var(--s)"></div>
+                <!-- 회사 정보 (영문 견적서에만 표시) - 접이식 -->
+                <details style="margin-top:4px;border:1px dashed var(--border2);border-radius:6px;padding:6px 9px;background:#fafafa">
+                  <summary style="font-size:12px;font-weight:700;color:var(--t2);cursor:pointer">🏢 ENJET 회사 정보 (영문 견적서)</summary>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
+                    <div><label style="font-size:11px;color:var(--t3);font-weight:600;display:block;margin-bottom:2px">Type of Business</label>
+                      <input id="q-typeOfBiz" oninput="updateQuotePreview()" value="Manufacturing" style="width:100%;padding:5px 7px;border:1px solid var(--border2);border-radius:5px;font-size:12px;font-family:var(--s)"></div>
+                    <div><label style="font-size:11px;color:var(--t3);font-weight:600;display:block;margin-bottom:2px">Item of Business</label>
+                      <input id="q-itemOfBiz" oninput="updateQuotePreview()" value="Display" style="width:100%;padding:5px 7px;border:1px solid var(--border2);border-radius:5px;font-size:12px;font-family:var(--s)"></div>
+                  </div>
+                </details>
               </div>
 
               <div style="font-size:14px;font-weight:800;color:var(--t);margin:14px 0 8px">📦 품목</div>
@@ -6066,6 +6076,13 @@ function filterExh() {
   const exh    = document.getElementById("exhFilter").value;
   const status = document.getElementById("exhStatus").value;
   const q      = document.getElementById("exhSrch").value.toLowerCase();
+  // 전시회 상태 → badge 클래스 매핑
+  const STATUS_STYLE = {
+    "팔로업필요":"warn","팔로업 필요":"warn",
+    "진행중":"info",
+    "거래연결":"up","거래 연결":"up",
+    "종료":"gray","미확인":"gray"
+  };
   exhFiltered = exhData.filter(r=>{
     if(exh && r.exh !== exh) return false;
     if(status && !r.status.includes(status.replace("팔로업필요","팔로업"))) return false;
@@ -12586,6 +12603,8 @@ async function generateQuoteExcel(isDraft=false) {
   const payment   = get("q-payment");
   const spec      = get("q-spec");
   const note      = get("q-note");
+  const typeOfBiz = get("q-typeOfBiz") || "Manufacturing";
+  const itemOfBiz = get("q-itemOfBiz") || "Display";
 
   if(!recipient) { alert("수신처를 입력해주세요."); return; }
 
@@ -12770,6 +12789,9 @@ async function generateQuoteExcel(isDraft=false) {
     setCell("C3", subject);
     setCell("C4", dateStr);
     setCell("C5", manager);
+    // H5 = Type of Business + Tel (두 줄, \n 구분), J5 = Item of Business + Fax (두 줄)
+    setCell("H5", `${typeOfBiz}\n070-4892-8111`);
+    setCell("J5", `${itemOfBiz}\n070-4892-8121`);
     setCell("C8", quoteNo || `Quo)${recipient.substring(0,3)}_Q1_${(dateVal||"").replace(/-/g,"").substring(2)}`);
     setCell("I8", delivery);
     setCell("C9", leadtime);
@@ -13291,23 +13313,25 @@ function updateQuotePreviewEN() {
     else total += (item.unitPrice||0)*(item.qty||1);
   });
 
-  // 품목 행 (Q'ty + Total Price(USD) 컬럼만 - 새 템플릿 구조)
+  // 품목 행 (실제 템플릿: 점선/얇은 테두리, 회색 톤, 색상 강조 없음)
   const itemRows = _quoteItems.map((item,i)=>{
-    if(item.isDiscount) return `<tr style="background:#fffde7">
-      <td style="border:1px solid #bbb;padding:3px 5px;text-align:center"></td>
-      <td style="border:1px solid #bbb;padding:3px 8px;font-style:italic;font-weight:700;color:#b26200;text-align:left" colspan="2">${item.name||"Special Discount"}</td>
-      <td style="border:1px solid #bbb;padding:3px 6px;text-align:right;color:#c00;font-weight:700">${item.unitPrice<0?"-"+fmtUSD(-item.unitPrice):fmtUSD(item.unitPrice)}</td>
-      <td style="border:1px solid #bbb;padding:3px 5px"></td></tr>`;
+    if(item.isDiscount) return `<tr style="height:22px">
+      <td style="border:1px solid #ccc;padding:2px 4px;text-align:center"></td>
+      <td style="border:1px solid #ccc;padding:2px 8px;font-style:italic;color:#000">${item.name||"Special Discount"}</td>
+      <td style="border:1px solid #ccc;padding:2px 4px;text-align:center"></td>
+      <td style="border:1px solid #ccc;padding:2px 6px;text-align:right">${item.unitPrice<0?"-"+fmtUSD(-item.unitPrice):fmtUSD(item.unitPrice)}</td>
+      <td style="border:1px solid #ccc;padding:2px 4px"></td></tr>`;
     const amt = (item.unitPrice||0)*(item.qty||1);
-    return `<tr>
-      <td style="border:1px solid #bbb;padding:3px 5px;text-align:center;font-size:10px">${i+1}</td>
-      <td style="border:1px solid #bbb;padding:3px 8px;text-align:left;font-size:10px">${item.name||""}</td>
-      <td style="border:1px solid #bbb;padding:3px 5px;text-align:center;font-size:10px">${item.qty||1}</td>
-      <td style="border:1px solid #bbb;padding:3px 6px;text-align:right;font-size:10px;font-weight:700">${amt?fmtUSD(amt):""}</td>
-      <td style="border:1px solid #bbb;padding:3px 5px;font-size:10px">${item.unit||"Set"}</td></tr>`;
+    return `<tr style="height:22px">
+      <td style="border:1px solid #ccc;padding:2px 4px;text-align:center">${i+1}</td>
+      <td style="border:1px solid #ccc;padding:2px 8px;text-align:left">${item.name||""}</td>
+      <td style="border:1px solid #ccc;padding:2px 4px;text-align:center">${item.qty||1}</td>
+      <td style="border:1px solid #ccc;padding:2px 6px;text-align:right">${amt?Number(amt).toLocaleString("en-US"):""}</td>
+      <td style="border:1px solid #ccc;padding:2px 4px;text-align:center">${item.unit||"Set"}</td></tr>`;
   }).join("");
-  const emptyRows = Array(Math.max(0,3-_quoteItems.length))
-    .fill(`<tr><td style="border:1px solid #bbb;padding:8px"></td><td style="border:1px solid #bbb;padding:8px"></td><td style="border:1px solid #bbb;padding:8px"></td><td style="border:1px solid #bbb;padding:8px"></td><td style="border:1px solid #bbb;padding:8px"></td></tr>`).join("");
+  // 빈 행 (최소 1행 - 실제 템플릿은 단일 품목 위주)
+  const emptyRows = Array(Math.max(0,1-_quoteItems.length))
+    .fill(`<tr style="height:22px"><td style="border:1px solid #ccc;padding:2px 4px"></td><td style="border:1px solid #ccc;padding:2px 4px"></td><td style="border:1px solid #ccc;padding:2px 4px"></td><td style="border:1px solid #ccc;padding:2px 4px"></td><td style="border:1px solid #ccc;padding:2px 4px"></td></tr>`).join("");
 
   const specLines = get("q-spec").split("\n").filter(Boolean);
   const specHTML = specLines.map(l=>`<div style="font-size:10px;padding:1px 0">${l}</div>`).join("");
@@ -13317,117 +13341,138 @@ function updateQuotePreviewEN() {
   const _seq = String(((_act?.history||[]).filter(h=>h.action&&(h.action.includes("견적서")||h.action.includes("Quotation"))).length)+1).padStart(2,"0");
 
   area.innerHTML = `
-  <div style="font-family:Arial,sans-serif;color:#000;font-size:10px">
+  <div style="font-family:Calibri,'Segoe UI',sans-serif;color:#000;font-size:11px;background:#fff">
 
-    <!-- 제목 + 회사 -->
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
-      <div style="font-size:28px;font-weight:900;letter-spacing:8px;color:#1a1a1a">QUOTATION</div>
-      <div style="text-align:right">
-        <div style="font-size:14px;font-weight:800;color:#1F3864">ENJET INC., LTD.</div>
-        <div style="font-size:8.5px;color:#555;line-height:1.6">
-          No.45, Saneop-ro 92beon-gil, Gwonseon-gu,<br>
-          Suwon-si, Gyeonggi-do, Korea<br>
-          Tel: 070-4892-8100 · Fax: 070-4892-8121<br>
-          TIN: 206-86-36037
-        </div>
+    <!-- 제목 + 로고 (실제 템플릿: QUOTATION 좌측, 로고는 우측 상단만) -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 4px">
+      <div style="font-size:24px;font-weight:700;letter-spacing:1px;color:#1a1a1a">QUOTATION</div>
+      <div style="font-size:18px;font-weight:800;color:#E94B2C;letter-spacing:1px">
+        <span style="color:#000">EN</span><span style="color:#E94B2C">J</span><span style="color:#000">ET</span>
       </div>
     </div>
 
-    <!-- CLIENT + PROVIDER 테이블 -->
-    <table style="width:100%;border-collapse:collapse;margin-bottom:6px;font-size:10px">
-      <tr>
-        <td style="width:12%;border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Client</td>
-        <td style="width:30%;border:1px solid #999;padding:3px 6px">${get("q-recipient")}</td>
-        <td rowspan="4" style="width:4%;border:1px solid #999;padding:2px;writing-mode:vertical-rl;text-align:center;font-weight:700;font-size:9px;background:#1F3864;color:#fff;letter-spacing:3px">PROVIDER</td>
-        <td style="width:20%;border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700;font-size:9px">Taxpayer Identification Number</td>
-        <td style="border:1px solid #999;padding:3px 6px">206-86-36037</td>
+    <!-- CLIENT + PROVIDER 테이블 (실제 템플릿: 회색 라벨 배경 없음, PROVIDER는 흰 배경 점선) -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:10.5px;table-layout:fixed">
+      <colgroup>
+        <col style="width:11%"><col style="width:32%">
+        <col style="width:3%">
+        <col style="width:18%"><col style="width:18%"><col style="width:18%">
+      </colgroup>
+      <tr style="height:22px">
+        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Client</td>
+        <td style="border:1px solid #999;padding:2px 8px;font-weight:600">${get("q-recipient")}</td>
+        <td rowspan="4" style="border:1px dotted #777;padding:0;writing-mode:vertical-rl;text-align:center;font-size:9px;letter-spacing:6px;color:#222">PROVIDER</td>
+        <td style="border:1px dotted #777;padding:2px 6px;text-align:right;color:#444" colspan="2">Taxpayer Identification Number</td>
+        <td style="border:1px dotted #777;padding:2px 6px;text-align:center">206-86-36037</td>
       </tr>
-      <tr>
-        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Details</td>
-        <td style="border:1px solid #999;padding:3px 6px">${get("q-subject")}</td>
-        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700;font-size:9px">Company Name</td>
-        <td style="border:1px solid #999;padding:3px 6px">ENJET INC., LTD &nbsp;&nbsp; CEO Do Young Byun</td>
+      <tr style="height:22px">
+        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Details</td>
+        <td style="border:1px solid #999;padding:2px 8px">${get("q-subject")}</td>
+        <td style="border:1px dotted #777;padding:2px 6px;text-align:right;color:#444">Company Name</td>
+        <td style="border:1px dotted #777;padding:2px 6px;font-weight:700;text-align:center">ENJET INC., LTD</td>
+        <td style="border:1px dotted #777;padding:2px 6px;text-align:center;color:#444">CEO &nbsp;&nbsp;<span style="color:#000">Do Young Byun</span></td>
       </tr>
-      <tr>
-        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Date</td>
-        <td style="border:1px solid #999;padding:3px 6px">${dateEng}</td>
-        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700;font-size:9px">Type of Business / Tel</td>
-        <td style="border:1px solid #999;padding:3px 6px">Manufacturing &nbsp; 070-4892-8111</td>
+      <tr style="height:26px">
+        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Date</td>
+        <td style="border:1px solid #999;padding:2px 8px">${dateEng}</td>
+        <td style="border:1px dotted #777;padding:2px 6px;text-align:right;color:#444">Address</td>
+        <td style="border:1px dotted #777;padding:2px 6px;font-size:9.5px" colspan="2">No.45, Saneop-ro 92beon-gil, Gwonseon-gu, Suwon-si, Gyeonggi-do, Korea</td>
       </tr>
-      <tr>
-        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Manager</td>
-        <td style="border:1px solid #999;padding:3px 6px">${get("q-manager")}</td>
-        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700;font-size:9px">Address</td>
-        <td style="border:1px solid #999;padding:3px 6px;font-size:9px">No.45, Saneop-ro 92beon-gil, Gwonseon-gu, Suwon-si, Gyeonggi-do, Korea</td>
-      </tr>
-    </table>
-
-    <!-- 견적 조건 -->
-    <div style="font-size:9.5px;margin-bottom:5px;color:#333">We submit our quotation as below</div>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:8px;font-size:10px">
-      <tr>
-        <td style="width:18%;border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Quotation NO</td>
-        <td style="width:32%;border:1px solid #999;padding:3px 6px">${get("q-quoteNo")}</td>
-        <td style="width:20%;border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">A place of delivery</td>
-        <td style="border:1px solid #999;padding:3px 6px">${get("q-delivery")}</td>
-      </tr>
-      <tr>
-        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Delivery Date</td>
-        <td style="border:1px solid #999;padding:3px 6px">${get("q-leadtime")}</td>
-        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Validity</td>
-        <td style="border:1px solid #999;padding:3px 6px">${get("q-validity")}</td>
-      </tr>
-      <tr>
-        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Payment</td>
-        <td style="border:1px solid #999;padding:3px 6px">${get("q-payment")}</td>
-        <td style="border:1px solid #999;padding:3px 6px;background:#f0f0f0;font-weight:700">Trade Term</td>
-        <td style="border:1px solid #999;padding:3px 6px"></td>
+      <tr style="height:48px">
+        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Manager</td>
+        <td style="border:1px solid #999;padding:2px 8px">${get("q-manager")}</td>
+        <td style="border:1px dotted #777;padding:2px 6px;text-align:right;color:#444;line-height:1.5">Type of Business<br>Tel</td>
+        <td style="border:1px dotted #777;padding:2px 6px;text-align:center;line-height:1.5">${get("q-typeOfBiz")||"Manufacturing"}<br>070-4892-8111</td>
+        <td style="border:1px dotted #777;padding:0;text-align:center;line-height:1.5">
+          <div style="display:flex">
+            <div style="flex:1;padding:2px 6px;text-align:right;color:#444;border-right:1px dotted #777">Item of Business<br>Fax</div>
+            <div style="flex:1;padding:2px 6px;text-align:center">${get("q-itemOfBiz")||"Display"}<br>070-4892-8121</div>
+          </div>
+        </td>
       </tr>
     </table>
 
-    <!-- Total Price 헤더 -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-      <span style="font-size:11px;font-weight:700">Total Price :</span>
-      <span style="font-size:15px;font-weight:900;color:#C00000">${fmtUSD(total)}</span>
-      <span style="font-size:9px;color:#777;margin-left:auto">( US$ )</span>
+    <!-- 빈 줄 -->
+    <div style="height:8px"></div>
+
+    <!-- We submit our quotation as below -->
+    <div style="font-size:10px;margin-bottom:3px;color:#222">We submit our quotation as below</div>
+
+    <!-- 견적 조건 테이블 (회색 라벨 배경 없음) -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10.5px;table-layout:fixed">
+      <colgroup>
+        <col style="width:17%"><col style="width:33%">
+        <col style="width:17%"><col style="width:33%">
+      </colgroup>
+      <tr style="height:22px">
+        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Quotation NO</td>
+        <td style="border:1px solid #999;padding:2px 8px">${get("q-quoteNo")}</td>
+        <td style="border:1px solid #999;padding:2px 8px;text-align:center;color:#444">A place of delivery</td>
+        <td style="border:1px solid #999;padding:2px 8px">${get("q-delivery")}</td>
+      </tr>
+      <tr style="height:22px">
+        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Delivery Date</td>
+        <td style="border:1px solid #999;padding:2px 8px">${get("q-leadtime")}</td>
+        <td style="border:1px solid #999;padding:2px 8px;text-align:center;color:#444">Validity</td>
+        <td style="border:1px solid #999;padding:2px 8px">${get("q-validity")}</td>
+      </tr>
+      <tr style="height:22px">
+        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Payment</td>
+        <td style="border:1px solid #999;padding:2px 8px">${get("q-payment")}</td>
+        <td style="border:1px solid #999;padding:2px 8px;text-align:center;color:#444">Trade Term</td>
+        <td style="border:1px solid #999;padding:2px 8px"></td>
+      </tr>
+    </table>
+
+    <!-- Total Price 라벨 (실제 템플릿: 좌측 라벨만, 큰 금액 없음, 우측에 (US$) ) -->
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:0;padding:0 2px">
+      <span style="font-size:13px;font-weight:700">Total Price :
+        ${total>0?`<span style="font-size:14px;font-weight:700;margin-left:8px">US$${Number(total).toLocaleString("en-US")}</span>`:""}
+      </span>
+      <span style="font-size:10px;color:#444">( US$ )</span>
     </div>
 
-    <!-- 품목 테이블 (NO / Description / Q'ty / Total Price(USD) / Remark) -->
-    <table style="width:100%;border-collapse:collapse;margin-bottom:8px;font-size:10px">
+    <!-- 품목 테이블 헤더 (실제 템플릿: 회색 배경 #D9D9D9, 검정 글씨) -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:10.5px;table-layout:fixed">
+      <colgroup>
+        <col style="width:6%"><col style="width:48%">
+        <col style="width:10%"><col style="width:22%"><col style="width:14%">
+      </colgroup>
       <thead>
-        <tr style="background:#1F3864;color:#fff">
-          <th style="border:1px solid #555;padding:4px 5px;width:28px">NO.</th>
-          <th style="border:1px solid #555;padding:4px 8px;text-align:left">Description</th>
-          <th style="border:1px solid #555;padding:4px 5px;width:45px">Q'ty</th>
-          <th style="border:1px solid #555;padding:4px 5px;width:100px">Total Price<br>(USD)</th>
-          <th style="border:1px solid #555;padding:4px 5px;width:55px">Remark</th>
+        <tr style="background:#D9D9D9;height:28px">
+          <th style="border:1px solid #999;padding:3px 4px;font-weight:700;color:#000">NO.</th>
+          <th style="border:1px solid #999;padding:3px 6px;font-weight:700;color:#000">Description</th>
+          <th style="border:1px solid #999;padding:3px 4px;font-weight:700;color:#000">Q'ty</th>
+          <th style="border:1px solid #999;padding:3px 4px;font-weight:700;color:#000;line-height:1.3">Total Price<br>(USD)</th>
+          <th style="border:1px solid #999;padding:3px 4px;font-weight:700;color:#000">Remark</th>
         </tr>
       </thead>
       <tbody>${itemRows}${emptyRows}</tbody>
-      <tfoot>
-        <tr>
-          <td colspan="3" style="border:1px solid #bbb;border-top:2px solid #1F3864;padding:4px 8px;text-align:right;font-weight:700">Total</td>
-          <td style="border:1px solid #bbb;border-top:2px solid #1F3864;padding:4px 6px;text-align:right;font-weight:700;color:#C00000">${fmtUSD(total)}</td>
-          <td style="border:1px solid #bbb;border-top:2px solid #1F3864"></td>
-        </tr>
-      </tfoot>
     </table>
 
-    <!-- Detailed Items / Spec -->
-    ${specHTML ? `<div style="margin-bottom:6px">
-      <div style="font-weight:700;font-size:10px;margin-bottom:3px">Detailed Items</div>
-      <div style="border:1px solid #ddd;padding:6px 8px">${specHTML}</div>
-    </div>` : ""}
+    <!-- Detailed Items 영역 (실제 템플릿: B19 위치, 굵은 라벨만, 테두리 없음) -->
+    <div style="margin-top:14px;margin-bottom:8px;padding-left:6px">
+      <div style="font-weight:700;font-style:italic;font-size:11px;margin-bottom:6px">Detailed Items</div>
+      ${specHTML ? `<div style="padding:2px 12px;font-size:10.5px;line-height:1.7">${specHTML}</div>` : `<div style="height:300px"></div>`}
+    </div>
 
-    <!-- Remark -->
-    ${noteText ? `<div style="border-top:1px dashed #aaa;padding-top:4px">
-      <div style="font-weight:700;margin-bottom:3px">※ Remark</div>
-      <div style="font-size:10px">${noteText}</div>
-    </div>` : ""}
+    <!-- Total 행 -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:10.5px;table-layout:fixed;margin-top:30px">
+      <tr style="height:22px">
+        <td style="border-top:1px solid #999;border-bottom:1px solid #999;padding:3px 8px;font-weight:700">Total</td>
+        <td style="border-top:1px solid #999;border-bottom:1px solid #999;padding:3px 8px;text-align:right;font-weight:700">${total>0?`US$${Number(total).toLocaleString("en-US")}`:""}</td>
+      </tr>
+    </table>
 
-    <!-- 문서번호 -->
-    <div style="display:flex;justify-content:space-between;font-size:8.5px;color:#777;margin-top:10px;border-top:1px solid #ddd;padding-top:3px">
-      <span>ENJET-QUO-01 REV(00)</span><span>ENJET INC., LTD.</span>
+    <!-- ※ Remark -->
+    <div style="margin-top:6px;padding:3px 4px">
+      <div style="font-weight:700;font-size:11px;margin-bottom:2px">※ Remark</div>
+      ${noteText ? `<div style="font-size:10.5px;padding:2px 12px">${noteText}</div>` : ""}
+    </div>
+
+    <!-- 푸터: 문서번호 / 회사명 -->
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:#666;margin-top:14px;padding:4px 2px 0 2px">
+      <span>ENJET-QUO-${_seq} REV(00)</span><span>ENJET INC., LTD.</span>
     </div>
   </div>`;
 }
