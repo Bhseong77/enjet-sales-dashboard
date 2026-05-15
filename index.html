@@ -687,14 +687,21 @@
         <div class="kpi c4"><div class="kl">해외</div><div class="kv"><span id="ct-int">-</span><span style="font-size:15px;color:var(--t2)">명</span></div><div class="ks"></div></div>
       </div>
 
-      <!-- 🆕 일주일 신규 등록 카드 -->
+      <!-- 🆕 신규 등록 카드 (주간/월간/연간) -->
       <div class="card" style="margin-bottom:9px">
         <div class="ch" style="margin-bottom:8px">
-          <div class="ct"><div class="ci" style="background:linear-gradient(135deg,#f59e0b,#d97706)">🆕</div>이번 주 신규 등록 <span id="ct-week-cnt" style="font-size:13px;color:var(--t3);font-weight:400;margin-left:4px">-</span></div>
-          <span style="font-size:13px;color:var(--t3)" id="ct-week-range"></span>
+          <div class="ct"><div class="ci" style="background:linear-gradient(135deg,#f59e0b,#d97706)">🆕</div>신규 등록 <span id="ct-week-cnt" style="font-size:13px;color:var(--t3);font-weight:400;margin-left:4px">-</span></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:12px;color:var(--t3)" id="ct-week-range"></span>
+            <div style="display:flex;gap:3px">
+              <button onclick="setContactPeriod('week',this)" class="period-btn on" style="padding:4px 10px;border-radius:6px;border:1px solid var(--p);background:var(--p);color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:var(--s)">주간</button>
+              <button onclick="setContactPeriod('month',this)" class="period-btn" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:var(--s)">월간</button>
+              <button onclick="setContactPeriod('year',this)" class="period-btn" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--t2);font-size:12px;cursor:pointer;font-family:var(--s)">연간</button>
+            </div>
+          </div>
         </div>
         <div id="ct-week-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
-          <div style="color:var(--t3);font-size:13px;padding:10px">이번 주 신규 등록 없음</div>
+          <div style="color:var(--t3);font-size:13px;padding:10px">신규 등록 없음</div>
         </div>
       </div>
 
@@ -4642,43 +4649,86 @@ async function loadContacts() {
     console.log("✅ 연락처:", CD.length, "명 ←", name);
   } catch(e) { console.error("❌ 연락처 실패:", e.message); }
 }
-// ── 고객사DB 이번 주 신규 등록 ──
+// ── 고객사DB 신규 등록 (주간/월간/연간) ──
+let _contactPeriod = 'week';
+
+function setContactPeriod(period, btn) {
+  _contactPeriod = period;
+  document.querySelectorAll(".period-btn").forEach(b => {
+    b.style.background = "transparent";
+    b.style.color = "var(--t2)";
+    b.style.borderColor = "var(--border2)";
+  });
+  if(btn) {
+    btn.style.background = "var(--p)";
+    btn.style.color = "#fff";
+    btn.style.borderColor = "var(--p)";
+  }
+  renderWeeklyNewContacts();
+}
+
 function renderWeeklyNewContacts() {
   const now = new Date();
-  const dayOfWeek = now.getDay();
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(now); monday.setDate(now.getDate() + mondayOffset); monday.setHours(0,0,0,0);
-  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23,59,59,999);
-  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+  let from, to, rangeText;
+
+  if(_contactPeriod === 'week') {
+    const dayOfWeek = now.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    from = new Date(now); from.setDate(now.getDate() + mondayOffset); from.setHours(0,0,0,0);
+    to = new Date(from); to.setDate(from.getDate() + 6); to.setHours(23,59,59,999);
+    rangeText = `${from.getMonth()+1}/${from.getDate()} ~ ${to.getMonth()+1}/${to.getDate()}`;
+  } else if(_contactPeriod === 'month') {
+    from = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0);
+    to = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
+    rangeText = `${now.getFullYear()}.${now.getMonth()+1}월`;
+  } else { // year
+    from = new Date(now.getFullYear(), 0, 1, 0,0,0,0);
+    to = new Date(now.getFullYear(), 11, 31, 23,59,59,999);
+    rangeText = `${now.getFullYear()}년`;
+  }
+
   const rangeEl = document.getElementById("ct-week-range");
-  if(rangeEl) rangeEl.textContent = `${fmt(monday)} ~ ${fmt(sunday)}`;
-  const weekContacts = (CD||[]).filter(r => {
+  if(rangeEl) rangeEl.textContent = rangeText;
+
+  const contacts = (CD||[]).filter(r => {
     const dateStr = r["createdAt"]||r["등록일"]||r["추가일"]||"";
     if(!dateStr) return false;
     const d = new Date(dateStr);
-    return d >= monday && d <= sunday;
+    return d >= from && d <= to;
   });
-  $("ct-week-cnt", weekContacts.length + "명");
+
+  $("ct-week-cnt", contacts.length + "명");
   const listEl = document.getElementById("ct-week-list");
   if(!listEl) return;
-  if(!weekContacts.length) {
-    listEl.innerHTML = '<div style="color:var(--t3);font-size:13px;padding:10px">이번 주 신규 등록 없음</div>';
+
+  if(!contacts.length) {
+    const label = _contactPeriod==='week'?"이번 주":_contactPeriod==='month'?"이번 달":"올해";
+    listEl.innerHTML = `<div style="color:var(--t3);font-size:13px;padding:10px">${label} 신규 등록 없음</div>`;
     return;
   }
-  listEl.innerHTML = weekContacts.map(r => {
-    const name = r["성명"]||r["이름"]||"-";
+
+  // 최신순 정렬
+  const sorted = [...contacts].sort((a,b) =>
+    (b.createdAt||b.등록일||"").localeCompare(a.createdAt||a.등록일||"")
+  );
+
+  listEl.innerHTML = sorted.map(r => {
+    const name    = r["성명"]||r["이름"]||"-";
     const company = r["회사"]||"-";
-    const title = r["직함"]||r["직위"]||"";
-    const phone = r["휴대폰"]||r["전화"]||"";
-    const isIntl = String(phone).startsWith("+");
-    const date = (r["createdAt"]||r["등록일"]||"").substring(0,10);
-    return `<div style="padding:8px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);display:flex;align-items:center;gap:8px">
-      <div style="width:34px;height:34px;border-radius:50%;background:${isIntl?"#0369a1":"var(--p)"};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${name.charAt(0)||"?"}</div>
-      <div style="min-width:0">
+    const title   = r["직함"]||r["직위"]||"";
+    const phone   = r["휴대폰"]||r["전화"]||"";
+    const isIntl  = String(phone).startsWith("+");
+    const date    = (r["createdAt"]||r["등록일"]||"").substring(0,10);
+    const initial = name === "-" ? "?" : name.charAt(0);
+    return `<div style="padding:8px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);display:flex;align-items:center;gap:8px;cursor:pointer"
+      onclick="selCo='${company.replace(/'/g,"\\'")}';renderCtCards(coMap['${company.replace(/'/g,"\\'")}']||[])">
+      <div style="width:34px;height:34px;border-radius:50%;background:${isIntl?"#0369a1":"var(--p)"};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${initial}</div>
+      <div style="min-width:0;flex:1">
         <div style="font-weight:700;font-size:13px;color:var(--t)">${name} <span style="font-size:11px;color:var(--t3);font-weight:400">${title}</span></div>
-        <div style="font-size:12px;color:var(--t2)">${company}</div>
+        <div style="font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${company}</div>
         <div style="font-size:11px;color:var(--t3)">${date}</div>
-      </div></div>`;
+      </div>
+    </div>`;
   }).join("");
 }
 
@@ -11166,12 +11216,15 @@ async function saveNewCustMgrContact() {
     CD.push({
       "회사": company,
       "이름": name,
+      "성명": name,
       "직함": newContact.title,
       "부서": newContact.product,
       "휴대폰": newContact.phone,
       "전자 메일 주소": newContact.email,
       "근무처 전화": "",
       "명함 등록자": "Dashboard",
+      "createdAt": new Date().toISOString(),
+      "등록일": new Date().toISOString().split("T")[0],
     });
     // 카운트 갱신
     const $el = (id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
@@ -11179,10 +11232,10 @@ async function saveNewCustMgrContact() {
     $el("badge-ct", CD.length);
     const cosNow = Object.keys(coMap).filter(c=>c!=="미상").sort();
     $el("ct-co", cosNow.length);
-    // 회사 목록 다시 렌더 (새 회사 추가됐을 수 있음)
-    if(typeof renderCos === "function") {
-      try { renderCos(cosNow); } catch(_){}
-    }
+    // 회사 목록 다시 렌더
+    if(typeof renderCos === "function") { try { renderCos(cosNow); } catch(_){} }
+    // 이번 주 신규 등록 갱신
+    if(typeof renderWeeklyNewContacts === "function") { try { renderWeeklyNewContacts(); } catch(_){} }
   }
   // SP에 저장
   const saved = await saveCustContactsToSP();
@@ -12574,46 +12627,73 @@ async function generateQuoteExcel(isDraft=false) {
   // KR: enjet_quote_template_1.xlsx (시트명: 견적서(갑지))
   // EN: enjet_quote_template_en.xlsx (시트명: Quotation)
   // 변형 파일명도 자동 탐색: enjet_quote_template_en_2.xlsx, enjet_quote_template_en (1).xlsx 등
-  const TEMPLATE_FILES = isEN 
-    ? ["enjet_quote_template_en_2.xlsx", "enjet_quote_template_en.xlsx", "enjet_quote_template_en_3.xlsx", "enjet_quote_template_en (1).xlsx", "enjet_quote_template_en (2).xlsx"]
-    : ["enjet_quote_template_1.xlsx", "enjet_quote_template_2.xlsx", "enjet_quote_template_1 (1).xlsx"];
+  // ── 템플릿 로드 ──
   const TEMPLATE_SHEET = isEN ? "Quotation" : "견적서(갑지)";
+
+  // 영문: 파일 ID로 직접 로드 (SP에 구버전과 신버전이 공존할 때 신버전 보장)
+  const EN_TEMPLATE_ID = "e91fd545-e075-49f5-88b3-6e824f02edf7"; // enjet_quote_template_en_2.xlsx
+  const TEMPLATE_FILES = isEN
+    ? ["enjet_quote_template_en_2.xlsx", "enjet_quote_template_en_3.xlsx", "enjet_quote_template_en (2).xlsx", "enjet_quote_template_en.xlsx"]
+    : ["enjet_quote_template_1.xlsx", "enjet_quote_template_2.xlsx", "enjet_quote_template_1 (1).xlsx"];
+
   let templateBytes;
   let usedFile = null;
   let lastError = null;
+
   try {
     await getIds();
     const t = await getToken();
-    // 1) 정해진 후보 파일명들 순차 시도
-    for(const fname of TEMPLATE_FILES) {
+
+    // 영문: 파일 ID로 직접 다운로드 (가장 확실한 방법)
+    if(isEN) {
       try {
-        const spFilePath = `📦영업/99.Dashboard(real-time)/${fname}`;
-        const enc = spFilePath.split("/").map(encodeURIComponent).join("/");
-        const fileInfo = await gGet(`/drives/${spDrive}/root:/${enc}`);
+        const fileInfo = await gGet(`/drives/${spDrive}/items/${EN_TEMPLATE_ID}`);
         const dlUrl = fileInfo["@microsoft.graph.downloadUrl"];
-        if(!dlUrl) continue;
-        const r = await fetch(dlUrl);
-        if(!r.ok) continue;
-        templateBytes = await r.arrayBuffer();
-        usedFile = fname;
-        console.log(`✅ 템플릿 로드 [${_quoteLang}]:`, spFilePath);
-        break;
+        if(dlUrl) {
+          const r = await fetch(dlUrl);
+          if(r.ok) {
+            templateBytes = await r.arrayBuffer();
+            usedFile = fileInfo.name;
+            console.log(`✅ 영문 템플릿 ID 직접 로드:`, fileInfo.name);
+          }
+        }
       } catch(e) {
+        console.warn("ID 직접 로드 실패, 파일명 검색 시도:", e.message);
         lastError = e;
-        // 다음 파일명 시도
       }
     }
-    // 2) 모두 실패하면 폴더에서 자동 탐색 - _en_2 우선
+
+    // 파일명 순차 검색 (ID 로드 실패 또는 한글 템플릿)
+    if(!templateBytes) {
+      for(const fname of TEMPLATE_FILES) {
+        try {
+          const spFilePath = `📦영업/99.Dashboard(real-time)/${fname}`;
+          const enc = spFilePath.split("/").map(encodeURIComponent).join("/");
+          const fileInfo = await gGet(`/drives/${spDrive}/root:/${enc}`);
+          const dlUrl = fileInfo["@microsoft.graph.downloadUrl"];
+          if(!dlUrl) continue;
+          const r = await fetch(dlUrl);
+          if(!r.ok) continue;
+          templateBytes = await r.arrayBuffer();
+          usedFile = fname;
+          console.log(`✅ 템플릿 로드 [${_quoteLang}]:`, spFilePath);
+          break;
+        } catch(e) {
+          lastError = e;
+        }
+      }
+    }
+
+    // 폴더 검색 (위 모두 실패 시)
     if(!templateBytes) {
       try {
         const folderPath = "📦영업/99.Dashboard(real-time)";
         const enc2 = folderPath.split("/").map(encodeURIComponent).join("/");
         const folder = await gGet(`/drives/${spDrive}/root:/${enc2}:/children?$top=100`);
         const prefix = isEN ? "enjet_quote_template_en" : "enjet_quote_template_1";
-        const allCandidates = (folder.value || []).filter(f =>
+        const allCandidates = (folder.value||[]).filter(f =>
           f.name && f.name.toLowerCase().startsWith(prefix.toLowerCase()) && f.name.toLowerCase().endsWith(".xlsx")
         );
-        // EN: _en_2 우선, 그 다음 _en_3, 마지막에 _en.xlsx (구버전)
         if(isEN) allCandidates.sort((a,b) => {
           const score = n => n.includes("_en_2") ? 0 : n.includes("_en_3") ? 1 : n==="enjet_quote_template_en.xlsx" ? 99 : 2;
           return score(a.name) - score(b.name);
@@ -12630,10 +12710,9 @@ async function generateQuoteExcel(isDraft=false) {
             }
           }
         }
-      } catch(e) {
-        lastError = e;
-      }
+      } catch(e) { lastError = e; }
     }
+
     if(!templateBytes) throw lastError || new Error("템플릿 파일을 찾을 수 없음");
   } catch(e) {
     alert(`❌ 견적서 템플릿 로드 실패 [${_quoteLang}]\n\n오류: ${e.message}\n\nSharePoint에 파일이 있는지 확인해주세요:\n📦영업/99.Dashboard(real-time)/\n\n다음 파일명들 중 하나여야 합니다:\n${TEMPLATE_FILES.map(f=>"• "+f).join("\n")}\n\n또는 enjet_quote_template_${isEN?"en":"1"}로 시작하는 .xlsx 파일`);
