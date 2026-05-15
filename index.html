@@ -12747,61 +12747,108 @@ async function generateQuoteExcel(isDraft=false) {
 
   if(isEN) {
     // ── 영문 템플릿 (enjet_quote_template_en_2.xlsx) 셀 매핑 ──
-    // 헤더: B2=Client, B3=Details, B4=Date, B5=Manager
-    // 입력: C2(거래처), C3(견적내용), C4(날짜), C5(담당자)
+    // 실제 템플릿 분석 결과 (Quotation 시트):
+    //   B2=Client(라벨)        → C2:E2 입력
+    //   B3=Details(라벨)       → C3:E3 입력
+    //   B4=Date(라벨)          → C4:E4 입력
+    //   B5=Manager(라벨)       → C5:E5 입력
+    //   B8=Quotation NO(라벨)  → C8:E8 입력 / F8=A place of delivery → I8:K8 입력
+    //   B9=Delivery Date(라벨) → C9:E9 입력 / F9=Validity            → I9:K9 입력
+    //   B10=Payment(라벨)      → C10:E10 입력 / F10=Trade Term       → I10:K10 입력
+    //   A12="Total Price :"    C12=수식=IF(J17>0,...,"") - 자동
+    //   A13=NO. / B13:E13=Description / F13:H13=Q'ty / I13:J13=Total Price(USD) / K13=Remark
+    //   행 14 = 1번 품목: A14=수식(자동NO), C14:E14=Description, F14=Q'ty, J14=Total Price, K14=Remark
+    //   행 16 = 할인:   C16:D16=Special Discount, E16=할인금액(음수)
+    //   행 17 = J17 합계 수식 =IFERROR(N(J14)+N(E16),0)
+    //   B19="Detailed Items" 라벨, 20~28행 = 상세항목 (A,I열에 자동NO 수식)
+    //     C20~C28 입력 (병합 C20:H20 등)
+    //   A54:B54=Total, J54:K54=수식=총액 표시
+    //   A55="※ Remark", C55:K55=특이사항 입력
+    //   A57:E57=문서번호
+
     setCell("C2", recipient);
     setCell("C3", subject);
     setCell("C4", dateStr);
     setCell("C5", manager);
-    // 견적 조건: B8=Quotation NO, F8=A place of delivery, B9=Delivery Date, F9=Validity, B10=Payment, F10=Trade Term
     setCell("C8", quoteNo || `Quo)${recipient.substring(0,3)}_Q1_${(dateVal||"").replace(/-/g,"").substring(2)}`);
     setCell("I8", delivery);
     setCell("C9", leadtime);
     setCell("I9", validity);
     setCell("C10", payment);
+    setCell("I10", "");  // Trade Term (현재 미사용)
 
-    // 품목 (14행부터, 복수 품목 지원)
-    // 컬럼: A=NO, C14:E14=Description(병합), F=Q'ty, I:J=Total Price(병합), K=Remark
+    // 품목 처리: 1줄짜리 템플릿이므로 모든 일반 품목의 총합을 14행에 표시
+    // 여러 품목이면 첫 품목명에 "외 N건"을 붙이고, 상세는 Detailed Items에 자동 포함
     const normalItems = _quoteItems.filter(x=>!x.isDiscount);
     const discItems   = _quoteItems.filter(x=>x.isDiscount);
-    let totalAmt = 0;
-    normalItems.forEach((it, idx) => {
-      const row = 14 + idx;
-      const amt = (it.unitPrice||0) * (it.qty||1);
-      totalAmt += amt;
-      setCell(`A${row}`, idx+1);               // NO
-      setCell(`C${row}`, it.name||"");          // Description (병합 C:E)
-      setCell(`F${row}`, it.qty||1);            // Q'ty (병합 F:H)
-      setCell(`I${row}`, amt, "#,##0");         // Total Price (병합 I:J)
-      if(it.unit) setCell(`K${row}`, it.unit);  // Remark (단위)
-    });
-    // 할인 항목
-    if(discItems.length > 0) {
-      const discRow = 14 + normalItems.length;
-      const discAmt = discItems[0].unitPrice||0;
-      totalAmt += discAmt;
-      setCell(`C${discRow}`, discItems[0].name||"Special Discount");
-      setCell(`I${discRow}`, discAmt, "#,##0");
+
+    if(normalItems.length > 0) {
+      let descName = normalItems[0].name || "";
+      if(normalItems.length > 1) {
+        descName = `${descName} (and ${normalItems.length-1} more item${normalItems.length-1>1?"s":""})`;
+      }
+      // 일반 품목 총 amount
+      const normalTotal = normalItems.reduce((sum, it)=> sum + (it.unitPrice||0)*(it.qty||1), 0);
+      // 일반 품목 총 수량
+      const totalQty = normalItems.reduce((sum, it)=> sum + (it.qty||1), 0);
+      // 단위 (첫 품목의 단위, 없으면 Set)
+      const unitLabel = normalItems[0].unit || "Set";
+
+      setCell("C14", descName);                       // Description (C14:E14 병합)
+      setCell("F14", totalQty);                        // Q'ty (F14, 헤더는 F13:H13 병합)
+      setCell("J14", normalTotal, "#,##0");            // Total Price (USD) — J17 수식이 J14 참조
+      setCell("K14", unitLabel);                       // Remark (단위 표시)
     }
-    // 합계 (J17에 총액)
-    setCell("J17", totalAmt, "#,##0");
-    // Total Price 헤더 옆 총액 (J12 영역 - C12:I12 병합)
-    setCell("C12", totalAmt, "#,##0");
 
-    // Detailed Items (B19 라벨 유지, B20~부터 내용)
-    const specLines = spec.split("\n").filter(Boolean);
-    ["B20","B21","B22","B23","B24","B25","B26","B27","B28","B29","B30",
-     "B31","B32","B33","B34","B35","B36","B37","B38","B39","B40"].forEach((addr,i)=>{
-      setCell(addr, specLines[i]||"");
+    // 할인 (16행: C16=이름, E16=금액. J17 수식이 E16 참조)
+    if(discItems.length > 0) {
+      setCell("C16", discItems[0].name || "Special Discount");
+      setCell("E16", discItems[0].unitPrice || 0, "#,##0");
+    } else {
+      // 할인 없을 때도 E16=0으로 초기화 (수식 N() 함수가 처리하지만 안전하게)
+      setCell("E16", 0);
+    }
+
+    // J17 합계 수식은 템플릿에 이미 있음 (=IFERROR(N(J14)+N(E16),0))
+    // C12, J54 표시 수식도 J17 참조로 자동 동작
+
+    // Detailed Items (C20~C28, 9줄). 여러 품목이 있으면 품목 상세 먼저 넣고, 나머지는 spec
+    const detailedLines = [];
+    if(normalItems.length > 1) {
+      // 여러 품목: 각 품목을 한 줄씩 (이름 × 수량 = 금액)
+      normalItems.forEach(it=>{
+        const amt = (it.unitPrice||0) * (it.qty||1);
+        const amtStr = amt ? `US$${amt.toLocaleString("en-US")}` : "";
+        const qtyStr = it.qty ? ` x ${it.qty}${it.unit?(" "+it.unit):""}` : "";
+        detailedLines.push(`${it.name||""}${qtyStr}${amtStr?(" = "+amtStr):""}`);
+      });
+    }
+    // spec(공통사양) 추가
+    spec.split("\n").filter(Boolean).forEach(l=>detailedLines.push(l));
+
+    // C20 ~ C28 (9줄 한계)
+    ["C20","C21","C22","C23","C24","C25","C26","C27","C28"].forEach((addr,i)=>{
+      setCell(addr, detailedLines[i] || "");
     });
 
-    // 비고 (C55)
-    if(note) setCell("C55", note);
+    // ※ Remark (C55, 병합 C55:K55)
+    setCell("C55", note || "");
     // 문서번호 (A57, 병합 A57:E57)
     setCell("A57", docNoFinal);
 
   } else {
-    // ── 한글 템플릿 셀 매핑 (기존 유지) ──
+    // ── 한글 템플릿 (enjet_quote_template_1.xlsx) 셀 매핑 ──
+    // 실제 템플릿 분석 결과 (견적서(갑지) 시트):
+    //   B2~B6=라벨, C2~C6 입력 (수신처, 견적내용, 일자, 담당자, 연락처)
+    //   B8=견적NO, C8 입력 / G8=인도장소 라벨, I8 입력
+    //   B9=납기일 라벨, C9 입력 (C9:F9 병합) / G9=유효기간 라벨, I9 입력
+    //   B10=결제조건 라벨, C10 입력
+    //   J11 합계 수식 = SUM(J14,J16)+E16 (자동)
+    //   B12~M12 = 헤더 (구분/품명규격/단가/수량/단위/금액/비고)
+    //   행 14: B14=NO(1), C14:D14=품명, E14:G14=단가, H14=수량, I14=단위, J14:K14=금액 수식(=H14*E14)
+    //   행 16: E16:G16=할인금액, C16:D16=할인이름(있다면)
+    //   C19="공통사양" 라벨, C20~C28=상세항목
+    //   C55=특이사항(병합), A57=문서번호
     setCell("C2", recipient);
     setCell("C3", subject);
     setCell("C4", dateStr);
@@ -12815,27 +12862,62 @@ async function generateQuoteExcel(isDraft=false) {
 
     const normalItems = _quoteItems.filter(x=>!x.isDiscount);
     const discItems   = _quoteItems.filter(x=>x.isDiscount);
+
     if(normalItems.length > 0) {
-      const it = normalItems[0];
-      setCell("C14", it.name||"");
-      setCell("E14", it.unitPrice||0);
-      setCell("H14", it.qty||1);
-      setCell("I14", it.unit||"Set");
-    }
-    if(discItems.length > 0) {
-      setCell("C16", discItems[0].name||"Special Discount");
-      setCell("E16", discItems[0].unitPrice||0);
+      // 1개 품목: 단가×수량 수식 그대로 사용 (J14=H14*E14)
+      // 여러 품목: 통합해서 14행에 합계 표시. C14=첫품목+외N건, J14에 총합 직접 입력
+      if(normalItems.length === 1) {
+        const it = normalItems[0];
+        setCell("C14", it.name || "");
+        setCell("E14", it.unitPrice || 0, "#,##0");
+        setCell("H14", it.qty || 1);
+        setCell("I14", it.unit || "Set");
+        // J14 수식 =H14*E14 그대로 둠 (템플릿에 이미 있음)
+      } else {
+        // 여러 품목 통합 - J14 수식 덮어쓰고 합계 직접 입력
+        const totalAmt = normalItems.reduce((s,it)=> s + (it.unitPrice||0)*(it.qty||1), 0);
+        const totalQty = normalItems.reduce((s,it)=> s + (it.qty||1), 0);
+        setCell("C14", `${normalItems[0].name||""} 외 ${normalItems.length-1}건`);
+        setCell("E14", 0);                    // 단가 통합 표시 어려우니 0 (수식 #VALUE! 방지)
+        setCell("H14", totalQty);
+        setCell("I14", normalItems[0].unit || "Set");
+        // J14 수식 덮어쓰고 합계 직접 입력 (setCell이 .f를 자동 delete)
+        setCell("J14", totalAmt, "#,##0");
+      }
     } else {
-      setCell("C16", ""); setCell("E16", 0);
+      // 품목 없으면 E14/H14를 0으로 (J14 수식 =H14*E14 보호)
+      setCell("C14", "");
+      setCell("E14", 0);
+      setCell("H14", 0);
     }
 
-    const specLines = spec.split("\n").filter(Boolean);
+    // 할인 (16행)
+    if(discItems.length > 0) {
+      setCell("C16", discItems[0].name || "Special Discount");
+      setCell("E16", discItems[0].unitPrice || 0, "#,##0");
+    } else {
+      setCell("C16", "");
+      setCell("E16", 0);
+    }
+
+    // Detailed Items (C19=라벨, C20~C28=내용) - 여러 품목이면 품목 상세를 먼저 넣음
+    const detailedLines = [];
+    if(normalItems.length > 1) {
+      normalItems.forEach(it=>{
+        const amt = (it.unitPrice||0) * (it.qty||1);
+        const amtStr = amt ? `${amt.toLocaleString("ko-KR")}원` : "";
+        const qtyStr = it.qty ? ` x ${it.qty}${it.unit||"Set"}` : "";
+        detailedLines.push(`${it.name||""}${qtyStr}${amtStr?(" = "+amtStr):""}`);
+      });
+    }
+    spec.split("\n").filter(Boolean).forEach(l=>detailedLines.push(l));
+
     setCell("C19", "공통사양");
     ["C20","C21","C22","C23","C24","C25","C26","C27","C28"].forEach((addr,i)=>{
-      setCell(addr, specLines[i]||"");
+      setCell(addr, detailedLines[i] || "");
     });
 
-    if(note) setCell("C55", note);
+    setCell("C55", note || "");
     setCell("A57", docNoFinal);
   }
 
