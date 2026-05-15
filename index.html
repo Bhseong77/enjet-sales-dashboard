@@ -10248,15 +10248,31 @@ function renderSLCards(data, container, FILE_TYPES) {
   container.style.width = "100%";
 
   const ALL_STATUS = ["신규","제안","견적","발주","진행","납품완료","세금계산서미발행","세금계산서완료","잔금","유지보수(무상)","종료"];
+  // 진행상태별 색상: 단계별로 명확히 구분 (높은 채도 + 흰 글자 pill)
   const STATUS_COLOR = {
-    신규:"var(--t3)",제안:"var(--a)",견적:"var(--pu)",발주:"var(--p)",
-    진행:"var(--g)",납품완료:"var(--g)",세금계산서미발행:"var(--r)",
-    세금계산서완료:"var(--g)",잔금:"var(--a)",종료:"var(--t3)"
+    신규:           "#64748b", // 회색 - 대기
+    제안:           "#0891b2", // 시안 - 시작
+    견적:           "#7c3aed", // 보라 - 검토
+    발주:           "#2563eb", // 파랑 - 확정
+    진행:           "#0d9488", // 청록 - 액션
+    납품완료:        "#65a30d", // 라임 - 거의 완료
+    잔금:           "#ea580c", // 주황 - 대기금 (눈에 띔)
+    세금계산서미발행: "#dc2626", // 빨강 - 경고
+    세금계산서완료:   "#16a34a", // 초록 - 최종 완료
+    종료:           "#475569", // 진회색 - 완전 종료
   };
+  // 배경(연한 색): 행 전체 배경에도 살짝 적용
   const STATUS_BG = {
-    신규:"var(--bg3)",제안:"var(--ad)",견적:"var(--pud)",발주:"var(--pd)",
-    진행:"var(--gd)",납품완료:"var(--gd)",세금계산서미발행:"var(--rd)",
-    세금계산서완료:"var(--gd)",잔금:"var(--yd)",종료:"var(--bg3)"
+    신규:           "#f1f5f9",
+    제안:           "#cffafe",
+    견적:           "#ede9fe",
+    발주:           "#dbeafe",
+    진행:           "#ccfbf1",
+    납품완료:        "#ecfccb",
+    잔금:           "#fed7aa",
+    세금계산서미발행: "#fecaca",
+    세금계산서완료:   "#dcfce7",
+    종료:           "#e2e8f0",
   };
 
   const sorted = [...data].sort((a,b)=>{
@@ -10266,7 +10282,12 @@ function renderSLCards(data, container, FILE_TYPES) {
   });
 
   // tbody 대신 아래 카드들을 렌더 (tr 구조는 유지하되 내용을 카드로)
-  container.innerHTML = sorted.map(r=>{
+  // 📊 두 그룹으로 분리: 영업단계(신규-견적) vs 수주후단계(발주-종료)
+  const EARLY_STATUS_M = ["신규","제안","견적"];
+  const earlyGroupM = sorted.filter(r => EARLY_STATUS_M.includes(r.status||"신규"));
+  const lateGroupM  = sorted.filter(r => !EARLY_STATUS_M.includes(r.status||"신규"));
+
+  const renderCardRow = r => {
     const isTempCode = r.pjcode && /^신규\d*차?$/.test(r.pjcode);
     const hasOfficialCode = r.pjcode && !isTempCode;
     const statusColor = STATUS_COLOR[r.status]||"var(--t3)";
@@ -10362,14 +10383,15 @@ function renderSLCards(data, container, FILE_TYPES) {
           </div>
 
           <!-- 메인 카드 -->
-          <div class="sl-card" id="card-${r.id}">
+          <div class="sl-card" id="card-${r.id}" style="border-left:5px solid ${statusColor};position:relative">
             <!-- 상단: 회사명 + 상태 뱃지 -->
             <div class="sl-card-top">
               <div>
                 <div class="sl-card-company">${r.company}</div>
-                <div style="height:2px;background:var(--p);border-radius:1px;width:32px;margin-top:3px"></div>
+                <div style="height:2px;background:${statusColor};border-radius:1px;width:32px;margin-top:3px"></div>
               </div>
-              <span style="padding:4px 10px;border-radius:12px;font-size:13px;font-weight:700;background:${statusBg};color:${statusColor}">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:14px;font-size:13px;font-weight:800;background:${statusColor};color:#fff;box-shadow:0 2px 6px ${statusColor}55;letter-spacing:-0.2px;white-space:nowrap">
+                <span style="width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px ${statusColor}99"></span>
                 ${r.status||"신규"}
               </span>
             </div>
@@ -10396,7 +10418,7 @@ function renderSLCards(data, container, FILE_TYPES) {
               <!-- 오른쪽: 진행상태 + 수정 + 삭제 -->
               <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">
                 <select onchange="updateSLStatus('${r.id}',this.value)"
-                  style="padding:3px 2px;border-radius:6px;border:1.5px solid ${statusColor};background:${statusBg};font-size:11px;font-weight:700;color:${statusColor};font-family:var(--s);cursor:pointer;width:58px;max-width:58px">
+                  style="padding:3px 4px;border-radius:6px;border:2px solid ${statusColor};background:${statusBg};font-size:11px;font-weight:800;color:${statusColor};font-family:var(--s);cursor:pointer;width:64px;max-width:64px">
                   ${ALL_STATUS.map(s=>`<option value="${s}" ${s===r.status?"selected":""}>${s}</option>`).join("")}
                 </select>
                 <button onclick="openSLModal(slData.find(x=>x.id==='${r.id}'))"
@@ -10418,7 +10440,27 @@ function renderSLCards(data, container, FILE_TYPES) {
         </div>
       </td>
     </tr>`;
-  }).join("");
+  };
+
+  // 그룹 헤더 카드 (모바일용)
+  const groupHeaderCard = (title, color, count, bg) => `<tr><td colspan="14" style="padding:0;border:none">
+    <div style="margin:8px 6px 4px;padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,${bg},${bg}99);border-left:5px solid ${color};display:flex;align-items:center;gap:10px;font-family:var(--s)">
+      <span style="font-size:18px">${title.split(" ")[0]}</span>
+      <span style="font-size:14px;font-weight:900;color:${color};flex:1">${title.substring(title.indexOf(" ")+1)}</span>
+      <span style="padding:3px 12px;border-radius:12px;background:${color};color:#fff;font-size:12px;font-weight:800">${count}건</span>
+    </div>
+  </td></tr>`;
+
+  let htmlM = "";
+  if(earlyGroupM.length > 0) {
+    htmlM += groupHeaderCard("🎯 영업 단계 (신규 · 제안 · 견적)", "#7c3aed", earlyGroupM.length, "#ede9fe");
+    htmlM += earlyGroupM.map(renderCardRow).join("");
+  }
+  if(lateGroupM.length > 0) {
+    htmlM += groupHeaderCard("📦 수주 후 단계 (발주 → 종료)", "#0d9488", lateGroupM.length, "#ccfbf1");
+    htmlM += lateGroupM.map(renderCardRow).join("");
+  }
+  container.innerHTML = htmlM;
 
   // 렌더 후 스와이프 이벤트 바인딩 (requestAnimationFrame으로 DOM 완성 후)
   requestAnimationFrame(()=>{
@@ -10463,7 +10505,14 @@ function renderSLTable(data) {
     return db.localeCompare(da);
   });
   const ALL_STATUS = ["신규","제안","견적","발주","진행","납품완료","세금계산서미발행","세금계산서완료","잔금","유지보수(무상)","종료"];
-  body.innerHTML=sorted.map(r=>{
+
+  // 📊 두 그룹으로 분리: 영업단계(신규-견적) vs 수주후단계(발주-종료)
+  const EARLY_STATUS = ["신규","제안","견적"];
+  const earlyGroup = sorted.filter(r => EARLY_STATUS.includes(r.status||"신규"));
+  const lateGroup  = sorted.filter(r => !EARLY_STATUS.includes(r.status||"신규"));
+
+  // 행 렌더 함수 (기존 map 로직을 함수로 추출)
+  const renderRow = r => {
     const prog=STATUS_PROGRESS[r.status]||0;
     // 프로젝트코드 표시 - 임시코드(신규N차)는 정식 코드 아님 → 제안 상태면 깜빡!
     const isTempCode = r.pjcode && /^신규\d*차?$/.test(r.pjcode);
@@ -10593,7 +10642,31 @@ function renderSLTable(data) {
         <span style="font-size:14px;color:var(--r);cursor:pointer;margin-left:4px" onclick="deleteSLActivity('${r.id}')">🗑️</span>
       </td>
     </tr>`;
-  }).join("");
+  };
+
+  // 그룹 헤더 행 생성
+  const COLSPAN = 16;
+  const headerRow = (title, color, count, bg) => `<tr class="sl-group-header">
+    <td colspan="${COLSPAN}" style="padding:10px 14px;background:linear-gradient(90deg,${bg},${bg}99 60%,transparent);border-top:3px solid ${color};border-bottom:2px solid ${color}44;font-family:var(--s)">
+      <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:900;color:${color}">
+        <span style="font-size:18px">${title.split(" ")[0]}</span>
+        <span>${title.substring(title.indexOf(" ")+1)}</span>
+        <span style="margin-left:auto;padding:2px 12px;border-radius:12px;background:${color};color:#fff;font-size:12px;font-weight:800;letter-spacing:-0.2px">${count}건</span>
+      </div>
+    </td>
+  </tr>`;
+
+  let html = "";
+  if(earlyGroup.length > 0) {
+    html += headerRow("🎯 영업 단계 (신규 · 제안 · 견적)", "#7c3aed", earlyGroup.length, "#ede9fe");
+    html += earlyGroup.map(renderRow).join("");
+  }
+  if(lateGroup.length > 0) {
+    if(earlyGroup.length > 0) html += `<tr><td colspan="${COLSPAN}" style="height:14px;background:transparent;border:none"></td></tr>`;
+    html += headerRow("📦 수주 후 단계 (발주 → 종료)", "#0d9488", lateGroup.length, "#ccfbf1");
+    html += lateGroup.map(renderRow).join("");
+  }
+  body.innerHTML = html;
 }
 
 // ━━ 차수 계산: 같은 고객사 + 같은 pjcode 그룹 안에서 시간 순서대로 번호 매김 ━━
@@ -14839,7 +14912,11 @@ function renderActLinkList(q) {
     el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--t3)">검색 결과 없음</div>`;
     return;
   }
-  const STATUS_COLOR2 = {신규:"var(--t3)",제안:"var(--a)",견적:"var(--pu)",발주:"var(--p)",진행:"var(--g)"};
+  const STATUS_COLOR2 = {
+    신규:"#64748b", 제안:"#0891b2", 견적:"#7c3aed", 발주:"#2563eb",
+    진행:"#0d9488", 납품완료:"#65a30d", 잔금:"#ea580c",
+    세금계산서미발행:"#dc2626", 세금계산서완료:"#16a34a", 종료:"#475569"
+  };
   el.innerHTML = list.map(act=>`
     <div onclick="confirmActLink('${act.id}')"
       style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s"
