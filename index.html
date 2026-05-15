@@ -7707,31 +7707,57 @@ function syncPipelineFromSL() {
   if(!slData.length) { console.log("ℹ️ syncPipelineFromSL: slData 비어있음"); return; }
   if(!Array.isArray(PD)) { console.warn("⚠️ syncPipelineFromSL: PD 없음 - 초기화"); PD = []; }
   let added=0;
+  let promoted=0;  // 기존 PD 항목을 "신규"로 승격시킨 개수
   slData.forEach(act=>{
-    const isEarly=!act.status||["신규","제안","견적"].includes(act.status);
-    if(!isEarly) return;
-    const displayCode=act.pjcode||("신규-"+(act.company||"").substring(0,4)+"-"+(act.date||act.start||"").substring(2,4));
-    const existInPD=PD.some(p=>(act.pjcode&&p.프로젝트번호===act.pjcode)||p._slId===act.id||p.프로젝트번호===displayCode);
-    if(!existInPD){
+    const isEarly = !act.status || ["신규","제안","견적"].includes(act.status);
+    if(!isEarly) return; // 신규/제안/견적 단계만 파이프라인에 표시
+
+    // displayCode: 영업활동에 정식 pjcode 없으면 "신규-회사명-차수" 또는 "신규-회사명-날짜" 사용
+    const isFormalCode = act.pjcode && !/^신규\d+차$/.test(act.pjcode);
+    const displayCode = isFormalCode ? act.pjcode
+      : (act.company ? `신규-${act.company}-${act.pjcode||"1차"}` : `신규-${act.id}`);
+
+    // 중복 체크: _slId 일치 OR 정식코드 일치 (신규N차는 제외)
+    const existingPD = PD.find(p =>
+      p._slId === act.id ||
+      (isFormalCode && p.프로젝트번호 === act.pjcode)
+    );
+
+    if(!existingPD){
+      // 신규 추가
       PD.unshift({
-        프로젝트번호:act.pjcode||displayCode, 프로젝트명:act.title||act.company||"",
-        거래처:act.company||"", 유형:"", 종사업장구분:"본사", 진행구분:"신규",
+        프로젝트번호: act.pjcode || displayCode,
+        프로젝트명: act.title || act.company || "",
+        거래처: act.company || "",
+        유형: "", 종사업장구분: "본사",
+        진행구분: "신규",  // ✅ 영업활동에서 온 건 무조건 "신규"
         원화금액:0, 공급가액:0, 입금액:0, 잔액원화:0, 달러금액:0,
-        계약일:act.date||act.start||"", 연도:(act.date||act.start||"").substring(0,4)?parseInt((act.date||act.start||"").substring(0,4)):new Date().getFullYear(),
-        구분:"", _overrideStatus:null, _fromSL:true, _slId:act.id,
+        계약일: act.date || act.start || "",
+        연도: (act.date||act.start||"").substring(0,4) ? parseInt((act.date||act.start||"").substring(0,4)) : new Date().getFullYear(),
+        구분:"", _overrideStatus:null, _fromSL:true, _slId: act.id,
         files_견적서:[],files_발주서:[],files_거래명세서:[],files_세금계산서:[],files_납품확인서:[],files_기타:[],
       });
       added++;
-    } else if(act.pjcode){
-      const p=PD.find(x=>x.프로젝트번호===act.pjcode||x._slId===act.id);
-      if(p){if(act.pjcode&&p.프로젝트번호!==act.pjcode)p.프로젝트번호=act.pjcode;if(act.company)p.거래처=act.company;if(act.title)p.프로젝트명=act.title;}
+    } else {
+      // 기존 PD 항목과 매칭됨 → 영업활동이 "신규/제안/견적" 단계면 무조건 "신규"로 표시
+      // (매출자료에 "" 빈 값이거나 다른 상태로 들어있어도 신규로 통일)
+      if(existingPD.진행구분 !== "신규") {
+        existingPD.진행구분 = "신규";
+        promoted++;
+      }
+      existingPD._fromSL = true;
+      existingPD._slId = act.id;
+      if(act.pjcode && existingPD.프로젝트번호 !== act.pjcode && isFormalCode) existingPD.프로젝트번호 = act.pjcode;
+      if(act.company) existingPD.거래처 = act.company;
+      if(act.title) existingPD.프로젝트명 = act.title;
     }
   });
-  // ✅ 항상 UI 강제 새로고침 (added 여부와 무관 — 기존 영업활동 status 변경된 케이스 대응)
+  // ✅ 항상 UI 강제 새로고침
   try { updPlKPI(); } catch(e) { console.warn("updPlKPI 실패:", e.message); }
   try { if(typeof filterPL==="function") filterPL(); } catch(e) { console.warn("filterPL 실패:", e.message); }
   try { if(typeof renderPL==="function") renderPL(); } catch(_){}
-  console.log(`✅ 파이프라인 동기화 완료: 신규 ${added}건 추가, PD 총 ${PD.length}건`);
+  const neuCount = PD.filter(p => p.진행구분 === "신규").length;
+  console.log(`✅ 파이프라인 동기화: 신규 ${added}건 추가, ${promoted}건 승격(→신규) / PD 총 ${PD.length}건, 신규구분 ${neuCount}건`);
 }
 
 // ━━ Teams 캘린더 동기화 ━━
