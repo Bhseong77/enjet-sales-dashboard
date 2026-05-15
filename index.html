@@ -642,7 +642,10 @@
       <div class="card">
         <div class="ch">
           <div class="ct"><div class="ci c1">🔄</div>프로젝트 조회 <span id="pl-lbl" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:4px">SharePoint 연동 대기</span></div>
-          <span style="font-size:14px;color:var(--t3)" id="pl-upd">-</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:14px;color:var(--t3)" id="pl-upd">-</span>
+            <button onclick="openSLModal(null)" style="padding:5px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)" title="신규 영업활동 추가 → 자동으로 파이프라인에 신규 프로젝트로 등록">+ 신규</button>
+          </div>
         </div>
         <div class="cb" style="padding:10px 14px">
           <div class="pc">
@@ -7700,19 +7703,21 @@ async function addSLToProjectSheet(act) {
 
 // ━━ 영업활동 → 파이프라인 신규 동기화 (메모리) ━━
 function syncPipelineFromSL() {
-  if(!Array.isArray(slData)||!slData.length||!Array.isArray(PD)) return;
+  if(!Array.isArray(slData)) { console.warn("⚠️ syncPipelineFromSL: slData 없음"); return; }
+  if(!slData.length) { console.log("ℹ️ syncPipelineFromSL: slData 비어있음"); return; }
+  if(!Array.isArray(PD)) { console.warn("⚠️ syncPipelineFromSL: PD 없음 - 초기화"); PD = []; }
   let added=0;
   slData.forEach(act=>{
     const isEarly=!act.status||["신규","제안","견적"].includes(act.status);
     if(!isEarly) return;
-    const displayCode=act.pjcode||("신규-"+(act.company||"").substring(0,4)+"-"+(act.date||"").substring(2,4));
+    const displayCode=act.pjcode||("신규-"+(act.company||"").substring(0,4)+"-"+(act.date||act.start||"").substring(2,4));
     const existInPD=PD.some(p=>(act.pjcode&&p.프로젝트번호===act.pjcode)||p._slId===act.id||p.프로젝트번호===displayCode);
     if(!existInPD){
       PD.unshift({
         프로젝트번호:act.pjcode||displayCode, 프로젝트명:act.title||act.company||"",
         거래처:act.company||"", 유형:"", 종사업장구분:"본사", 진행구분:"신규",
         원화금액:0, 공급가액:0, 입금액:0, 잔액원화:0, 달러금액:0,
-        계약일:act.date||"", 연도:act.date?parseInt(act.date.substring(0,4)):new Date().getFullYear(),
+        계약일:act.date||act.start||"", 연도:(act.date||act.start||"").substring(0,4)?parseInt((act.date||act.start||"").substring(0,4)):new Date().getFullYear(),
         구분:"", _overrideStatus:null, _fromSL:true, _slId:act.id,
         files_견적서:[],files_발주서:[],files_거래명세서:[],files_세금계산서:[],files_납품확인서:[],files_기타:[],
       });
@@ -7722,7 +7727,11 @@ function syncPipelineFromSL() {
       if(p){if(act.pjcode&&p.프로젝트번호!==act.pjcode)p.프로젝트번호=act.pjcode;if(act.company)p.거래처=act.company;if(act.title)p.프로젝트명=act.title;}
     }
   });
-  if(added>0){updPlKPI();try{filterPL();}catch(_){}console.log("✅ 파이프라인 신규 동기화(메모리): "+added+"건");}
+  // ✅ 항상 UI 강제 새로고침 (added 여부와 무관 — 기존 영업활동 status 변경된 케이스 대응)
+  try { updPlKPI(); } catch(e) { console.warn("updPlKPI 실패:", e.message); }
+  try { if(typeof filterPL==="function") filterPL(); } catch(e) { console.warn("filterPL 실패:", e.message); }
+  try { if(typeof renderPL==="function") renderPL(); } catch(_){}
+  console.log(`✅ 파이프라인 동기화 완료: 신규 ${added}건 추가, PD 총 ${PD.length}건`);
 }
 
 // ━━ Teams 캘린더 동기화 ━━
@@ -13343,52 +13352,52 @@ function updateQuotePreviewEN() {
   area.innerHTML = `
   <div style="font-family:Calibri,'Segoe UI',sans-serif;color:#000;font-size:11px;background:#fff">
 
-    <!-- 제목 + 로고 (실제 템플릿: QUOTATION 좌측, 로고는 우측 상단만) -->
+    <!-- 제목 + 로고 (한국어 미리보기와 동일한 ENJET 로고 사용) -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 4px">
       <div style="font-size:24px;font-weight:700;letter-spacing:1px;color:#1a1a1a">QUOTATION</div>
-      <div style="font-size:18px;font-weight:800;color:#E94B2C;letter-spacing:1px">
-        <span style="color:#000">EN</span><span style="color:#E94B2C">J</span><span style="color:#000">ET</span>
-      </div>
+      <img src="data:image/png;base64,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" style="height:34px;object-fit:contain" alt="ENJET">
     </div>
 
-    <!-- CLIENT + PROVIDER 테이블 (실제 템플릿: 회색 라벨 배경 없음, PROVIDER는 흰 배경 점선) -->
+    <!-- Client + PROVIDER 박스 (실제 엑셀: 2:1:2 그리드, 5행) -->
     <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:10.5px;table-layout:fixed">
       <colgroup>
-        <col style="width:11%"><col style="width:32%">
-        <col style="width:3%">
-        <col style="width:18%"><col style="width:18%"><col style="width:18%">
+        <col style="width:11%"><col style="width:34%">
+        <col style="width:4%">
+        <col style="width:17%"><col style="width:17%"><col style="width:17%">
       </colgroup>
       <tr style="height:22px">
-        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Client</td>
-        <td style="border:1px solid #999;padding:2px 8px;font-weight:600">${get("q-recipient")}</td>
-        <td rowspan="4" style="border:1px dotted #777;padding:0;writing-mode:vertical-rl;text-align:center;font-size:9px;letter-spacing:6px;color:#222">PROVIDER</td>
-        <td style="border:1px dotted #777;padding:2px 6px;text-align:right;color:#444" colspan="2">Taxpayer Identification Number</td>
-        <td style="border:1px dotted #777;padding:2px 6px;text-align:center">206-86-36037</td>
+        <td style="border:1px solid #aaa;padding:3px 8px;background:#f5f5f5;color:#000">Client</td>
+        <td style="border:1px solid #aaa;padding:3px 8px;font-weight:600">${get("q-recipient")}</td>
+        <td rowspan="5" style="border:1px dotted #888;padding:0;background:#fff;writing-mode:vertical-rl;text-align:center;font-size:10px;letter-spacing:6px;color:#222;font-weight:600">PROVIDER</td>
+        <td style="border:1px dotted #888;padding:3px 6px;color:#000" colspan="2">Taxpayer Identification Number</td>
+        <td style="border:1px dotted #888;padding:3px 6px;text-align:center">206-86-36037</td>
       </tr>
       <tr style="height:22px">
-        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Details</td>
-        <td style="border:1px solid #999;padding:2px 8px">${get("q-subject")}</td>
-        <td style="border:1px dotted #777;padding:2px 6px;text-align:right;color:#444">Company Name</td>
-        <td style="border:1px dotted #777;padding:2px 6px;font-weight:700;text-align:center">ENJET INC., LTD</td>
-        <td style="border:1px dotted #777;padding:2px 6px;text-align:center;color:#444">CEO &nbsp;&nbsp;<span style="color:#000">Do Young Byun</span></td>
+        <td style="border:1px solid #aaa;padding:3px 8px;background:#f5f5f5;color:#000">Details</td>
+        <td style="border:1px solid #aaa;padding:3px 8px">${get("q-subject")}</td>
+        <td style="border:1px dotted #888;padding:3px 6px;color:#000">Company Name</td>
+        <td style="border:1px dotted #888;padding:3px 6px;font-weight:700;text-align:center">ENJET INC., LTD</td>
+        <td style="border:1px dotted #888;padding:3px 6px;text-align:center">CEO &nbsp;&nbsp;<span style="color:#000;font-weight:600">Do Young Byun</span></td>
       </tr>
-      <tr style="height:26px">
-        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Date</td>
-        <td style="border:1px solid #999;padding:2px 8px">${dateEng}</td>
-        <td style="border:1px dotted #777;padding:2px 6px;text-align:right;color:#444">Address</td>
-        <td style="border:1px dotted #777;padding:2px 6px;font-size:9.5px" colspan="2">No.45, Saneop-ro 92beon-gil, Gwonseon-gu, Suwon-si, Gyeonggi-do, Korea</td>
+      <tr style="height:22px">
+        <td style="border:1px solid #aaa;padding:3px 8px;background:#f5f5f5;color:#000">Date</td>
+        <td style="border:1px solid #aaa;padding:3px 8px">${dateEng}</td>
+        <td style="border:1px dotted #888;padding:3px 6px;color:#000">Address</td>
+        <td style="border:1px dotted #888;padding:3px 6px;font-size:9.5px" colspan="2">No.45, Saneop-ro 92beon-gil, Gwonseon-gu, Suwon-si, Gyeonggi-do, Korea</td>
       </tr>
-      <tr style="height:48px">
-        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Manager</td>
-        <td style="border:1px solid #999;padding:2px 8px">${get("q-manager")}</td>
-        <td style="border:1px dotted #777;padding:2px 6px;text-align:right;color:#444;line-height:1.5">Type of Business<br>Tel</td>
-        <td style="border:1px dotted #777;padding:2px 6px;text-align:center;line-height:1.5">${get("q-typeOfBiz")||"Manufacturing"}<br>070-4892-8111</td>
-        <td style="border:1px dotted #777;padding:0;text-align:center;line-height:1.5">
-          <div style="display:flex">
-            <div style="flex:1;padding:2px 6px;text-align:right;color:#444;border-right:1px dotted #777">Item of Business<br>Fax</div>
-            <div style="flex:1;padding:2px 6px;text-align:center">${get("q-itemOfBiz")||"Display"}<br>070-4892-8121</div>
-          </div>
+      <tr style="height:44px">
+        <td rowspan="2" style="border:1px solid #aaa;padding:3px 8px;background:#f5f5f5;color:#000;vertical-align:middle">Manager</td>
+        <td rowspan="2" style="border:1px solid #aaa;padding:3px 8px;vertical-align:middle">${get("q-manager")}</td>
+        <td style="border:1px dotted #888;padding:3px 6px;color:#000;line-height:1.5">Type of Business<br>Tel</td>
+        <td style="border:1px dotted #888;padding:3px 6px;text-align:center;line-height:1.5">${get("q-typeOfBiz")||"Manufacturing"}<br>070-4892-8111</td>
+        <td rowspan="2" style="border:1px dotted #888;padding:0;text-align:center;line-height:1.5;vertical-align:middle">
+          <div style="padding:3px 6px;color:#000;border-bottom:1px dotted #ccc">Item of<br>Business</div>
+          <div style="padding:3px 6px;text-align:center">${get("q-itemOfBiz")||"Display"}</div>
         </td>
+      </tr>
+      <tr style="height:22px">
+        <td style="border:1px dotted #888;padding:3px 6px;color:#000">Fax</td>
+        <td style="border:1px dotted #888;padding:3px 6px;text-align:center">070-4892-8121</td>
       </tr>
     </table>
 
@@ -13396,35 +13405,35 @@ function updateQuotePreviewEN() {
     <div style="height:8px"></div>
 
     <!-- We submit our quotation as below -->
-    <div style="font-size:10px;margin-bottom:3px;color:#222">We submit our quotation as below</div>
+    <div style="font-size:10.5px;margin-bottom:3px;color:#000">We submit our quotation as below</div>
 
-    <!-- 견적 조건 테이블 (회색 라벨 배경 없음) -->
+    <!-- 견적 조건 테이블 (실제 엑셀: 좌측 정렬 라벨, 회색 배경) -->
     <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10.5px;table-layout:fixed">
       <colgroup>
         <col style="width:17%"><col style="width:33%">
         <col style="width:17%"><col style="width:33%">
       </colgroup>
       <tr style="height:22px">
-        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Quotation NO</td>
-        <td style="border:1px solid #999;padding:2px 8px">${get("q-quoteNo")}</td>
-        <td style="border:1px solid #999;padding:2px 8px;text-align:center;color:#444">A place of delivery</td>
-        <td style="border:1px solid #999;padding:2px 8px">${get("q-delivery")}</td>
+        <td style="border:1px solid #aaa;padding:3px 8px;background:#f5f5f5;color:#000">Quotation NO</td>
+        <td style="border:1px solid #aaa;padding:3px 8px">${get("q-quoteNo")}</td>
+        <td style="border:1px solid #aaa;padding:3px 8px;background:#f5f5f5;color:#000;text-align:center">A place of delivery</td>
+        <td style="border:1px solid #aaa;padding:3px 8px">${get("q-delivery")}</td>
       </tr>
       <tr style="height:22px">
-        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Delivery Date</td>
-        <td style="border:1px solid #999;padding:2px 8px">${get("q-leadtime")}</td>
-        <td style="border:1px solid #999;padding:2px 8px;text-align:center;color:#444">Validity</td>
-        <td style="border:1px solid #999;padding:2px 8px">${get("q-validity")}</td>
+        <td style="border:1px solid #aaa;padding:3px 8px;background:#f5f5f5;color:#000">Delivery Date</td>
+        <td style="border:1px solid #aaa;padding:3px 8px">${get("q-leadtime")}</td>
+        <td style="border:1px solid #aaa;padding:3px 8px;background:#f5f5f5;color:#000;text-align:center">Validity</td>
+        <td style="border:1px solid #aaa;padding:3px 8px">${get("q-validity")}</td>
       </tr>
       <tr style="height:22px">
-        <td style="border:1px solid #999;padding:2px 8px;text-align:right;color:#444">Payment</td>
-        <td style="border:1px solid #999;padding:2px 8px">${get("q-payment")}</td>
-        <td style="border:1px solid #999;padding:2px 8px;text-align:center;color:#444">Trade Term</td>
-        <td style="border:1px solid #999;padding:2px 8px"></td>
+        <td style="border:1px solid #aaa;padding:3px 8px;background:#f5f5f5;color:#000">Payment</td>
+        <td style="border:1px solid #aaa;padding:3px 8px">${get("q-payment")}</td>
+        <td style="border:1px solid #aaa;padding:3px 8px;background:#f5f5f5;color:#000;text-align:center">Trade Term</td>
+        <td style="border:1px solid #aaa;padding:3px 8px"></td>
       </tr>
     </table>
 
-    <!-- Total Price 라벨 (실제 템플릿: 좌측 라벨만, 큰 금액 없음, 우측에 (US$) ) -->
+    <!-- Total Price 라벨 (좌측 라벨 + 우측 ( US$ )) -->
     <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:0;padding:0 2px">
       <span style="font-size:13px;font-weight:700">Total Price :
         ${total>0?`<span style="font-size:14px;font-weight:700;margin-left:8px">US$${Number(total).toLocaleString("en-US")}</span>`:""}
@@ -13432,35 +13441,35 @@ function updateQuotePreviewEN() {
       <span style="font-size:10px;color:#444">( US$ )</span>
     </div>
 
-    <!-- 품목 테이블 헤더 (실제 템플릿: 회색 배경 #D9D9D9, 검정 글씨) -->
+    <!-- 품목 테이블 헤더 (실제 엑셀: 회색 #D9D9D9 배경, 검정 글씨) -->
     <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:10.5px;table-layout:fixed">
       <colgroup>
         <col style="width:6%"><col style="width:48%">
         <col style="width:10%"><col style="width:22%"><col style="width:14%">
       </colgroup>
       <thead>
-        <tr style="background:#D9D9D9;height:28px">
-          <th style="border:1px solid #999;padding:3px 4px;font-weight:700;color:#000">NO.</th>
-          <th style="border:1px solid #999;padding:3px 6px;font-weight:700;color:#000">Description</th>
-          <th style="border:1px solid #999;padding:3px 4px;font-weight:700;color:#000">Q'ty</th>
-          <th style="border:1px solid #999;padding:3px 4px;font-weight:700;color:#000;line-height:1.3">Total Price<br>(USD)</th>
-          <th style="border:1px solid #999;padding:3px 4px;font-weight:700;color:#000">Remark</th>
+        <tr style="background:#D9D9D9;height:30px">
+          <th style="border:1px solid #aaa;padding:4px 4px;font-weight:700;color:#000">NO.</th>
+          <th style="border:1px solid #aaa;padding:4px 6px;font-weight:700;color:#000">Description</th>
+          <th style="border:1px solid #aaa;padding:4px 4px;font-weight:700;color:#000">Q'ty</th>
+          <th style="border:1px solid #aaa;padding:4px 4px;font-weight:700;color:#000;line-height:1.3">Total Price<br>(USD)</th>
+          <th style="border:1px solid #aaa;padding:4px 4px;font-weight:700;color:#000">Remark</th>
         </tr>
       </thead>
       <tbody>${itemRows}${emptyRows}</tbody>
     </table>
 
-    <!-- Detailed Items 영역 (실제 템플릿: B19 위치, 굵은 라벨만, 테두리 없음) -->
-    <div style="margin-top:14px;margin-bottom:8px;padding-left:6px">
+    <!-- Detailed Items 영역 (라벨만 이탤릭, 박스 없음) -->
+    <div style="margin-top:16px;margin-bottom:8px;padding-left:6px">
       <div style="font-weight:700;font-style:italic;font-size:11px;margin-bottom:6px">Detailed Items</div>
-      ${specHTML ? `<div style="padding:2px 12px;font-size:10.5px;line-height:1.7">${specHTML}</div>` : `<div style="height:300px"></div>`}
+      ${specHTML ? `<div style="padding:2px 12px;font-size:10.5px;line-height:1.7">${specHTML}</div>` : `<div style="height:260px"></div>`}
     </div>
 
-    <!-- Total 행 -->
-    <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:10.5px;table-layout:fixed;margin-top:30px">
-      <tr style="height:22px">
-        <td style="border-top:1px solid #999;border-bottom:1px solid #999;padding:3px 8px;font-weight:700">Total</td>
-        <td style="border-top:1px solid #999;border-bottom:1px solid #999;padding:3px 8px;text-align:right;font-weight:700">${total>0?`US$${Number(total).toLocaleString("en-US")}`:""}</td>
+    <!-- Total 행 (위/아래 점선만) -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:10.5px;table-layout:fixed;margin-top:24px">
+      <tr style="height:24px">
+        <td style="border-top:1px dotted #888;border-bottom:1px dotted #888;padding:4px 8px;font-weight:700">Total</td>
+        <td style="border-top:1px dotted #888;border-bottom:1px dotted #888;padding:4px 8px;text-align:right;font-weight:700">${total>0?`US$${Number(total).toLocaleString("en-US")}`:""}</td>
       </tr>
     </table>
 
