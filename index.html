@@ -149,6 +149,22 @@
   .main{padding-bottom:68px}
   .content{padding:8px 10px}
 
+  /* DB 모달의 PDF 미리보기 grid: 모바일에서 1단으로 (미리보기는 상단 축소 표시) */
+  #orderModal > div > div[style*="grid-template-columns"],
+  #cfmModal > div > div[style*="grid-template-columns"],
+  #ctrModal > div > div[style*="grid-template-columns"],
+  #dlvModal > div > div[style*="grid-template-columns"],
+  #taxModal > div > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto;
+  }
+  /* 미리보기 패널 모바일: 최대 높이 제한해서 폼이 가려지지 않게 */
+  #order-preview-pane, #cfm-preview-pane, #ctr-preview-pane, #dlv-preview-pane, #tax-preview-pane {
+    max-height: 40vh !important;
+    border-right: none !important;
+    border-bottom: 2px solid var(--border);
+  }
+
   /* ── 상단바: 타이틀만 표시, 버튼들 숨김 ── */
   .topbar{padding:6px 10px;gap:6px;flex-wrap:nowrap;min-height:44px}
   .tb-t{font-size:14px;font-weight:700;white-space:nowrap}
@@ -14366,6 +14382,8 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
             const pjEl = document.getElementById("order-pjcode"); if(pjEl && !pjEl.value) pjEl.value = act.pjcode||"";
             const fuEl = document.getElementById("order-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
             const gkEl = document.getElementById("orderGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+            // 영업활동 매칭 표시
+            if(coEl?.value) onOrderCompanyChange(coEl.value);
             await parseOrderPdf(pdfFile);
           }, 400);
           return;
@@ -14382,6 +14400,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
             const pjEl = document.getElementById("dlv-pjcode"); if(pjEl && !pjEl.value) pjEl.value = act.pjcode||"";
             const fuEl = document.getElementById("dlv-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
             const gkEl = document.getElementById("dlvGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+            if(coEl?.value) onDeliveryCompanyChange(coEl.value);
             await parseDlvPdf(pdfFile);
           }, 400);
           return;
@@ -14391,14 +14410,16 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
       // 🆕 계약서 업로드 시 AI 파싱
       if(fileType === "contract" && uploaded.length > 0 && files.length > 0) {
         const pdfFile = files.find(f => /\.(pdf|jpg|jpeg|png)$/i.test(f.name));
-        if(pdfFile && confirm(`✅ 계약서 업로드 완료!\n\n📄 ${pdfFile.name}\n\n🤖 AI로 내용 추출해서 거래명세서 DB에 등록할까요?`)) {
-          openDeliveryModal(null);
+        if(pdfFile && confirm(`✅ 계약서 업로드 완료!\n\n📄 ${pdfFile.name}\n\n🤖 AI로 내용 추출해서 계약서 DB에 등록할까요?`)) {
+          openContractModal(null);
           setTimeout(async () => {
-            const coEl = document.getElementById("dlv-company"); if(coEl && !coEl.value) coEl.value = act.company||"";
-            const pjEl = document.getElementById("dlv-pjcode"); if(pjEl && !pjEl.value) pjEl.value = act.pjcode||"";
-            const fuEl = document.getElementById("dlv-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
-            const gkEl = document.getElementById("dlvGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
-            await parseDlvPdf(pdfFile);
+            const coEl = document.getElementById("ctr-company"); if(coEl && !coEl.value) coEl.value = act.company||"";
+            const pjEl = document.getElementById("ctr-pjcode"); if(pjEl && !pjEl.value) pjEl.value = act.pjcode||"";
+            const fuEl = document.getElementById("ctr-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
+            const gkEl = document.getElementById("ctrGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+            // 영업활동 매칭 표시
+            if(coEl?.value) onContractCompanyChange(coEl.value);
+            await parseCtrPdf(pdfFile);
           }, 400);
           return;
         }
@@ -14407,14 +14428,31 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
       // 🆕 납품확인서 업로드 시 AI 파싱
       if(fileType === "confirm" && uploaded.length > 0 && files.length > 0) {
         const pdfFile = files.find(f => /\.(pdf|jpg|jpeg|png)$/i.test(f.name));
-        if(pdfFile && confirm(`✅ 납품확인서 업로드 완료!\n\n📄 ${pdfFile.name}\n\n🤖 AI로 내용 추출해서 거래명세서 DB에 등록할까요?`)) {
-          openDeliveryModal(null);
+        if(pdfFile && confirm(`✅ 납품확인서 업로드 완료!\n\n📄 ${pdfFile.name}\n\n🤖 AI로 내용 추출해서 납품확인서 DB에 등록할까요?`)) {
+          openConfirmModal(null);
           setTimeout(async () => {
-            const coEl = document.getElementById("dlv-company"); if(coEl && !coEl.value) coEl.value = act.company||"";
-            const pjEl = document.getElementById("dlv-pjcode"); if(pjEl && !pjEl.value) pjEl.value = act.pjcode||"";
-            const fuEl = document.getElementById("dlv-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
-            const gkEl = document.getElementById("dlvGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
-            await parseDlvPdf(pdfFile);
+            const coEl = document.getElementById("cfm-company"); if(coEl && !coEl.value) coEl.value = act.company||"";
+            const pjEl = document.getElementById("cfm-pjcode"); if(pjEl && !pjEl.value) pjEl.value = act.pjcode||"";
+            const fuEl = document.getElementById("cfm-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
+            const gkEl = document.getElementById("cfmGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+            if(coEl?.value) onConfirmCompanyChange(coEl.value);
+            await parseCfmPdf(pdfFile);
+          }, 400);
+          return;
+        }
+      }
+
+      // 🆕 세금계산서 업로드 시 AI 파싱
+      if(fileType === "tax" && uploaded.length > 0 && files.length > 0) {
+        const pdfFile = files.find(f => /\.(pdf|jpg|jpeg|png)$/i.test(f.name));
+        if(pdfFile && confirm(`✅ 세금계산서 업로드 완료!\n\n📄 ${pdfFile.name}\n\n🤖 AI로 내용 추출해서 세금계산서 DB에 등록할까요?`)) {
+          openTaxModal(null);
+          setTimeout(async () => {
+            const coEl = document.getElementById("tax-company"); if(coEl && !coEl.value) coEl.value = act.company||"";
+            const fuEl = document.getElementById("tax-file-url"); if(fuEl) fuEl.value = uploaded[0]?.url||"";
+            const gkEl = document.getElementById("taxGeminiKey"); if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+            if(coEl?.value) onTaxCompanyChange(coEl.value);
+            await parseTaxPdf(pdfFile);
           }, 400);
           return;
         }
@@ -17431,6 +17469,13 @@ function openOrderModal(id) {
   const modal = document.getElementById("orderModal"); if(!modal) return;
   const gk = localStorage.getItem("gemini_key")||""; if(gk){const el=document.getElementById("orderGeminiKey");if(el)el.value=gk;}
   const ok = localStorage.getItem("oai_key")||""; if(ok){const el=document.getElementById("orderOpenAIKey");if(el)el.value=ok;}
+  // 영업활동 기준 datalist 채우기 (고객사 + 프로젝트코드)
+  fillOrderDatalist();
+  // 미리보기 초기화
+  clearFilePreview("order-preview-pane");
+  // "영업활동 연결됨" 뱃지 초기 숨김
+  const linkedBadge = document.getElementById("order-company-linked");
+  if(linkedBadge) linkedBadge.style.display = "none";
   if(id) {
     const d = _ordData.find(x=>x.id===id); if(!d) return;
     $("orderModalTitle","📦 발주서 수정");
@@ -17457,6 +17502,8 @@ function openOrderModal(id) {
     // 총합 input
     const totalEl = document.getElementById("order-total-amount");
     if(totalEl) totalEl.value = _fmtNum(d.amount||0);
+    // 영업활동 연결 표시
+    onOrderCompanyChange(d.company);
   } else {
     $("orderModalTitle","📦 발주서 등록");
     ["date","company","item","qty","amount","po","pjcode","duedate","note","file-url","edit-id"].forEach(f=>{
@@ -17473,8 +17520,116 @@ function openOrderModal(id) {
   modal.style.display = "flex";
 }
 
+// 영업활동 데이터 기반 datalist 채우기
+function fillOrderDatalist() {
+  const coList = document.getElementById("order-company-list");
+  const pjList = document.getElementById("order-pjcode-list");
+  if(!coList || !pjList) return;
+  // 고객사: 영업활동 + 고객사 DB(exhData) + 발주서 DB 통합
+  const companies = new Set();
+  if(Array.isArray(slData)) slData.forEach(r => { if(r.company) companies.add(r.company); });
+  if(Array.isArray(exhData)) exhData.forEach(r => { if(r.company) companies.add(r.company); });
+  if(Array.isArray(_ordData)) _ordData.forEach(r => { if(r.company) companies.add(r.company); });
+  coList.innerHTML = Array.from(companies).sort().map(c=>`<option value="${c.replace(/"/g,"&quot;")}"></option>`).join("");
+  // 프로젝트코드: 영업활동 + 매출자료(PD)
+  const codes = new Set();
+  if(Array.isArray(slData)) slData.forEach(r => { if(r.pjcode && !/^신규\d*차?$/.test(r.pjcode)) codes.add(r.pjcode); });
+  if(Array.isArray(PD)) PD.forEach(r => { if(r.프로젝트번호) codes.add(r.프로젝트번호); });
+  pjList.innerHTML = Array.from(codes).sort().map(c=>`<option value="${c.replace(/"/g,"&quot;")}"></option>`).join("");
+}
+
+// 공통: 모든 DB 모달에 적용 (회사 + 프로젝트코드 datalist 채우기)
+function fillDBModalDatalist(prefix, dbDataArr) {
+  const coList = document.getElementById(prefix + "-company-list");
+  const pjList = document.getElementById(prefix + "-pjcode-list");
+  const companies = new Set();
+  if(Array.isArray(slData)) slData.forEach(r => { if(r.company) companies.add(r.company); });
+  if(Array.isArray(exhData)) exhData.forEach(r => { if(r.company) companies.add(r.company); });
+  if(Array.isArray(dbDataArr)) dbDataArr.forEach(r => { if(r.company) companies.add(r.company); });
+  if(coList) coList.innerHTML = Array.from(companies).sort().map(c=>`<option value="${c.replace(/"/g,"&quot;")}"></option>`).join("");
+  const codes = new Set();
+  if(Array.isArray(slData)) slData.forEach(r => { if(r.pjcode && !/^신규\d*차?$/.test(r.pjcode)) codes.add(r.pjcode); });
+  if(Array.isArray(PD)) PD.forEach(r => { if(r.프로젝트번호) codes.add(r.프로젝트번호); });
+  if(pjList) pjList.innerHTML = Array.from(codes).sort().map(c=>`<option value="${c.replace(/"/g,"&quot;")}"></option>`).join("");
+}
+
+// 공통: 회사명 변경 시 영업활동 매칭 표시 + 프로젝트코드 자동 채움
+function _onAnyCompanyChange(prefix, value) {
+  const linkedBadge = document.getElementById(prefix + "-company-linked");
+  if(!linkedBadge) return;
+  if(!value || !value.trim()) {
+    linkedBadge.style.display = "none";
+    return;
+  }
+  const SUBSEQUENT_STATUS = ["발주","진행","납품완료","세금계산서미발행","세금계산서완료","잔금","유지보수(무상)","종료"];
+  const matches = (Array.isArray(slData) ? slData : []).filter(r => r.company === value.trim());
+  const sortedMatches = matches.sort((a,b)=>{
+    const aLate = SUBSEQUENT_STATUS.includes(a.status||"") ? 1 : 0;
+    const bLate = SUBSEQUENT_STATUS.includes(b.status||"") ? 1 : 0;
+    if(aLate !== bLate) return bLate - aLate;
+    return (b.lastActivity||b.start||"").localeCompare(a.lastActivity||a.start||"");
+  });
+  const match = sortedMatches[0];
+  if(match) {
+    linkedBadge.style.display = "inline";
+    linkedBadge.style.color = "var(--g)";
+    linkedBadge.textContent = `🔗 영업활동 연결: ${match.status||"신규"}${match.pjcode?" · "+match.pjcode:""}`;
+    // 프로젝트코드 비어있으면 자동 채움
+    const pjEl = document.getElementById(prefix + "-pjcode");
+    if(pjEl && !pjEl.value && match.pjcode && !/^신규\d*차?$/.test(match.pjcode)) {
+      pjEl.value = match.pjcode;
+    }
+  } else {
+    linkedBadge.style.display = "inline";
+    linkedBadge.style.color = "var(--a)";
+    linkedBadge.textContent = "⚠️ 영업활동에 없는 회사 (신규 입력)";
+  }
+}
+// 각 모달별 onChange 래퍼
+function onOrderCompanyChange(v) { _onAnyCompanyChange("order", v); }
+function onConfirmCompanyChange(v) { _onAnyCompanyChange("cfm", v); }
+function onContractCompanyChange(v) { _onAnyCompanyChange("ctr", v); }
+function onDeliveryCompanyChange(v) { _onAnyCompanyChange("dlv", v); }
+function onTaxCompanyChange(v) { _onAnyCompanyChange("tax", v); }
+
+// 발주처 입력 시 호출 - 영업활동 매칭 시 프로젝트코드 자동 채우기 (기존 발주서용 호환)
+function onOrderCompanyChange__OLD(value) {
+  const linkedBadge = document.getElementById("order-company-linked");
+  if(!linkedBadge) return;
+  if(!value || !value.trim()) {
+    linkedBadge.style.display = "none";
+    return;
+  }
+  // 영업활동에서 해당 회사명과 정확 일치하는 항목 찾기 (수주 후 단계 우선)
+  const SUBSEQUENT_STATUS = ["발주","진행","납품완료","세금계산서미발행","세금계산서완료","잔금","유지보수(무상)","종료"];
+  const matches = (Array.isArray(slData) ? slData : []).filter(r => r.company === value.trim());
+  // 발주 단계 우선, 그 다음 최신
+  const sortedMatches = matches.sort((a,b)=>{
+    const aLate = SUBSEQUENT_STATUS.includes(a.status||"") ? 1 : 0;
+    const bLate = SUBSEQUENT_STATUS.includes(b.status||"") ? 1 : 0;
+    if(aLate !== bLate) return bLate - aLate;
+    return (b.lastActivity||b.start||"").localeCompare(a.lastActivity||a.start||"");
+  });
+  const match = sortedMatches[0];
+  if(match) {
+    linkedBadge.style.display = "inline";
+    linkedBadge.textContent = `🔗 영업활동 연결: ${match.status||"신규"}${match.pjcode?" · "+match.pjcode:""}`;
+    // 프로젝트코드 비어있으면 자동 채움
+    const pjEl = document.getElementById("order-pjcode");
+    if(pjEl && !pjEl.value && match.pjcode && !/^신규\d*차?$/.test(match.pjcode)) {
+      pjEl.value = match.pjcode;
+    }
+  } else {
+    linkedBadge.style.display = "inline";
+    linkedBadge.style.color = "var(--a)";
+    linkedBadge.textContent = "⚠️ 영업활동에 없는 회사";
+  }
+}
+
 async function parseOrderPdf(file) {
   if(!file) return;
+  // 📄 PDF/이미지 미리보기 즉시 표시 (AI 분석은 백그라운드)
+  renderFilePreview(file, "order-preview-pane").catch(e=>console.warn("미리보기 실패:", e));
   // SP 저장은 AI 파싱 후 폼 값이 채워지면 saveOrderEntry에서 처리
   // 여기서는 임시로 날짜 기반 경로에 저장 (pjcode/company 모름)
   try {
@@ -17564,9 +17719,23 @@ async function parseOrderPdf(file) {
     }
     if(resultJson){
       console.log("🤖 발주서 AI 파싱 결과:", JSON.stringify(resultJson));
-      // 기본 필드
+      // 기본 필드 - 단, 회사명/프로젝트코드는 이미 채워져 있으면 보호 (영업활동 자동 채움 우선)
+      const protectedFields = ["company", "pjcode"];  // 영업활동에서 자동 채움 우선
       const m={"date":"order-date","company":"order-company","po":"order-po","pjcode":"order-pjcode","duedate":"order-duedate","note":"order-note"};
-      Object.entries(m).forEach(([k,elId])=>{if(resultJson[k]!==undefined){const el=document.getElementById(elId);if(el)el.value=resultJson[k];}});
+      Object.entries(m).forEach(([k,elId])=>{
+        const el=document.getElementById(elId);
+        if(!el) return;
+        if(resultJson[k]===undefined) return;
+        // 보호 필드는 기존 값 있으면 AI 값으로 덮어쓰지 않음
+        if(protectedFields.includes(k) && el.value && el.value.trim()) {
+          console.log(`🛡️ ${k} 보호: 기존 "${el.value}" 유지 (AI 추출 "${resultJson[k]}" 무시)`);
+          return;
+        }
+        el.value = resultJson[k];
+      });
+      // 회사명 입력에 대한 영업활동 매칭 표시 갱신
+      const coVal = document.getElementById("order-company")?.value || "";
+      if(coVal) onOrderCompanyChange(coVal);
       // 품목 배열
       if(Array.isArray(resultJson.items) && resultJson.items.length) {
         dbInitItems("order", resultJson.items);
@@ -17809,6 +17978,10 @@ function openDeliveryModal(id) {
   const modal=document.getElementById("dlvModal"); if(!modal) return;
   const gk=localStorage.getItem("gemini_key")||""; if(gk) { const el=document.getElementById("dlvGeminiKey"); if(el) el.value=gk; }
   const ok=localStorage.getItem("oai_key")||""; if(ok) { const el=document.getElementById("dlvOpenAIKey"); if(el) el.value=ok; }
+  fillDBModalDatalist("dlv", _dlvData);
+  clearFilePreview("dlv-preview-pane");
+  const linkedBadge = document.getElementById("dlv-company-linked");
+  if(linkedBadge) linkedBadge.style.display = "none";
   // 세액 manual 플래그 초기화
   const taxEl = document.getElementById("dlv-tax");
   if(taxEl) delete taxEl.dataset.manual;
@@ -17847,6 +18020,10 @@ function openTaxModal(id) {
   const modal=document.getElementById("taxModal"); if(!modal) return;
   const gk=localStorage.getItem("gemini_key")||""; if(gk) { const el=document.getElementById("taxGeminiKey"); if(el) el.value=gk; }
   const ok=localStorage.getItem("oai_key")||""; if(ok) { const el=document.getElementById("taxOpenAIKey"); if(el) el.value=ok; }
+  fillDBModalDatalist("tax", _taxData);
+  clearFilePreview("tax-preview-pane");
+  const linkedBadge = document.getElementById("tax-company-linked");
+  if(linkedBadge) linkedBadge.style.display = "none";
   const vatEl = document.getElementById("tax-vat");
   if(vatEl) delete vatEl.dataset.manual;
   if(id) {
@@ -18022,6 +18199,119 @@ async function pdfToImageBase64(pdfBase64) {
   return canvas.toDataURL("image/png").split(",")[1];
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📄 PDF/이미지 미리보기 (AI 파싱 검토용)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function renderFilePreview(file, containerId) {
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  if(!file) {
+    container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--t3);font-size:13px;padding:30px;text-align:center">
+      📄 PDF 파일을 업로드하면<br>여기에 미리보기가 표시됩니다.
+    </div>`;
+    return;
+  }
+
+  // 로딩 표시
+  container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--t3);font-size:13px">
+    <div class="spr" style="margin-right:8px"></div>미리보기 로딩 중...
+  </div>`;
+
+  try {
+    const fname = (file.name||"").toLowerCase();
+    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(fname) || (file.type||"").startsWith("image/");
+    const isPdf = /\.pdf$/i.test(fname) || (file.type||"") === "application/pdf";
+
+    if(isImage) {
+      // 이미지 미리보기
+      const url = URL.createObjectURL(file);
+      container.innerHTML = `<div style="padding:8px">
+        <div style="font-size:11px;color:var(--t3);margin-bottom:6px;font-weight:700">📷 ${file.name}</div>
+        <img src="${url}" style="width:100%;height:auto;border:1px solid var(--border);border-radius:6px;display:block">
+      </div>`;
+      return;
+    }
+
+    if(!isPdf) {
+      container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--t3);font-size:13px">
+        <div style="font-size:32px;margin-bottom:8px">📎</div>
+        <div style="font-weight:700">${file.name}</div>
+        <div style="margin-top:6px;font-size:11px">PDF/이미지가 아니어서 미리보기 불가</div>
+      </div>`;
+      return;
+    }
+
+    // PDF 미리보기 (모든 페이지)
+    // PDF.js 로드
+    if(!window.pdfjsLib) {
+      await new Promise((res,rej)=>{
+        const s=document.createElement("script");
+        s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+        s.onload=res; s.onerror=rej; document.head.appendChild(s);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({data: new Uint8Array(arrayBuffer)}).promise;
+    const numPages = pdf.numPages;
+
+    // 컨테이너 초기화
+    container.innerHTML = `<div style="padding:6px 8px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:11px;color:var(--t2);font-weight:700;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1">
+      <span>📄 ${file.name}</span>
+      <span style="color:var(--p)">${numPages}페이지</span>
+    </div>
+    <div id="${containerId}-pages" style="padding:8px"></div>`;
+
+    const pagesContainer = document.getElementById(containerId+"-pages");
+
+    // 페이지마다 캔버스로 렌더 (최대 5페이지까지)
+    const MAX_PAGES = Math.min(numPages, 10);
+    for(let p=1; p<=MAX_PAGES; p++) {
+      const page = await pdf.getPage(p);
+      // 컨테이너 너비에 맞춰 스케일 자동 조정
+      const containerWidth = container.clientWidth - 24;
+      const v0 = page.getViewport({scale: 1.0});
+      const scale = Math.min(2.0, Math.max(0.8, containerWidth / v0.width));
+      const viewport = page.getViewport({scale});
+
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      canvas.style.cssText = `width:100%;height:auto;display:block;border:1px solid var(--border);border-radius:4px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.1)`;
+
+      // 페이지 라벨
+      if(numPages > 1) {
+        const lbl = document.createElement("div");
+        lbl.style.cssText = "font-size:10px;color:var(--t3);text-align:center;margin:6px 0 3px;font-weight:700";
+        lbl.textContent = `— ${p} / ${numPages} —`;
+        pagesContainer.appendChild(lbl);
+      }
+      pagesContainer.appendChild(canvas);
+      await page.render({canvasContext: canvas.getContext("2d"), viewport}).promise;
+    }
+
+    if(numPages > MAX_PAGES) {
+      const more = document.createElement("div");
+      more.style.cssText = "padding:10px;text-align:center;color:var(--t3);font-size:11px;background:var(--bg3);border-radius:6px;margin-top:6px";
+      more.textContent = `+ ${numPages - MAX_PAGES}페이지 더 있음 (미리보기 생략)`;
+      pagesContainer.appendChild(more);
+    }
+  } catch(e) {
+    console.error("미리보기 실패:", e);
+    container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--r);font-size:13px">
+      <div style="font-size:32px;margin-bottom:8px">⚠️</div>
+      <div style="font-weight:700">미리보기 실패</div>
+      <div style="margin-top:6px;font-size:11px">${e.message||""}</div>
+    </div>`;
+  }
+}
+
+// 모달 미리보기 초기화
+function clearFilePreview(containerId) {
+  renderFilePreview(null, containerId);
+}
+
 async function extractPdfText(base64) {
   try {
     if(!window.pdfjsLib){
@@ -18038,6 +18328,8 @@ async function extractPdfText(base64) {
 
 async function parseDlvPdf(file) {
   if(!file) return;
+  // 📄 PDF/이미지 미리보기 즉시 표시
+  renderFilePreview(file, "dlv-preview-pane").catch(e=>console.warn("미리보기 실패:", e));
   try {
     await getIds();const t=await getToken();
     const today = new Date().toISOString().substring(0,10);
@@ -18051,16 +18343,27 @@ async function parseDlvPdf(file) {
     if(r.ok){const d=await r.json();const el=document.getElementById("dlv-file-url");if(el)el.value=d.webUrl||"";}
   } catch(e){console.warn("거래명세서 SP 저장 실패:",e.message);}
   await parsePdfWithAI(file,"dlv","dlvParseStatus",(json)=>{
-    // 기본 필드
+    // 기본 필드 - company/pjcode는 이미 채워져 있으면 보호
+    const protectedFields = ["company", "pjcode"];
     const m={"date":"dlv-date","company":"dlv-company","tax":"dlv-tax","total":"dlv-total","po":"dlv-po","pjcode":"dlv-pjcode","note":"dlv-note"};
-    Object.entries(m).forEach(([k,id])=>{if(json[k]!==undefined){const el=document.getElementById(id);if(el)el.value=json[k];}});
+    Object.entries(m).forEach(([k,id])=>{
+      const el = document.getElementById(id);
+      if(!el || json[k]===undefined) return;
+      if(protectedFields.includes(k) && el.value && el.value.trim()) {
+        console.log(`🛡️ dlv-${k} 보호: 기존 "${el.value}" 유지`);
+        return;
+      }
+      el.value = json[k];
+    });
+    // 매칭 표시 갱신
+    const coVal = document.getElementById("dlv-company")?.value || "";
+    if(coVal) onDeliveryCompanyChange(coVal);
     // 품목 배열
     if(Array.isArray(json.items) && json.items.length) {
       dbInitItems("delivery", json.items);
     } else if(json.item || json.supply) {
       dbInitItems("delivery", [{name:json.item||"", unitPrice:Number(json.supply)||0, qty:Number(json.qty)||1, unit:"EA"}]);
     }
-    // 공급가액 자동/수동
     if(json.supply) {
       const autoSum = dbCalcTotal("delivery");
       if(Math.abs(autoSum - json.supply) > 1) {
@@ -18068,7 +18371,6 @@ async function parseDlvPdf(file) {
         dbRenderItems("delivery");
       }
     }
-    // 세액이 AI 결과에 있으면 manual 마킹 (자동 10% 덮어쓰기 방지)
     if(json.tax) {
       const taxEl = document.getElementById("dlv-tax");
       if(taxEl) taxEl.dataset.manual = "1";
@@ -18079,6 +18381,8 @@ async function parseDlvPdf(file) {
 
 async function parseTaxPdf(file) {
   if(!file) return;
+  // 📄 PDF/이미지 미리보기 즉시 표시
+  renderFilePreview(file, "tax-preview-pane").catch(e=>console.warn("미리보기 실패:", e));
   try {
     await getIds();const t=await getToken();
     const today = new Date().toISOString().substring(0,10);
@@ -18092,8 +18396,19 @@ async function parseTaxPdf(file) {
     if(r.ok){const d=await r.json();const el=document.getElementById("tax-file-url");if(el)el.value=d.webUrl||"";}
   } catch(e){console.warn("세금계산서 SP 저장 실패:",e.message);}
   await parsePdfWithAI(file,"tax","taxParseStatus",(json)=>{
+    const protectedFields = ["company"];
     const m={"date":"tax-date","company":"tax-company","vat":"tax-vat","total":"tax-total","approval":"tax-approval","mgmt":"tax-mgmt","note":"tax-note"};
-    Object.entries(m).forEach(([k,id])=>{if(json[k]!==undefined){const el=document.getElementById(id);if(el)el.value=json[k];}});
+    Object.entries(m).forEach(([k,id])=>{
+      const el = document.getElementById(id);
+      if(!el || json[k]===undefined) return;
+      if(protectedFields.includes(k) && el.value && el.value.trim()) {
+        console.log(`🛡️ tax-${k} 보호: 기존 "${el.value}" 유지`);
+        return;
+      }
+      el.value = json[k];
+    });
+    const coVal = document.getElementById("tax-company")?.value || "";
+    if(coVal) onTaxCompanyChange(coVal);
     if(Array.isArray(json.items) && json.items.length) {
       dbInitItems("tax", json.items);
     } else if(json.item || json.supply) {
@@ -18181,6 +18496,10 @@ function openConfirmModal(id) {
   const modal = document.getElementById("cfmModal");
   const gkEl = document.getElementById("cfmGeminiKey");
   if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+  fillDBModalDatalist("cfm", _cfmData);
+  clearFilePreview("cfm-preview-pane");
+  const linkedBadge = document.getElementById("cfm-company-linked");
+  if(linkedBadge) linkedBadge.style.display = "none";
   if(id) {
     const d = _cfmData.find(x=>x.id===id); if(!d) return;
     document.getElementById("cfm-edit-id").value = id;
@@ -18253,6 +18572,8 @@ async function deleteConfirmEntry(id) {
 
 async function parseCfmPdf(file) {
   if(!file) return;
+  // 📄 PDF/이미지 미리보기 즉시 표시
+  renderFilePreview(file, "cfm-preview-pane").catch(e=>console.warn("미리보기 실패:", e));
   // SP에 파일 저장
   try {
     await getIds(); const t = await getToken();
@@ -18279,10 +18600,17 @@ async function parseCfmPdf(file) {
     const result = await parseDocWithAI(file, prompt, engine, geminiKey, document.getElementById("cfmGeminiKey"));
     if(result) {
       if(result.date) document.getElementById("cfm-date").value = result.date;
-      if(result.company) document.getElementById("cfm-company").value = result.company;
+      // 회사명 보호 (이미 채워져 있으면 유지)
+      const cfmCoEl = document.getElementById("cfm-company");
+      if(result.company && cfmCoEl && !cfmCoEl.value.trim()) cfmCoEl.value = result.company;
+      else if(result.company) console.log(`🛡️ cfm-company 보호: "${cfmCoEl?.value}" 유지`);
       if(result.po) document.getElementById("cfm-po").value = result.po;
-      if(result.pjcode) document.getElementById("cfm-pjcode").value = result.pjcode;
+      // 프로젝트코드 보호
+      const cfmPjEl = document.getElementById("cfm-pjcode");
+      if(result.pjcode && cfmPjEl && !cfmPjEl.value.trim()) cfmPjEl.value = result.pjcode;
       if(result.note) document.getElementById("cfm-note").value = result.note;
+      // 영업활동 매칭 갱신
+      if(cfmCoEl?.value) onConfirmCompanyChange(cfmCoEl.value);
       // 품목 배열
       if(Array.isArray(result.items) && result.items.length) {
         dbInitItems("confirm", result.items);
@@ -18367,6 +18695,10 @@ function openContractModal(id) {
   const modal = document.getElementById("ctrModal");
   const gkEl = document.getElementById("ctrGeminiKey");
   if(gkEl && !gkEl.value) gkEl.value = localStorage.getItem("gemini_key")||"";
+  fillDBModalDatalist("ctr", _ctrData);
+  clearFilePreview("ctr-preview-pane");
+  const linkedBadge = document.getElementById("ctr-company-linked");
+  if(linkedBadge) linkedBadge.style.display = "none";
   if(id) {
     const d = _ctrData.find(x=>x.id===id); if(!d) return;
     document.getElementById("ctr-edit-id").value = id;
@@ -18439,6 +18771,8 @@ async function deleteContractEntry(id) {
 
 async function parseCtrPdf(file) {
   if(!file) return;
+  // 📄 PDF/이미지 미리보기 즉시 표시
+  renderFilePreview(file, "ctr-preview-pane").catch(e=>console.warn("미리보기 실패:", e));
   // SP에 파일 저장
   try {
     await getIds(); const t = await getToken();
@@ -18465,10 +18799,14 @@ async function parseCtrPdf(file) {
     const result = await parseDocWithAI(file, prompt, engine, geminiKey, document.getElementById("ctrGeminiKey"));
     if(result) {
       if(result.date) document.getElementById("ctr-date").value = result.date;
-      if(result.company) document.getElementById("ctr-company").value = result.company;
-      if(result.pjcode) document.getElementById("ctr-pjcode").value = result.pjcode;
+      const ctrCoEl = document.getElementById("ctr-company");
+      if(result.company && ctrCoEl && !ctrCoEl.value.trim()) ctrCoEl.value = result.company;
+      else if(result.company) console.log(`🛡️ ctr-company 보호: "${ctrCoEl?.value}" 유지`);
+      const ctrPjEl = document.getElementById("ctr-pjcode");
+      if(result.pjcode && ctrPjEl && !ctrPjEl.value.trim()) ctrPjEl.value = result.pjcode;
       if(result.duedate) document.getElementById("ctr-duedate").value = result.duedate;
       if(result.note) document.getElementById("ctr-note").value = result.note;
+      if(ctrCoEl?.value) onContractCompanyChange(ctrCoEl.value);
       // 품목 배열
       if(Array.isArray(result.items) && result.items.length) {
         dbInitItems("contract", result.items);
@@ -19130,12 +19468,21 @@ function deleteTax(id){
 
       <!-- 🔼 body 직속 이동: orderModal -->
       <div id="orderModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative">
-        <div style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <div style="background:#fff;border-radius:16px;width:1100px;max-width:96vw;max-height:90vh;overflow:hidden;position:relative;display:flex;flex-direction:column">
+        <div style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
           <div style="font-size:16px;font-weight:900" id="orderModalTitle">📦 발주서 등록</div>
           <button onclick="document.getElementById('orderModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
         </div>
-        <div style="padding:16px 18px">
+        <!-- 2단 레이아웃: 좌측 PDF 미리보기 + 우측 폼 -->
+        <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:0;flex:1;min-height:0;overflow:hidden">
+          <!-- 좌측: PDF 미리보기 -->
+          <div id="order-preview-pane" style="background:#f8fafc;border-right:1px solid var(--border);overflow-y:auto;max-height:calc(90vh - 60px)">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--t3);font-size:13px;padding:30px;text-align:center">
+              📄 PDF 파일을 업로드하면<br>여기에 미리보기가 표시됩니다.
+            </div>
+          </div>
+          <!-- 우측: 폼 -->
+          <div style="padding:16px 18px;overflow-y:auto;max-height:calc(90vh - 60px)">
           <!-- AI 파싱 영역 -->
           <div style="margin-bottom:14px;padding:12px;background:#f5f3ff;border-radius:10px;border:1.5px solid #c4b5fd">
             <div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:8px">🤖 PDF 업로드 → AI 자동 추출</div>
@@ -19181,9 +19528,22 @@ function deleteTax(id){
           <!-- 입력 폼 -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 발주일 *</label><input class="si" type="date" id="order-date" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 발주처(고객사) *</label><input class="si" type="text" id="order-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+                <span>🏭 발주처(고객사) *</span>
+                <span id="order-company-linked" style="font-size:10px;color:var(--g);font-weight:600;display:none">🔗 영업활동 연결됨</span>
+              </label>
+              <input class="si" type="text" id="order-company" list="order-company-list" placeholder="회사명 입력 또는 선택 (영업활동에서 자동)"
+                oninput="onOrderCompanyChange(this.value)"
+                style="width:100%;font-size:13px">
+              <datalist id="order-company-list"></datalist>
+            </div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 PO번호</label><input class="si" type="text" id="order-po" placeholder="2064522177" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="order-pjcode" placeholder="BM25999-M020" style="width:100%;font-size:13px"></div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label>
+              <input class="si" type="text" id="order-pjcode" list="order-pjcode-list" placeholder="BM25999-M020" style="width:100%;font-size:13px">
+              <datalist id="order-pjcode-list"></datalist>
+            </div>
             <div><label style="font-size:12px;font-weight:700;color:var(--r);display:block;margin-bottom:3px">📅 납기요청일</label><input class="si" type="date" id="order-duedate" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔄 상태</label>
               <select class="si" id="order-status" style="width:100%;font-size:13px">
@@ -19219,7 +19579,8 @@ function deleteTax(id){
             <button onclick="document.getElementById('orderModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
             <button onclick="saveOrderEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
           </div>
-        </div>
+          </div><!-- /우측 폼 칼럼 -->
+        </div><!-- /grid 2단 -->
       </div>
     </div>
 
@@ -19273,12 +19634,20 @@ function deleteTax(id){
 
       <!-- 🔼 body 직속 이동: cfmModal -->
       <div id="cfmModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto">
-        <div style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <div style="background:#fff;border-radius:16px;width:1100px;max-width:96vw;max-height:90vh;overflow:hidden;position:relative;display:flex;flex-direction:column">
+        <div style="flex-shrink:0;background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
           <div style="font-size:16px;font-weight:900" id="cfmModalTitle">✅ 납품확인서 등록</div>
           <button onclick="document.getElementById('cfmModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
         </div>
-        <div style="padding:16px 18px">
+        <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:0;flex:1;min-height:0;overflow:hidden">
+          <!-- 좌측: PDF 미리보기 -->
+          <div id="cfm-preview-pane" style="background:#f8fafc;border-right:1px solid var(--border);overflow-y:auto;max-height:calc(90vh - 60px)">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--t3);font-size:13px;padding:30px;text-align:center">
+              📄 PDF 파일을 업로드하면<br>여기에 미리보기가 표시됩니다.
+            </div>
+          </div>
+          <!-- 우측: 폼 -->
+          <div style="padding:16px 18px;overflow-y:auto;max-height:calc(90vh - 60px)">
           <div style="margin-bottom:14px;padding:12px;background:#f0fdf4;border-radius:10px;border:1.5px solid #86efac">
             <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:8px">🤖 PDF → AI 자동 추출</div>
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
@@ -19297,9 +19666,18 @@ function deleteTax(id){
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 납품일 *</label><input class="si" type="date" id="cfm-date" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 거래처 *</label><input class="si" type="text" id="cfm-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+                <span>🏭 거래처 *</span>
+                <span id="cfm-company-linked" style="font-size:10px;color:var(--g);font-weight:600;display:none">🔗 영업활동 연결됨</span>
+              </label>
+              <input class="si" type="text" id="cfm-company" list="cfm-company-list" placeholder="회사명 입력 또는 선택 (영업활동에서 자동)"
+                oninput="onConfirmCompanyChange(this.value)"
+                style="width:100%;font-size:13px">
+              <datalist id="cfm-company-list"></datalist>
+            </div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 PO번호</label><input class="si" type="text" id="cfm-po" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="cfm-pjcode" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="cfm-pjcode" list="cfm-pjcode-list" style="width:100%;font-size:13px"><datalist id="cfm-pjcode-list"></datalist></div>
             <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔄 상태</label>
               <select class="si" id="cfm-status" style="width:100%;font-size:13px"><option value="납품완료">납품완료</option><option value="부분납품">부분납품</option><option value="반품">반품</option></select>
             </div>
@@ -19324,19 +19702,27 @@ function deleteTax(id){
           <div style="display:flex;justify-content:flex-end;gap:8px">
             <button onclick="document.getElementById('cfmModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
             <button onclick="saveConfirmEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:var(--g);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
-          </div>
-        </div>
+          </div><!-- /우측 폼 칼럼 -->
+        </div><!-- /grid 2단 -->
       </div>
     </div>
 
       <!-- 🔼 body 직속 이동: ctrModal -->
       <div id="ctrModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto">
-        <div style="background:linear-gradient(135deg,#0369a1,#38bdf8);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <div style="background:#fff;border-radius:16px;width:1100px;max-width:96vw;max-height:90vh;overflow:hidden;position:relative;display:flex;flex-direction:column">
+        <div style="flex-shrink:0;background:linear-gradient(135deg,#0369a1,#38bdf8);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
           <div style="font-size:16px;font-weight:900" id="ctrModalTitle">📑 계약서 등록</div>
           <button onclick="document.getElementById('ctrModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
         </div>
-        <div style="padding:16px 18px">
+        <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:0;flex:1;min-height:0;overflow:hidden">
+          <!-- 좌측: PDF 미리보기 -->
+          <div id="ctr-preview-pane" style="background:#f8fafc;border-right:1px solid var(--border);overflow-y:auto;max-height:calc(90vh - 60px)">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--t3);font-size:13px;padding:30px;text-align:center">
+              📄 PDF 파일을 업로드하면<br>여기에 미리보기가 표시됩니다.
+            </div>
+          </div>
+          <!-- 우측: 폼 -->
+          <div style="padding:16px 18px;overflow-y:auto;max-height:calc(90vh - 60px)">
           <div style="margin-bottom:14px;padding:12px;background:#f0f9ff;border-radius:10px;border:1.5px solid #7dd3fc">
             <div style="font-size:13px;font-weight:700;color:#0369a1;margin-bottom:8px">🤖 PDF → AI 자동 추출</div>
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
@@ -19355,8 +19741,17 @@ function deleteTax(id){
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 계약일 *</label><input class="si" type="date" id="ctr-date" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 거래처 *</label><input class="si" type="text" id="ctr-company" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="ctr-pjcode" style="width:100%;font-size:13px"></div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+                <span>🏭 거래처 *</span>
+                <span id="ctr-company-linked" style="font-size:10px;color:var(--g);font-weight:600;display:none">🔗 영업활동 연결됨</span>
+              </label>
+              <input class="si" type="text" id="ctr-company" list="ctr-company-list" placeholder="회사명 입력 또는 선택 (영업활동에서 자동)"
+                oninput="onContractCompanyChange(this.value)"
+                style="width:100%;font-size:13px">
+              <datalist id="ctr-company-list"></datalist>
+            </div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="ctr-pjcode" list="ctr-pjcode-list" style="width:100%;font-size:13px"><datalist id="ctr-pjcode-list"></datalist></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--r);display:block;margin-bottom:3px">📅 납기일</label><input class="si" type="date" id="ctr-duedate" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔄 상태</label>
               <select class="si" id="ctr-status" style="width:100%;font-size:13px"><option value="계약체결">계약체결</option><option value="진행중">진행중</option><option value="완료">완료</option><option value="해지">해지</option></select>
@@ -19380,19 +19775,27 @@ function deleteTax(id){
           <div style="display:flex;justify-content:flex-end;gap:8px">
             <button onclick="document.getElementById('ctrModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
             <button onclick="saveContractEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:#0369a1;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
-          </div>
-        </div>
+          </div><!-- /우측 폼 칼럼 -->
+        </div><!-- /grid 2단 -->
       </div>
     </div>
 
       <!-- 🔼 body 직속 이동: dlvModal -->
       <div id="dlvModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative">
-        <div style="background:linear-gradient(135deg,var(--p),var(--a));color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <div style="background:#fff;border-radius:16px;width:1100px;max-width:96vw;max-height:90vh;overflow:hidden;position:relative;display:flex;flex-direction:column">
+        <div style="flex-shrink:0;background:linear-gradient(135deg,var(--p),var(--a));color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
           <div style="font-size:16px;font-weight:900" id="dlvModalTitle">🚚 거래명세서 등록</div>
           <button onclick="document.getElementById('dlvModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
         </div>
-        <div style="padding:16px 18px">
+        <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:0;flex:1;min-height:0;overflow:hidden">
+          <!-- 좌측: PDF 미리보기 -->
+          <div id="dlv-preview-pane" style="background:#f8fafc;border-right:1px solid var(--border);overflow-y:auto;max-height:calc(90vh - 60px)">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--t3);font-size:13px;padding:30px;text-align:center">
+              📄 PDF 파일을 업로드하면<br>여기에 미리보기가 표시됩니다.
+            </div>
+          </div>
+          <!-- 우측: 폼 -->
+          <div style="padding:16px 18px;overflow-y:auto;max-height:calc(90vh - 60px)">
           <!-- AI 파싱 영역 -->
           <div style="margin-bottom:14px;padding:12px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
             <div style="font-size:13px;font-weight:700;color:#0369a1;margin-bottom:8px">🤖 PDF 업로드 → AI 자동 추출</div>
@@ -19441,9 +19844,18 @@ function deleteTax(id){
           <!-- 입력 폼 -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 거래일 *</label><input class="si" type="date" id="dlv-date" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 거래처 *</label><input class="si" type="text" id="dlv-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+                <span>🏭 거래처 *</span>
+                <span id="dlv-company-linked" style="font-size:10px;color:var(--g);font-weight:600;display:none">🔗 영업활동 연결됨</span>
+              </label>
+              <input class="si" type="text" id="dlv-company" list="dlv-company-list" placeholder="회사명 입력 또는 선택 (영업활동에서 자동)"
+                oninput="onDeliveryCompanyChange(this.value)"
+                style="width:100%;font-size:13px">
+              <datalist id="dlv-company-list"></datalist>
+            </div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 PO번호</label><input class="si" type="text" id="dlv-po" placeholder="2064522177" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="dlv-pjcode" placeholder="BM25999-M020" style="width:100%;font-size:13px"></div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="dlv-pjcode" list="dlv-pjcode-list" placeholder="BM25999-M020" style="width:100%;font-size:13px"><datalist id="dlv-pjcode-list"></datalist></div>
             <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="dlv-note" placeholder="메모" style="width:100%;font-size:13px"></div>
           </div>
           <!-- 품목 자동계산 -->
@@ -19477,19 +19889,27 @@ function deleteTax(id){
           <div style="display:flex;justify-content:flex-end;gap:8px">
             <button onclick="document.getElementById('dlvModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
             <button onclick="saveDeliveryEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
-          </div>
-        </div>
+          </div><!-- /우측 폼 칼럼 -->
+        </div><!-- /grid 2단 -->
       </div>
     </div>
 
       <!-- 🔼 body 직속 이동: taxModal -->
       <div id="taxModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative">
-        <div style="background:linear-gradient(135deg,#dc2626,#f87171);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <div style="background:#fff;border-radius:16px;width:1100px;max-width:96vw;max-height:90vh;overflow:hidden;position:relative;display:flex;flex-direction:column">
+        <div style="flex-shrink:0;background:linear-gradient(135deg,#dc2626,#f87171);color:#fff;padding:14px 18px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
           <div style="font-size:16px;font-weight:900" id="taxModalTitle">🧾 세금계산서 등록</div>
           <button onclick="document.getElementById('taxModal').style.display='none'" style="border:none;background:transparent;color:#fff;font-size:24px;cursor:pointer">✕</button>
         </div>
-        <div style="padding:16px 18px">
+        <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:0;flex:1;min-height:0;overflow:hidden">
+          <!-- 좌측: PDF 미리보기 -->
+          <div id="tax-preview-pane" style="background:#f8fafc;border-right:1px solid var(--border);overflow-y:auto;max-height:calc(90vh - 60px)">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--t3);font-size:13px;padding:30px;text-align:center">
+              📄 PDF 파일을 업로드하면<br>여기에 미리보기가 표시됩니다.
+            </div>
+          </div>
+          <!-- 우측: 폼 -->
+          <div style="padding:16px 18px;overflow-y:auto;max-height:calc(90vh - 60px)">
           <!-- AI 파싱 영역 (거래명세서와 동일한 엔진 선택 재사용) -->
           <div style="margin-bottom:14px;padding:12px;background:#fff5f5;border-radius:10px;border:1.5px solid #fecaca">
             <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:8px">🤖 PDF 업로드 → AI 자동 추출</div>
@@ -19535,7 +19955,16 @@ function deleteTax(id){
           <!-- 입력 폼 -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 작성일 *</label><input class="si" type="date" id="tax-date" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 공급받는자 *</label><input class="si" type="text" id="tax-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+                <span>🏭 공급받는자 *</span>
+                <span id="tax-company-linked" style="font-size:10px;color:var(--g);font-weight:600;display:none">🔗 영업활동 연결됨</span>
+              </label>
+              <input class="si" type="text" id="tax-company" list="tax-company-list" placeholder="회사명 입력 또는 선택 (영업활동에서 자동)"
+                oninput="onTaxCompanyChange(this.value)"
+                style="width:100%;font-size:13px">
+              <datalist id="tax-company-list"></datalist>
+            </div>
             <div><label style="font-size:12px;font-weight:700;color:var(--r);display:block;margin-bottom:3px">🔑 승인번호</label><input class="si" type="text" id="tax-approval" placeholder="20260430410000080991f3te" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 관리번호</label><input class="si" type="text" id="tax-mgmt" placeholder="202600105113" style="width:100%;font-size:13px"></div>
             <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="tax-note" placeholder="메모" style="width:100%;font-size:13px"></div>
@@ -19570,8 +19999,8 @@ function deleteTax(id){
           <div style="display:flex;justify-content:flex-end;gap:8px">
             <button onclick="document.getElementById('taxModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
             <button onclick="saveTaxEntry()" style="padding:9px 22px;border-radius:8px;border:none;background:#dc2626;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
-          </div>
-        </div>
+          </div><!-- /우측 폼 칼럼 -->
+        </div><!-- /grid 2단 -->
       </div>
     </div>
 </body>
