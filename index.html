@@ -2659,7 +2659,7 @@
             <div class="ct"><div class="ci c1">📄</div>견적서 목록</div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
               <span style="font-size:14px;color:var(--t3)" id="qdb-upd">-</span>
-              <button onclick="openQuoteModal(null)" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button>
+              <button onclick="console.log('🔘 견적서DB 신규작성 클릭');try{openQuoteModal(null)}catch(e){console.error('❌ 견적서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button>
             </div>
           </div>
           <div class="cb" style="padding:8px 12px">
@@ -2729,7 +2729,7 @@
                 <option value="linked">🔗 연결됨만</option>
               </select>
               <span style="font-size:13px;color:var(--t3)" id="mtgLogUpd">-</span>
-              <button onclick="openMtgDBModal()" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button>
+              <button onclick="console.log('🔘 회의록DB 신규작성 클릭');try{openMtgDBModal()}catch(e){console.error('❌ 회의록DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button>
             </div>
           </div>
           <div class="cb" style="padding:10px 14px">
@@ -2773,7 +2773,7 @@
           <div style="font-size:16px;font-weight:800">📦 발주서 DB</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input class="si" type="text" id="ord-search" placeholder="🔍 거래처/품목/PO번호..." style="width:180px;font-size:13px" oninput="renderOrderDB()">
-            <button onclick="openOrderModal()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+            <button onclick="console.log('🔘 발주서DB 신규작성 클릭');try{openOrderModal()}catch(e){console.error('❌ 발주서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
           </div>
         </div>
         <div style="overflow-x:auto"><table class="tbl" style="min-width:820px">
@@ -2889,7 +2889,7 @@
           <div style="font-size:16px;font-weight:800">🚚 거래명세서 DB</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input class="si" type="text" id="dlv-search" placeholder="🔍 거래처/품목/PO번호..." style="width:180px;font-size:13px" oninput="renderDeliveryDB()">
-            <button onclick="openDeliveryModal()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+            <button onclick="console.log('🔘 거래명세서DB 신규작성 클릭');try{openDeliveryModal()}catch(e){console.error('❌ 거래명세서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
           </div>
         </div>
         <div style="overflow-x:auto"><table class="tbl" style="min-width:780px">
@@ -2925,7 +2925,7 @@
           <div style="font-size:16px;font-weight:800">✅ 납품확인서 DB</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input class="si" type="text" id="cfm-search" placeholder="🔍 거래처/품목/프로젝트..." style="width:180px;font-size:13px" oninput="renderConfirmDB()">
-            <button onclick="openConfirmModal()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--g);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+            <button onclick="console.log('🔘 납품확인서DB 신규작성 클릭');try{openConfirmModal()}catch(e){console.error('❌ 납품확인서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:8px 16px;border-radius:8px;border:none;background:var(--g);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
           </div>
         </div>
         <div style="overflow-x:auto"><table class="tbl" style="min-width:780px">
@@ -2953,7 +2953,7 @@
           <div style="font-size:16px;font-weight:800">📂 자료 DB</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input class="si" type="text" id="pdb-search" placeholder="🔍 거래처/프로젝트/폴더명..." style="width:180px;font-size:13px" oninput="renderProposalDB()">
-            <button onclick="openProposalModal()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+            <button onclick="console.log('🔘 자료DB 신규작성 클릭');try{openProposalModal()}catch(e){console.error('❌ 자료DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
           </div>
         </div>
         <div style="overflow-x:auto"><table class="tbl" style="min-width:800px">
@@ -3035,7 +3035,7 @@
           <div style="font-size:16px;font-weight:800">📑 계약서 DB</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input class="si" type="text" id="ctr-search" placeholder="🔍 거래처/품목/프로젝트..." style="width:180px;font-size:13px" oninput="renderContractDB()">
-            <button onclick="openContractModal()" style="padding:8px 16px;border-radius:8px;border:none;background:#0369a1;color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+            <button onclick="console.log('🔘 계약서DB 신규작성 클릭');try{openContractModal()}catch(e){console.error('❌ 계약서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:8px 16px;border-radius:8px;border:none;background:#0369a1;color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
           </div>
         </div>
         <div style="overflow-x:auto"><table class="tbl" style="min-width:820px">
@@ -3154,7 +3154,7 @@
           <div style="font-size:16px;font-weight:800">🧾 세금계산서 DB</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input class="si" type="text" id="tax-search" placeholder="🔍 거래처/품목/승인번호..." style="width:180px;font-size:13px" oninput="renderTaxDB()">
-            <button onclick="openTaxModal()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
+            <button onclick="console.log('🔘 세금계산서DB 신규작성 클릭');try{openTaxModal()}catch(e){console.error('❌ 세금계산서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:8px 16px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 등록</button>
           </div>
         </div>
         <div style="overflow-x:auto"><table class="tbl" style="min-width:820px">
@@ -4877,21 +4877,29 @@ function filterCtP(){
 // 옵션 A: 고객사 탭 신규 담당자 직접 등록
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function openNewContactModal(prefillCompany) {
-  const modal = document.getElementById("newContactModal");
-  if(!modal) { console.error("❌ newContactModal DOM 없음"); return; }
-  // selCo 안전 참조 (전역 변수가 아직 정의 안 됐을 수 있음)
-  const _selCo = (typeof selCo !== "undefined") ? selCo : "";
-  document.getElementById("nc-company").value = prefillCompany || _selCo || "";
-  document.getElementById("nc-name").value = "";
-  document.getElementById("nc-title").value = "";
-  document.getElementById("nc-dept").value = "";
-  document.getElementById("nc-email").value = "";
-  document.getElementById("nc-mobile").value = "";
-  document.getElementById("nc-phone").value = "";
-  document.getElementById("nc-note").value = "";
-  document.getElementById("nc-region").value = "국내";
-  modal.style.display = "flex";  // flex 명시
-  setTimeout(()=>document.getElementById("nc-company").focus(), 100);
+  console.log("👤 openNewContactModal 호출, prefill =", prefillCompany);
+  try {
+    const modal = document.getElementById("newContactModal");
+    if(!modal) { console.error("❌ newContactModal DOM 없음"); alert("신규 담당자 모달 DOM이 없습니다. 새로고침 후 다시 시도해주세요."); return; }
+    // selCo 안전 참조 (전역 변수가 아직 정의 안 됐을 수 있음)
+    const _selCo = (typeof selCo !== "undefined") ? selCo : "";
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+    setVal("nc-company", prefillCompany || _selCo || "");
+    setVal("nc-name", "");
+    setVal("nc-title", "");
+    setVal("nc-dept", "");
+    setVal("nc-email", "");
+    setVal("nc-mobile", "");
+    setVal("nc-phone", "");
+    setVal("nc-note", "");
+    setVal("nc-region", "국내");
+    modal.style.display = "flex";  // flex 명시
+    setTimeout(()=>{ const el = document.getElementById("nc-company"); if(el) el.focus(); }, 100);
+    console.log("✅ 신규 담당자 모달 열림");
+  } catch(e) {
+    console.error("❌ openNewContactModal 에러:", e);
+    alert("신규 담당자 모달 열기 실패:\n"+e.message+"\n\n콘솔(F12) 확인 후 캡처해주세요.");
+  }
 }
 function closeNewContactModal() {
   document.getElementById("newContactModal").style.display = "none";
@@ -13270,13 +13278,16 @@ async function uploadQuoteFile() {
 }
 
 function openQuoteModal(actId) {
-  _quoteActId = actId;  // null이면 DB 독립 모드
-  _quoteLang = 'KR';   // 항상 KR로 초기화 (사용자가 EN 탭 누르면 변경)
-  const modal = document.getElementById("quoteModal");
-  if(!modal) return;
-  if(modal) modal.dataset.lang = 'KR';
-  // KR 버튼 활성 상태로 초기화
-  setQuoteLang('KR');
+  console.log("📄 openQuoteModal 호출, actId =", actId);
+  try {
+    _quoteActId = actId;  // null이면 DB 독립 모드
+    _quoteLang = 'KR';   // 항상 KR로 초기화 (사용자가 EN 탭 누르면 변경)
+    const modal = document.getElementById("quoteModal");
+    if(!modal) { console.error("❌ quoteModal DOM 없음"); alert("견적서 모달 DOM이 없습니다. 새로고침 후 다시 시도해주세요."); return; }
+    if(modal) modal.dataset.lang = 'KR';
+    // KR 버튼 활성 상태로 초기화
+    setQuoteLang('KR');
+    console.log("✅ 견적서 모달 - 기본 설정 완료");
 
   const act = actId ? slData.find(x=>x.id===actId) : null;
   const isDBMode = !actId; // DB 탭에서 바로 작성하는 경우
@@ -13312,6 +13323,11 @@ function openQuoteModal(actId) {
   renderQuoteFileList();
   updateQuotePreview();
   modal.style.display = "flex";
+  console.log("✅ 견적서 모달 열림");
+  } catch(e) {
+    console.error("❌ openQuoteModal 에러:", e);
+    alert("견적서 모달 열기 실패:\n"+e.message+"\n\n콘솔(F12) 확인 후 캡처해주세요.");
+  }
 }
 
 // 견적서 모달 파일 목록 렌더링
@@ -14918,7 +14934,7 @@ function renderQDB(data) {
   const body = document.getElementById("qdbBody");
   if(!body) return;
   if(!list.length) {
-    body.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="ei">📄</div><div class="et">견적서 없음</div><div style="margin-top:10px"><button onclick="openQuoteModal(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button></div></div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="ei">📄</div><div class="et">견적서 없음</div><div style="margin-top:10px"><button onclick="console.log('🔘 견적서DB 신규작성 클릭');try{openQuoteModal(null)}catch(e){console.error('❌ 견적서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button></div></div></td></tr>`;
     return;
   }
   const STATUS_STYLE = {
@@ -15342,29 +15358,39 @@ function onMtgCompanyInput(company) {
 }
 
 function openMtgDBModal() {
-  const modal = document.getElementById("mtgDBModal");
-  if(!modal) return;
-  // 태그 초기화
-  _mtgTags = { author:[], sales:[], attendees:[] };
-  // 작성자 + 영업담당자 = 현재 로그인 유저 자동 추가
-  if(acct?.name) {
-    _mtgTags.author = [acct.name];
-    _mtgTags.sales  = [acct.name];
+  console.log("📝 openMtgDBModal 호출");
+  try {
+    const modal = document.getElementById("mtgDBModal");
+    if(!modal) { console.error("❌ mtgDBModal DOM 없음"); alert("회의록 모달 DOM이 없습니다. 새로고침 후 다시 시도해주세요."); return; }
+    // 태그 초기화
+    _mtgTags = { author:[], sales:[], attendees:[] };
+    // 작성자 + 영업담당자 = 현재 로그인 유저 자동 추가
+    if(typeof acct !== "undefined" && acct?.name) {
+      _mtgTags.author = [acct.name];
+      _mtgTags.sales  = [acct.name];
+    }
+    ["author","sales","attendees"].forEach(t=>{
+      try { renderMtgTags(t); hideMtgSuggest(t); } catch(e){ console.warn("회의록 태그 렌더 실패:", t, e.message); }
+    });
+    ["mtg-author-input","mtg-sales-input","mtg-attendees-input"].forEach(id=>{
+      const el = document.getElementById(id); if(el) el.value = "";
+    });
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+    setVal("mtgdb-company", "");
+    setVal("mtgdb-pjcode", "");
+    setVal("mtgdb-date", new Date().toISOString().split("T")[0]);
+    setVal("mtgdb-type", "영업미팅");
+    setVal("mtgdb-place", "");
+    setVal("mtgdb-content", "");
+    const hint = document.getElementById("mtg-attendees-hint");
+    if(hint) hint.style.display = "none";
+    const fi = document.getElementById("mtgdb-file"); if(fi) fi.value = "";
+    modal.style.display = "flex";
+    console.log("✅ 회의록 모달 열림");
+  } catch(e) {
+    console.error("❌ openMtgDBModal 에러:", e);
+    alert("회의록 모달 열기 실패:\n"+e.message+"\n\n콘솔(F12) 확인 후 캡처해주세요.");
   }
-  ["author","sales","attendees"].forEach(t=>{ renderMtgTags(t); hideMtgSuggest(t); });
-  ["mtg-author-input","mtg-sales-input","mtg-attendees-input"].forEach(id=>{
-    const el = document.getElementById(id); if(el) el.value = "";
-  });
-  document.getElementById("mtgdb-company").value = "";
-  document.getElementById("mtgdb-pjcode").value = "";
-  document.getElementById("mtgdb-date").value = new Date().toISOString().split("T")[0];
-  document.getElementById("mtgdb-type").value = "영업미팅";
-  document.getElementById("mtgdb-place").value = "";
-  document.getElementById("mtgdb-content").value = "";
-  const hint = document.getElementById("mtg-attendees-hint");
-  if(hint) hint.style.display = "none";
-  const fi = document.getElementById("mtgdb-file"); if(fi) fi.value = "";
-  modal.style.display = "flex";
 }
 
 function closeMtgDBModal() {
