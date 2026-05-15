@@ -1343,7 +1343,7 @@
               <!-- 엔진 선택 -->
               <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:10px 16px;border-radius:8px;border:2px solid #1e40af;background:#dbeafe;flex:1;min-width:180px">
-                  <input type="radio" name="slMtgEngine" value="copilot" checked style="accent-color:#1e40af">
+                  <input type="radio" name="slMtgEngine" value="copilot" style="accent-color:#1e40af">
                   <div>
                     <div style="font-size:14px;font-weight:800;color:#1e40af">✨ M365 Copilot
                       <span style="font-size:11px;background:#1e40af;color:#fff;padding:1px 6px;border-radius:4px;margin-left:4px">기본</span>
@@ -1352,7 +1352,7 @@
                   </div>
                 </label>
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;padding:10px 16px;border-radius:8px;border:2px solid var(--border2)">
-                  <input type="radio" name="slMtgEngine" value="openai" style="accent-color:var(--p)">
+                  <input type="radio" name="slMtgEngine" value="openai" checked style="accent-color:var(--p)">
                   <div>
                     <div style="font-size:14px;font-weight:700;color:var(--t)">🤖 OpenAI GPT-4o-mini</div>
                     <div style="font-size:11px;color:var(--t3)">1건 ≈ 0.8원 · 빠르고 정확</div>
@@ -1395,7 +1395,7 @@
                   <span style="font-size:13px;color:var(--t2);white-space:nowrap">🔑 OpenAI Key</span>
                   <input class="si" type="password" id="slMtgOpenAIKey" placeholder="sk-..."
                     style="flex:1;font-size:13px" value="">
-                  <button onclick="localStorage.setItem('oai_key',document.getElementById('slMtgOpenAIKey').value);alert('저장됨')"
+                  <button onclick="saveOpenAIKeyAll('slMtgOpenAIKey')"
                     style="padding:6px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:13px;cursor:pointer;font-family:var(--s)">저장</button>
                 </div>
               </div>
@@ -2808,16 +2808,16 @@
           <div style="margin-bottom:14px;padding:12px;background:#f5f3ff;border-radius:10px;border:1.5px solid #c4b5fd">
             <div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:8px">🤖 PDF 업로드 → AI 자동 추출</div>
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px">
-                <input type="radio" name="orderAiEngine" value="gemini" checked style="accent-color:#10b981">
-                <span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">무료</span>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px; opacity:0.45; pointer-events:none; cursor:not-allowed">
+                <input disabled type="radio" name="orderAiEngine" value="gemini" style="accent-color:#10b981">
+                <span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">키 미발급</span>
               </label>
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #bfdbfe;background:#eff6ff;font-size:12px">
                 <input type="radio" name="orderAiEngine" value="copilot" style="accent-color:#1e40af">
                 <span style="font-weight:700;color:#1e40af">✨ Copilot</span><span style="color:var(--t3)">M365</span>
               </label>
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px">
-                <input type="radio" name="orderAiEngine" value="openai" style="accent-color:#6366f1">
+                <input type="radio" name="orderAiEngine" value="openai" checked style="accent-color:#6366f1">
                 <span style="font-weight:700;color:#6366f1">🤖 OpenAI</span><span style="color:var(--t3)">gpt-4o</span>
               </label>
             </div>
@@ -2829,6 +2829,7 @@
             <div id="orderOpenAIKeyRow" style="display:none;gap:6px;align-items:center;margin-bottom:8px">
               <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 OpenAI Key</span>
               <input class="si" type="password" id="orderOpenAIKey" placeholder="sk-..." style="flex:1;font-size:12px">
+              <button onclick="saveOpenAIKeyAll('orderOpenAIKey')" style="padding:5px 10px;border-radius:6px;border:none;background:#6366f1;color:#fff;font-size:12px;cursor:pointer;font-family:var(--s)" title="SharePoint에 저장 (팀 공유)">저장</button>
             </div>
             <script>
               document.querySelectorAll('input[name="orderAiEngine"]').forEach(r=>{
@@ -3060,9 +3061,9 @@
           <div style="margin-bottom:14px;padding:12px;background:#f0fdf4;border-radius:10px;border:1.5px solid #86efac">
             <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:8px">🤖 PDF → AI 자동 추출</div>
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px"><input type="radio" name="cfmAiEngine" value="gemini" checked style="accent-color:#10b981"><span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">무료</span></label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px; opacity:0.45; pointer-events:none; cursor:not-allowed"><input disabled type="radio" name="cfmAiEngine" value="gemini" style="accent-color:#10b981"><span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">키 미발급</span></label>
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #bfdbfe;background:#eff6ff;font-size:12px"><input type="radio" name="cfmAiEngine" value="copilot" style="accent-color:#1e40af"><span style="font-weight:700;color:#1e40af">✨ Copilot</span></label>
-              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px"><input type="radio" name="cfmAiEngine" value="openai" style="accent-color:#6366f1"><span style="font-weight:700;color:#6366f1">🤖 OpenAI</span></label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px"><input type="radio" name="cfmAiEngine" value="openai" checked style="accent-color:#6366f1"><span style="font-weight:700;color:#6366f1">🤖 OpenAI</span></label>
             </div>
             <div id="cfmGeminiKeyRow" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
               <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 Gemini Key</span>
@@ -3106,9 +3107,9 @@
           <div style="margin-bottom:14px;padding:12px;background:#f0f9ff;border-radius:10px;border:1.5px solid #7dd3fc">
             <div style="font-size:13px;font-weight:700;color:#0369a1;margin-bottom:8px">🤖 PDF → AI 자동 추출</div>
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px"><input type="radio" name="ctrAiEngine" value="gemini" checked style="accent-color:#10b981"><span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">무료</span></label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px; opacity:0.45; pointer-events:none; cursor:not-allowed"><input disabled type="radio" name="ctrAiEngine" value="gemini" style="accent-color:#10b981"><span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">키 미발급</span></label>
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #bfdbfe;background:#eff6ff;font-size:12px"><input type="radio" name="ctrAiEngine" value="copilot" style="accent-color:#1e40af"><span style="font-weight:700;color:#1e40af">✨ Copilot</span></label>
-              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px"><input type="radio" name="ctrAiEngine" value="openai" style="accent-color:#6366f1"><span style="font-weight:700;color:#6366f1">🤖 OpenAI</span></label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px"><input type="radio" name="ctrAiEngine" value="openai" checked style="accent-color:#6366f1"><span style="font-weight:700;color:#6366f1">🤖 OpenAI</span></label>
             </div>
             <div id="ctrGeminiKeyRow" style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
               <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 Gemini Key</span>
@@ -3188,16 +3189,16 @@
             <div style="font-size:13px;font-weight:700;color:#0369a1;margin-bottom:8px">🤖 PDF 업로드 → AI 자동 추출</div>
             <!-- AI 엔진 선택 -->
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px">
-                <input type="radio" name="docAiEngine" value="gemini" checked style="accent-color:#10b981">
-                <span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">무료</span>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px; opacity:0.45; pointer-events:none; cursor:not-allowed">
+                <input disabled type="radio" name="docAiEngine" value="gemini" style="accent-color:#10b981">
+                <span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">키 미발급</span>
               </label>
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #bfdbfe;background:#eff6ff;font-size:12px">
                 <input type="radio" name="docAiEngine" value="copilot" style="accent-color:#1e40af">
                 <span style="font-weight:700;color:#1e40af">✨ Copilot</span><span style="color:var(--t3)">M365</span>
               </label>
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px">
-                <input type="radio" name="docAiEngine" value="openai" style="accent-color:#6366f1">
+                <input type="radio" name="docAiEngine" value="openai" checked style="accent-color:#6366f1">
                 <span style="font-weight:700;color:#6366f1">🤖 OpenAI</span><span style="color:var(--t3)">gpt-4o</span>
               </label>
             </div>
@@ -3210,6 +3211,7 @@
             <div id="dlvOpenAIKeyRow" style="display:none;flex;gap:6px;align-items:center;margin-bottom:8px">
               <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 OpenAI Key</span>
               <input class="si" type="password" id="dlvOpenAIKey" placeholder="sk-..." style="flex:1;font-size:12px" value="">
+              <button onclick="saveOpenAIKeyAll('dlvOpenAIKey')" style="padding:5px 10px;border-radius:6px;border:none;background:#6366f1;color:#fff;font-size:12px;cursor:pointer;font-family:var(--s)" title="SharePoint에 저장 (팀 공유)">저장</button>
             </div>
             <script>
               document.querySelectorAll('input[name="docAiEngine"]').forEach(r=>{
@@ -3262,16 +3264,16 @@
           <div style="margin-bottom:14px;padding:12px;background:#fff5f5;border-radius:10px;border:1.5px solid #fecaca">
             <div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:8px">🤖 PDF 업로드 → AI 자동 추출</div>
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px">
-                <input type="radio" name="taxAiEngine" value="gemini" checked style="accent-color:#10b981">
-                <span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">무료</span>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #10b981;background:#d1fae5;font-size:12px; opacity:0.45; pointer-events:none; cursor:not-allowed">
+                <input disabled type="radio" name="taxAiEngine" value="gemini" style="accent-color:#10b981">
+                <span style="font-weight:700;color:#065f46">🟢 Gemini</span><span style="color:var(--t3)">키 미발급</span>
               </label>
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #bfdbfe;background:#eff6ff;font-size:12px">
                 <input type="radio" name="taxAiEngine" value="copilot" style="accent-color:#1e40af">
                 <span style="font-weight:700;color:#1e40af">✨ Copilot</span><span style="color:var(--t3)">M365</span>
               </label>
               <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1.5px solid #e5e7eb;background:#f9fafb;font-size:12px">
-                <input type="radio" name="taxAiEngine" value="openai" style="accent-color:#6366f1">
+                <input type="radio" name="taxAiEngine" value="openai" checked style="accent-color:#6366f1">
                 <span style="font-weight:700;color:#6366f1">🤖 OpenAI</span><span style="color:var(--t3)">gpt-4o</span>
               </label>
             </div>
@@ -3283,6 +3285,7 @@
             <div id="taxOpenAIKeyRow" style="display:none;gap:6px;align-items:center;margin-bottom:8px">
               <span style="font-size:12px;color:var(--t2);white-space:nowrap">🔑 OpenAI Key</span>
               <input class="si" type="password" id="taxOpenAIKey" placeholder="sk-..." style="flex:1;font-size:12px" value="">
+              <button onclick="saveOpenAIKeyAll('taxOpenAIKey')" style="padding:5px 10px;border-radius:6px;border:none;background:#6366f1;color:#fff;font-size:12px;cursor:pointer;font-family:var(--s)" title="SharePoint에 저장 (팀 공유)">저장</button>
             </div>
             <script>
               document.querySelectorAll('input[name="taxAiEngine"]').forEach(r=>{
@@ -3529,6 +3532,7 @@ const MSAL_CLIENT_ID = "76793776-3330-496f-97f1-9f0c034f3f07";
 const MSAL_TENANT_ID = "58b310e1-9278-47ab-8e49-792728818c9e";
 const SP_SITE   = "enjetco.sharepoint.com:/sites/06.BackOffice";
 const SP_FOLDER = "📦영업/99.Dashboard(real-time)";
+const OPENAI_KEY_SP_FILE = "📦영업/99.Dashboard(real-time)/ai-keys.json";  // 팀 공유 AI 키 저장소
 const PX_SALES   = "[매출자료]";
 const PX_CONTACT = "[연락처]";
 // PX_PROJECT 제거 - 프로젝트현황 시트를 [매출자료] 파일에서 직접 로드
@@ -3713,6 +3717,8 @@ async function syncAll() {
     } catch(e) { console.warn("영업활동 로드 실패:", e.message); }
     // 두 데이터 모두 로드된 후 신규 동기화
     syncPipelineFromSL();
+    // OpenAI 키 SP 로드 (팀 공유) - 백그라운드로
+    loadOpenAIKeyFromSP().catch(()=>{});
     setSS("live","실시간 연동"); $("lsync","동기화: "+new Date().toLocaleTimeString("ko-KR"));
   } catch(e) { console.error(e); setSS("","연동 실패"); }
 }
@@ -5970,6 +5976,86 @@ async function saveCustContactsToSP() {
   } catch(e) {
     console.warn("고객사 컨택 SP 저장 실패:", e.message);
     return false;
+  }
+}
+
+// ━━ OpenAI 키 SP 저장/로드 (팀 공유) ━━
+async function saveOpenAIKeyToSP(key) {
+  if(!key || !key.trim()) { alert("키를 먼저 입력해주세요."); return false; }
+  try {
+    await getIds();
+    const t = await getToken();
+    const enc = OPENAI_KEY_SP_FILE.split("/").map(encodeURIComponent).join("/");
+    const payload = {
+      openai_key: key.trim(),
+      updated_at: new Date().toISOString(),
+      updated_by: (typeof _meName === "function") ? _meName() : "unknown",
+    };
+    const r = await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+":/content", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer "+t },
+      body: JSON.stringify(payload, null, 2)
+    });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    // 로컬에도 캐시 (다음 새로고침 전까지 빠른 사용)
+    try { localStorage.setItem("oai_key", key.trim()); } catch(_){}
+    try { sessionStorage.setItem("oai_key", key.trim()); } catch(_){}
+    console.log("✅ OpenAI 키 SP 저장:", OPENAI_KEY_SP_FILE);
+    return true;
+  } catch(e) {
+    console.warn("❌ OpenAI 키 SP 저장 실패:", e.message);
+    return false;
+  }
+}
+
+async function loadOpenAIKeyFromSP() {
+  try {
+    await getIds();
+    const enc = OPENAI_KEY_SP_FILE.split("/").map(encodeURIComponent).join("/");
+    const fd = await gGet("/drives/"+spDrive+"/root:/"+enc);
+    const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
+    const data = await res.json();
+    if(data && data.openai_key) {
+      // localStorage + sessionStorage 둘 다에 캐시
+      try { localStorage.setItem("oai_key", data.openai_key); } catch(_){}
+      try { sessionStorage.setItem("oai_key", data.openai_key); } catch(_){}
+      // 모든 입력 필드에 자동 채우기
+      ["slMtgOpenAIKey", "orderOpenAIKey", "cfmOpenAIKey", "ctrOpenAIKey", "docOpenAIKey", "taxOpenAIKey", "dlvOpenAIKey", "oaiKey"]
+        .forEach(id => {
+          const el = document.getElementById(id);
+          if(el) el.value = data.openai_key;
+        });
+      console.log("✅ OpenAI 키 SP 로드 (팀 공유 키 적용)");
+      return data.openai_key;
+    }
+  } catch(e) {
+    // 파일이 없으면 무시 (처음 사용 시)
+    console.log("ℹ️ OpenAI 키 SP 파일 없음 (처음 사용)");
+  }
+  return null;
+}
+
+// 모든 OpenAI 키 입력 필드 옆 [저장] 버튼이 호출하는 통합 함수
+async function saveOpenAIKeyAll(inputId) {
+  const el = document.getElementById(inputId);
+  if(!el) return;
+  const key = (el.value||"").trim();
+  if(!key) { alert("키를 입력해주세요."); return; }
+  if(!key.startsWith("sk-")) {
+    if(!confirm("키 형식이 'sk-'로 시작하지 않습니다. 그래도 저장할까요?")) return;
+  }
+  // 모든 입력 필드 동기화
+  ["slMtgOpenAIKey", "orderOpenAIKey", "cfmOpenAIKey", "ctrOpenAIKey", "docOpenAIKey", "taxOpenAIKey", "dlvOpenAIKey", "oaiKey"]
+    .forEach(id => {
+      const e = document.getElementById(id);
+      if(e && id !== inputId) e.value = key;
+    });
+  const ok = await saveOpenAIKeyToSP(key);
+  if(ok) {
+    alert("✅ SharePoint에 저장 완료\n팀원들도 새로고침 후 동일한 키 사용 가능합니다.\n📦영업/99.Dashboard(real-time)/ai-keys.json");
+  } else {
+    alert("❌ SP 저장 실패\n로컬에만 저장됩니다. 콘솔(F12) 확인.");
+    try { localStorage.setItem("oai_key", key); } catch(_){}
   }
 }
 
