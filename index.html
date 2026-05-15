@@ -3780,13 +3780,30 @@ function updPlKPI() {
   }
 }
 let plQF="";  // 기본: 전체
-function qf(t,el){plQF=t;document.querySelectorAll(".qb").forEach(b=>b.classList.remove("on"));el.classList.add("on");filterPL();}
+function qf(t,el){
+  plQF=t;
+  document.querySelectorAll(".qb").forEach(b=>b.classList.remove("on"));
+  if(el) el.classList.add("on");
+  // ✅ 검색박스 + 드롭다운 모두 초기화
+  const srchEl=document.getElementById("plSrch"); if(srchEl) srchEl.value="";
+  const stEl=document.getElementById("plSt"); if(stEl) stEl.value=t;
+  const tpEl=document.getElementById("plTp"); if(tpEl) tpEl.value="";
+  const mgEl=document.getElementById("plMg"); if(mgEl) mgEl.value="";
+  const yrEl=document.getElementById("plYr"); if(yrEl) yrEl.value="";
+  filterPL();
+}
 
 // KPI 카드 클릭: 파이프라인 탭 이동 + 퀵필터 적용
 function qfNav(status, el) {
   // 상태 드롭다운 변경
   const sel = document.getElementById("plSt");
   if(sel) sel.value = status;
+  // ✅ 검색박스 + 기타 필터 초기화 (KPI 카드 클릭 시 깨끗한 결과 보이도록)
+  const srchEl = document.getElementById("plSrch");
+  if(srchEl) srchEl.value = "";
+  const tpEl = document.getElementById("plTp"); if(tpEl) tpEl.value = "";
+  const mgEl = document.getElementById("plMg"); if(mgEl) mgEl.value = "";
+  const yrEl = document.getElementById("plYr"); if(yrEl) yrEl.value = "";
   // 퀵필터 버튼 on/off
   plQF = status;
   document.querySelectorAll(".qb").forEach(b => {
@@ -5559,6 +5576,163 @@ function renderDBHistoryList() {
       <td style="font-size:12px;color:var(--t3);white-space:nowrap">${dateStr}</td>
     </tr>`;
   }).join("");
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 공용: DB 모달 품목 자동계산 (발주/계약/거래/세금/납품 공통)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 데이터 구조: [{name, unitPrice, qty, unit, note}]
+window._dbItems = { order:[], contract:[], delivery:[], tax:[], confirm:[] };
+window._dbItemsTotalOverride = { order:false, contract:false, delivery:false, tax:false, confirm:false };
+
+// 숫자 포맷/파싱
+function _fmtNum(n) {
+  if(n===""||n===null||n===undefined||isNaN(n)) return "";
+  return Number(n).toLocaleString("ko-KR");
+}
+function _parseNum(s) {
+  if(!s) return 0;
+  return Number(String(s).replace(/,/g,"").replace(/[^\d.-]/g,"")) || 0;
+}
+
+// 품목 추가/삭제/수정
+function dbAddItem(dbType) {
+  if(!_dbItems[dbType]) _dbItems[dbType] = [];
+  _dbItems[dbType].push({name:"", unitPrice:0, qty:1, unit:"EA", note:""});
+  dbRenderItems(dbType);
+}
+function dbRemoveItem(dbType, idx) {
+  if(!_dbItems[dbType]) return;
+  _dbItems[dbType].splice(idx, 1);
+  dbRenderItems(dbType);
+}
+function dbUpdateItem(dbType, idx, field, value) {
+  if(!_dbItems[dbType] || !_dbItems[dbType][idx]) return;
+  if(field === "unitPrice" || field === "qty") {
+    _dbItems[dbType][idx][field] = _parseNum(value);
+  } else {
+    _dbItems[dbType][idx][field] = value;
+  }
+  dbRenderItems(dbType);
+}
+
+// 사용자가 총합을 직접 편집할 경우
+function dbOverrideTotal(dbType, value) {
+  _dbItemsTotalOverride[dbType] = true;
+  const el = document.getElementById(dbType + "-total-amount");
+  if(el) el.value = _fmtNum(_parseNum(value));
+}
+function dbResetTotalOverride(dbType) {
+  _dbItemsTotalOverride[dbType] = false;
+  dbRenderItems(dbType);  // 다시 자동 합계로 갱신
+}
+
+// 자동 합계
+function dbCalcTotal(dbType) {
+  const items = _dbItems[dbType] || [];
+  return items.reduce((s,it)=> s + (Number(it.unitPrice)||0) * (Number(it.qty)||1), 0);
+}
+
+// 품목 테이블 렌더링
+function dbRenderItems(dbType) {
+  const wrap = document.getElementById(dbType + "-items-wrap");
+  if(!wrap) return;
+  const items = _dbItems[dbType] || [];
+  const COLOR = {order:"#7c3aed", contract:"#0369a1", delivery:"#f59e0b", tax:"#dc2626", confirm:"#10b981"};
+  const color = COLOR[dbType] || "var(--p)";
+
+  if(!items.length) {
+    wrap.innerHTML = `<div style="padding:14px;text-align:center;color:var(--t3);font-size:13px;border:1.5px dashed var(--border2);border-radius:8px;background:var(--bg3)">
+      품목이 없습니다. <button type="button" onclick="dbAddItem('${dbType}')" style="margin-left:6px;padding:4px 10px;border:none;background:${color};color:#fff;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px">+ 품목 추가</button>
+    </div>`;
+    const totalEl = document.getElementById(dbType + "-total-amount");
+    if(totalEl && !_dbItemsTotalOverride[dbType]) totalEl.value = "";
+    return;
+  }
+
+  const rows = items.map((it, i)=>{
+    const lineAmount = (Number(it.unitPrice)||0) * (Number(it.qty)||1);
+    return `<div style="display:grid;grid-template-columns:24px 1fr 95px 55px 50px 110px 24px;gap:4px;align-items:center;padding:5px 4px;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--t3);text-align:center;font-weight:700">${i+1}</div>
+      <input type="text" placeholder="품목 / 규격" value="${(it.name||"").replace(/"/g,"&quot;")}"
+        oninput="dbUpdateItem('${dbType}',${i},'name',this.value)"
+        style="padding:5px 8px;border:1px solid var(--border2);border-radius:5px;font-size:12px;width:100%;box-sizing:border-box">
+      <input type="text" placeholder="단가" value="${_fmtNum(it.unitPrice)}"
+        oninput="dbUpdateItem('${dbType}',${i},'unitPrice',this.value)"
+        style="padding:5px 7px;border:1px solid var(--border2);border-radius:5px;font-size:12px;width:100%;text-align:right;box-sizing:border-box">
+      <input type="number" placeholder="수량" value="${it.qty||1}" min="0" step="0.01"
+        oninput="dbUpdateItem('${dbType}',${i},'qty',this.value)"
+        style="padding:5px 5px;border:1px solid var(--border2);border-radius:5px;font-size:12px;width:100%;text-align:center;box-sizing:border-box">
+      <input type="text" placeholder="단위" value="${(it.unit||"EA").replace(/"/g,"&quot;")}"
+        oninput="dbUpdateItem('${dbType}',${i},'unit',this.value)"
+        style="padding:5px 4px;border:1px solid var(--border2);border-radius:5px;font-size:12px;width:100%;text-align:center;box-sizing:border-box">
+      <div style="font-size:12px;color:${color};font-weight:700;text-align:right;background:${color}15;border-radius:5px;padding:5px 8px">${_fmtNum(lineAmount)}</div>
+      <button type="button" onclick="dbRemoveItem('${dbType}',${i})" title="이 행 삭제"
+        style="border:none;background:transparent;color:var(--r);cursor:pointer;font-size:16px;padding:0">×</button>
+    </div>`;
+  }).join("");
+
+  const total = dbCalcTotal(dbType);
+
+  wrap.innerHTML = `
+    <div style="display:grid;grid-template-columns:24px 1fr 95px 55px 50px 110px 24px;gap:4px;padding:6px 4px;background:${color}15;border-radius:6px 6px 0 0;font-size:11px;font-weight:700;color:${color}">
+      <div style="text-align:center">#</div>
+      <div>품목 / 규격</div>
+      <div style="text-align:right">단가</div>
+      <div style="text-align:center">수량</div>
+      <div style="text-align:center">단위</div>
+      <div style="text-align:right">금액</div>
+      <div></div>
+    </div>
+    ${rows}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;background:var(--bg3);border-radius:0 0 6px 6px">
+      <button type="button" onclick="dbAddItem('${dbType}')" style="padding:5px 12px;border:1.5px dashed ${color};background:transparent;color:${color};border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;font-family:var(--s)">+ 품목 추가</button>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px">
+        <span style="color:var(--t2);font-weight:700">자동 합계:</span>
+        <span style="font-weight:900;color:${color};font-family:var(--m);font-size:15px">${_fmtNum(total)}</span>
+        ${_dbItemsTotalOverride[dbType] ? `<button type="button" onclick="dbResetTotalOverride('${dbType}')" style="padding:3px 8px;border:1px solid var(--border2);background:#fff;color:var(--t2);border-radius:5px;cursor:pointer;font-size:11px;font-family:var(--s)" title="총액 수동 편집 해제 → 자동 합계로 복원">🔄 자동</button>` : ""}
+      </div>
+    </div>
+  `;
+
+  // 총합 input에도 반영 (수동 편집 안 한 경우에만)
+  const totalEl = document.getElementById(dbType + "-total-amount");
+  if(totalEl && !_dbItemsTotalOverride[dbType]) totalEl.value = _fmtNum(total);
+}
+
+// 모달 열 때 호출 (AI 파싱 결과 / 기존 데이터로 품목 초기화)
+function dbInitItems(dbType, items) {
+  _dbItems[dbType] = Array.isArray(items) && items.length
+    ? items.map(it => ({
+        name: it.name || "",
+        unitPrice: Number(it.unitPrice||it.price||0),
+        qty: Number(it.qty||1),
+        unit: it.unit || "EA",
+        note: it.note || "",
+      }))
+    : [];
+  _dbItemsTotalOverride[dbType] = false;
+  dbRenderItems(dbType);
+}
+
+// 저장 시 호출 → 항목 배열 + 총합 + 요약문 반환
+function dbExtractSaveData(dbType) {
+  const items = (_dbItems[dbType] || []).filter(it => it.name || it.unitPrice);
+  const autoTotal = dbCalcTotal(dbType);
+  let manualTotal = null;
+  const el = document.getElementById(dbType + "-total-amount");
+  if(_dbItemsTotalOverride[dbType] && el) {
+    manualTotal = _parseNum(el.value);
+  }
+  return {
+    items,
+    total: manualTotal !== null ? manualTotal : autoTotal,
+    summary: items.length === 1 ? items[0].name
+           : items.length > 1 ? `${items[0].name||"-"} 외 ${items.length-1}건`
+           : "",
+    qtySummary: items.length === 1 ? `${items[0].qty||1}${items[0].unit||""}`
+              : items.length > 1 ? `${items.length}품목` : "",
+  };
 }
 
 
@@ -17195,6 +17369,17 @@ function openOrderModal(id) {
     document.getElementById("order-status").value = d.status||"수신";
     document.getElementById("order-note").value = d.note||"";
     document.getElementById("order-file-url").value = d.fileUrl||"";
+    // 품목 배열 복원 (저장된 items 있으면 사용, 없으면 단일 항목으로 환산)
+    if(Array.isArray(d.items) && d.items.length) {
+      dbInitItems("order", d.items);
+    } else if(d.item || d.amount) {
+      dbInitItems("order", [{name:d.item||"", unitPrice:Number(d.amount)||0, qty:1, unit:d.qty||"EA"}]);
+    } else {
+      dbInitItems("order", []);
+    }
+    // 총합 input
+    const totalEl = document.getElementById("order-total-amount");
+    if(totalEl) totalEl.value = _fmtNum(d.amount||0);
   } else {
     $("orderModalTitle","📦 발주서 등록");
     ["date","company","item","qty","amount","po","pjcode","duedate","note","file-url","edit-id"].forEach(f=>{
@@ -17203,6 +17388,10 @@ function openOrderModal(id) {
     document.getElementById("order-date").value = new Date().toISOString().split("T")[0];
     document.getElementById("order-status").value = "수신";
     const st=document.getElementById("orderParseStatus"); if(st){st.style.display="none";st.style.color="";}
+    // 신규: 빈 품목 1개로 시작
+    dbInitItems("order", [{name:"", unitPrice:0, qty:1, unit:"EA"}]);
+    const totalEl = document.getElementById("order-total-amount");
+    if(totalEl) totalEl.value = "";
   }
   modal.style.display = "flex";
 }
@@ -17226,7 +17415,8 @@ async function parseOrderPdf(file) {
   } catch(e){console.warn("발주서 SP 저장 실패:",e.message);}
 
   const prompt = `이 발주서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. JSON만 출력(마크다운 없이):
-{"date":"YYYY-MM-DD(발주일)","company":"발주처(고객사)회사명","item":"품목명","qty":"수량+단위","amount":발주금액숫자,"po":"PO번호","pjcode":"프로젝트코드","duedate":"YYYY-MM-DD(납기요청일)","note":"비고"}`;
+{"date":"YYYY-MM-DD(발주일)","company":"발주처(고객사)회사명","po":"PO번호","pjcode":"프로젝트코드","duedate":"YYYY-MM-DD(납기요청일)","note":"비고","items":[{"name":"품목명/규격","unitPrice":단가숫자,"qty":수량숫자,"unit":"단위(EA/SET 등)"}],"amount":총합금액숫자}
+※ 발주서에 품목이 여러 개면 items 배열에 모두 넣고, 단가가 명시 안 되어 있으면 (총액÷수량)으로 계산해서 unitPrice에 넣어줘.`;
 
   const engine = document.querySelector('input[name="orderAiEngine"]:checked')?.value || "gemini";
   const base64 = await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
@@ -17297,9 +17487,27 @@ async function parseOrderPdf(file) {
     }
     if(resultJson){
       console.log("🤖 발주서 AI 파싱 결과:", JSON.stringify(resultJson));
-      const m={"date":"order-date","company":"order-company","item":"order-item","qty":"order-qty","amount":"order-amount","po":"order-po","pjcode":"order-pjcode","duedate":"order-duedate","note":"order-note"};
+      // 기본 필드
+      const m={"date":"order-date","company":"order-company","po":"order-po","pjcode":"order-pjcode","duedate":"order-duedate","note":"order-note"};
       Object.entries(m).forEach(([k,elId])=>{if(resultJson[k]!==undefined){const el=document.getElementById(elId);if(el)el.value=resultJson[k];}});
-      if(statusEl){statusEl.textContent="✅ 추출 완료! 내용 확인 후 저장하세요.";statusEl.style.color="var(--g)";}
+      // 품목 배열
+      if(Array.isArray(resultJson.items) && resultJson.items.length) {
+        dbInitItems("order", resultJson.items);
+      } else if(resultJson.item || resultJson.amount) {
+        // 옛 단일 품목 폴백
+        dbInitItems("order", [{name:resultJson.item||"", unitPrice:Number(resultJson.amount)||0, qty:Number(resultJson.qty)||1, unit:"EA"}]);
+      }
+      // 총합: AI가 amount 줬으면 그걸로, 없으면 자동계산
+      if(resultJson.amount) {
+        const totalEl = document.getElementById("order-total-amount");
+        const autoSum = dbCalcTotal("order");
+        // AI가 준 amount와 자동합계가 다르면 AI 값 우선 (수동 override로 표시)
+        if(totalEl && Math.abs(autoSum - resultJson.amount) > 1) {
+          dbOverrideTotal("order", resultJson.amount);
+          dbRenderItems("order");
+        }
+      }
+      if(statusEl){statusEl.textContent="✅ 추출 완료! 품목/금액 확인 후 저장하세요.";statusEl.style.color="var(--g)";}
     }
   } catch(e){if(statusEl){statusEl.textContent="❌ "+e.message;statusEl.style.color="var(--r)";}}
 }
@@ -17309,11 +17517,14 @@ async function saveOrderEntry() {
   const company=document.getElementById("order-company")?.value?.trim();
   if(!date||!company){alert("발주일과 발주처는 필수입니다.");return;}
   const editId=document.getElementById("order-edit-id")?.value;
+  // 품목 배열 + 총합 추출 (자동/수동 모두 지원)
+  const {items, total, summary, qtySummary} = dbExtractSaveData("order");
   const entry={
     id:editId||"ord_"+Date.now(), date, company,
-    item:document.getElementById("order-item")?.value||"",
-    qty:document.getElementById("order-qty")?.value||"",
-    amount:Number(document.getElementById("order-amount")?.value||0),
+    items,                       // 품목 배열 (신규)
+    item: summary,               // 요약 (구버전 호환: 목록 표시용)
+    qty: qtySummary,             // 수량 요약
+    amount: total,               // 총액
     po:document.getElementById("order-po")?.value||"",
     pjcode:document.getElementById("order-pjcode")?.value||"",
     duedate:document.getElementById("order-duedate")?.value||"",
@@ -17324,9 +17535,9 @@ async function saveOrderEntry() {
   };
   if(editId){const idx=_ordData.findIndex(x=>x.id===editId);if(idx>=0)_ordData[idx]=entry;else _ordData.unshift(entry);}
   else _ordData.unshift(entry);
-  const _label = `${date} · ${company} · ${entry.po||entry.item||"-"}`;
+  const _label = `${date} · ${company} · ${entry.po||summary||"-"}`;
   addDBHistory("order", editId?"수정":"신규 등록", _label);
-  try{await saveOrderToSP();renderOrderDB();document.getElementById("orderModal").style.display="none";alert("✅ 발주서 저장 완료!");}
+  try{await saveOrderToSP();renderOrderDB();document.getElementById("orderModal").style.display="none";alert("✅ 발주서 저장 완료!\n품목 "+items.length+"건 / 총액 "+_fmtNum(total)+"원");}
   catch(e){alert("저장 실패: "+e.message);}
 }
 
@@ -17462,34 +17673,96 @@ function renderTaxDB() {
 }
 
 function calcDlvTotal() {
-  const s=Number(document.getElementById("dlv-supply")?.value||0);
-  const t=Number(document.getElementById("dlv-tax")?.value||0);
-  const tot=document.getElementById("dlv-total");
-  if(tot&&(s||t)) tot.value=s+t;
+  // 새 시스템: delivery-total-amount(공급가액 입력) → dlv-tax(세액 10%) → dlv-total(합계)
+  const supplyEl = document.getElementById("delivery-total-amount");
+  const taxEl = document.getElementById("dlv-tax");
+  const totEl = document.getElementById("dlv-total");
+  if(!supplyEl) {
+    // 옛 시스템 폴백
+    const s=Number(document.getElementById("dlv-supply")?.value||0);
+    const t=Number(taxEl?.value||0);
+    if(totEl&&(s||t)) totEl.value=s+t;
+    return;
+  }
+  const supply = _parseNum(supplyEl.value);
+  // 세액 자동(10%): 사용자가 직접 수정한 적 있으면 그대로, 아니면 자동
+  const taxOverride = taxEl && taxEl.dataset.manual === "1";
+  if(!taxOverride && taxEl) {
+    taxEl.value = Math.round(supply * 0.1);
+  }
+  const tax = Number(taxEl?.value||0);
+  if(totEl) totEl.value = supply + tax;
 }
+
+// 세액 직접 편집 감지
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(()=> {
+    const dlvTax = document.getElementById("dlv-tax");
+    if(dlvTax) {
+      dlvTax.addEventListener("input", () => { dlvTax.dataset.manual = "1"; });
+    }
+    const taxVat = document.getElementById("tax-vat");
+    if(taxVat) {
+      taxVat.addEventListener("input", () => { taxVat.dataset.manual = "1"; });
+    }
+  }, 1000);
+});
+
 function calcTaxTotal() {
-  const s=Number(document.getElementById("tax-supply")?.value||0);
-  const v=Number(document.getElementById("tax-vat")?.value||0);
-  const tot=document.getElementById("tax-total");
-  if(tot&&(s||v)) tot.value=s+v;
+  // 새 시스템: tax-total-amount(공급가액) → tax-vat → tax-total
+  const supplyEl = document.getElementById("tax-total-amount");
+  const vatEl = document.getElementById("tax-vat");
+  const totEl = document.getElementById("tax-total");
+  if(!supplyEl) {
+    const s=Number(document.getElementById("tax-supply")?.value||0);
+    const v=Number(vatEl?.value||0);
+    if(totEl&&(s||v)) totEl.value=s+v;
+    return;
+  }
+  const supply = _parseNum(supplyEl.value);
+  const vatOverride = vatEl && vatEl.dataset.manual === "1";
+  if(!vatOverride && vatEl) {
+    vatEl.value = Math.round(supply * 0.1);
+  }
+  const vat = Number(vatEl?.value||0);
+  if(totEl) totEl.value = supply + vat;
 }
 
 function openDeliveryModal(id) {
   const modal=document.getElementById("dlvModal"); if(!modal) return;
   const gk=localStorage.getItem("gemini_key")||""; if(gk) { const el=document.getElementById("dlvGeminiKey"); if(el) el.value=gk; }
   const ok=localStorage.getItem("oai_key")||""; if(ok) { const el=document.getElementById("dlvOpenAIKey"); if(el) el.value=ok; }
+  // 세액 manual 플래그 초기화
+  const taxEl = document.getElementById("dlv-tax");
+  if(taxEl) delete taxEl.dataset.manual;
   if(id) {
     const d=_dlvData.find(x=>x.id===id); if(!d) return;
     $("dlvModalTitle","🚚 거래명세서 수정");
-    ["date","company","item","qty","supply","tax","total","po","pjcode","note","file-url"].forEach(f=>{
+    ["date","company","tax","total","po","pjcode","note","file-url"].forEach(f=>{
       const el=document.getElementById("dlv-"+f); if(el) el.value=d[f.replace("-","")]||d[f]||"";
     });
     document.getElementById("dlv-edit-id").value=id;
+    // 품목 복원
+    if(Array.isArray(d.items) && d.items.length) {
+      dbInitItems("delivery", d.items);
+    } else if(d.item || d.supply) {
+      dbInitItems("delivery", [{name:d.item||"", unitPrice:Number(d.supply)||0, qty:1, unit:d.qty||"EA"}]);
+    } else {
+      dbInitItems("delivery", []);
+    }
+    const totalEl = document.getElementById("delivery-total-amount");
+    if(totalEl) totalEl.value = _fmtNum(d.supply||0);
+    // 세액이 있으면 manual로 마킹 (자동 10% 덮어쓰기 방지)
+    if(d.tax && taxEl) taxEl.dataset.manual = "1";
+    calcDlvTotal();
   } else {
     $("dlvModalTitle","🚚 거래명세서 등록");
-    ["date","company","item","qty","supply","tax","total","po","pjcode","note","file-url","edit-id"].forEach(f=>{ const el=document.getElementById("dlv-"+f); if(el) el.value=""; });
+    ["date","company","tax","total","po","pjcode","note","file-url","edit-id"].forEach(f=>{ const el=document.getElementById("dlv-"+f); if(el) el.value=""; });
     document.getElementById("dlv-date").value=new Date().toISOString().split("T")[0];
     const st=document.getElementById("dlvParseStatus"); if(st){st.style.display="none";st.style.color="";}
+    dbInitItems("delivery", [{name:"", unitPrice:0, qty:1, unit:"EA"}]);
+    const totalEl = document.getElementById("delivery-total-amount");
+    if(totalEl) totalEl.value = "";
   }
   modal.style.display="flex";
 }
@@ -17497,25 +17770,39 @@ function openTaxModal(id) {
   const modal=document.getElementById("taxModal"); if(!modal) return;
   const gk=localStorage.getItem("gemini_key")||""; if(gk) { const el=document.getElementById("taxGeminiKey"); if(el) el.value=gk; }
   const ok=localStorage.getItem("oai_key")||""; if(ok) { const el=document.getElementById("taxOpenAIKey"); if(el) el.value=ok; }
+  const vatEl = document.getElementById("tax-vat");
+  if(vatEl) delete vatEl.dataset.manual;
   if(id) {
     const d=_taxData.find(x=>x.id===id); if(!d) return;
     $("taxModalTitle","🧾 세금계산서 수정");
     document.getElementById("tax-edit-id").value=id;
     document.getElementById("tax-date").value=d.date||"";
     document.getElementById("tax-company").value=d.company||"";
-    document.getElementById("tax-item").value=d.item||"";
-    document.getElementById("tax-supply").value=d.supply||"";
     document.getElementById("tax-vat").value=d.vat||"";
     document.getElementById("tax-total").value=d.total||"";
     document.getElementById("tax-approval").value=d.approval||"";
     document.getElementById("tax-mgmt").value=d.mgmt||"";
     document.getElementById("tax-note").value=d.note||"";
     document.getElementById("tax-file-url").value=d.fileUrl||"";
+    if(Array.isArray(d.items) && d.items.length) {
+      dbInitItems("tax", d.items);
+    } else if(d.item || d.supply) {
+      dbInitItems("tax", [{name:d.item||"", unitPrice:Number(d.supply)||0, qty:1, unit:"EA"}]);
+    } else {
+      dbInitItems("tax", []);
+    }
+    const totalEl = document.getElementById("tax-total-amount");
+    if(totalEl) totalEl.value = _fmtNum(d.supply||0);
+    if(d.vat && vatEl) vatEl.dataset.manual = "1";
+    calcTaxTotal();
   } else {
     $("taxModalTitle","🧾 세금계산서 등록");
-    ["date","company","item","supply","vat","total","approval","mgmt","note","file-url","edit-id"].forEach(f=>{ const el=document.getElementById("tax-"+f); if(el) el.value=""; });
+    ["date","company","vat","total","approval","mgmt","note","file-url","edit-id"].forEach(f=>{ const el=document.getElementById("tax-"+f); if(el) el.value=""; });
     document.getElementById("tax-date").value=new Date().toISOString().split("T")[0];
     const st=document.getElementById("taxParseStatus"); if(st){st.style.display="none";st.style.color="";}
+    dbInitItems("tax", [{name:"", unitPrice:0, qty:1, unit:"EA"}]);
+    const totalEl = document.getElementById("tax-total-amount");
+    if(totalEl) totalEl.value = "";
   }
   modal.style.display="flex";
 }
@@ -17526,8 +17813,12 @@ async function parsePdfWithAI(file, docType, statusElId, fillFn) {
   const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
   const engine=document.querySelector(`input[name="${docType==="dlv"?"docAiEngine":"taxAiEngine"}"]:checked`)?.value||"gemini";
   const prompt=docType==="dlv"
-    ?`이 거래명세서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. 반드시 JSON만 출력(설명 없이, 마크다운 없이):\n{"date":"YYYY-MM-DD","company":"공급받는자 회사명","item":"품목명","qty":"수량+단위","supply":공급가액숫자,"tax":세액숫자(공급가액의10%),"total":합계금액숫자,"po":"PO번호","pjcode":"프로젝트코드","note":"비고"}`
-    :`이 전자세금계산서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. 반드시 JSON만 출력(설명 없이, 마크다운 없이):\n{"date":"YYYY-MM-DD(작성일)","company":"공급받는자 회사명","item":"품목명","supply":공급가액숫자,"vat":세액숫자(공급가액의10%,없으면0),"total":합계금액숫자(공급가액+세액),"approval":"승인번호(영숫자)","mgmt":"관리번호","note":"기타"}`;
+    ?`이 거래명세서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. 반드시 JSON만 출력(설명 없이, 마크다운 없이):
+{"date":"YYYY-MM-DD","company":"공급받는자 회사명","po":"PO번호","pjcode":"프로젝트코드","note":"비고","items":[{"name":"품목명/규격","unitPrice":단가숫자,"qty":수량숫자,"unit":"EA/SET 등"}],"supply":공급가액총합숫자,"tax":세액숫자(공급가액의10%),"total":합계금액숫자}
+※ 거래명세서에 품목이 여러 개면 items 배열에 모두 넣고, 단가가 없으면 공급가액÷수량으로 계산. supply=품목합계, tax=공급가액×10%, total=supply+tax.`
+    :`이 전자세금계산서 PDF에서 다음 항목을 JSON으로 추출해줘. 숫자는 쉼표 없는 순수 숫자로. 반드시 JSON만 출력(설명 없이, 마크다운 없이):
+{"date":"YYYY-MM-DD(작성일)","company":"공급받는자 회사명","approval":"승인번호(영숫자)","mgmt":"관리번호","note":"기타","items":[{"name":"품목명","unitPrice":단가숫자,"qty":수량숫자,"unit":"EA"}],"supply":공급가액총합숫자,"vat":세액숫자(공급가액10%,없으면0),"total":합계금액숫자(공급가액+세액)}
+※ 세금계산서에 품목이 여러 개면 items 배열에 모두 넣고, 단가가 없으면 (공급가액÷수량)으로 계산.`;
   try {
     let resultJson=null;
     if(engine==="gemini"){
@@ -17683,8 +17974,29 @@ async function parseDlvPdf(file) {
     if(r.ok){const d=await r.json();const el=document.getElementById("dlv-file-url");if(el)el.value=d.webUrl||"";}
   } catch(e){console.warn("거래명세서 SP 저장 실패:",e.message);}
   await parsePdfWithAI(file,"dlv","dlvParseStatus",(json)=>{
-    const m={"date":"dlv-date","company":"dlv-company","item":"dlv-item","qty":"dlv-qty","supply":"dlv-supply","tax":"dlv-tax","total":"dlv-total","po":"dlv-po","pjcode":"dlv-pjcode","note":"dlv-note"};
+    // 기본 필드
+    const m={"date":"dlv-date","company":"dlv-company","tax":"dlv-tax","total":"dlv-total","po":"dlv-po","pjcode":"dlv-pjcode","note":"dlv-note"};
     Object.entries(m).forEach(([k,id])=>{if(json[k]!==undefined){const el=document.getElementById(id);if(el)el.value=json[k];}});
+    // 품목 배열
+    if(Array.isArray(json.items) && json.items.length) {
+      dbInitItems("delivery", json.items);
+    } else if(json.item || json.supply) {
+      dbInitItems("delivery", [{name:json.item||"", unitPrice:Number(json.supply)||0, qty:Number(json.qty)||1, unit:"EA"}]);
+    }
+    // 공급가액 자동/수동
+    if(json.supply) {
+      const autoSum = dbCalcTotal("delivery");
+      if(Math.abs(autoSum - json.supply) > 1) {
+        dbOverrideTotal("delivery", json.supply);
+        dbRenderItems("delivery");
+      }
+    }
+    // 세액이 AI 결과에 있으면 manual 마킹 (자동 10% 덮어쓰기 방지)
+    if(json.tax) {
+      const taxEl = document.getElementById("dlv-tax");
+      if(taxEl) taxEl.dataset.manual = "1";
+    }
+    calcDlvTotal();
   });
 }
 
@@ -17703,8 +18015,25 @@ async function parseTaxPdf(file) {
     if(r.ok){const d=await r.json();const el=document.getElementById("tax-file-url");if(el)el.value=d.webUrl||"";}
   } catch(e){console.warn("세금계산서 SP 저장 실패:",e.message);}
   await parsePdfWithAI(file,"tax","taxParseStatus",(json)=>{
-    const m={"date":"tax-date","company":"tax-company","item":"tax-item","supply":"tax-supply","vat":"tax-vat","total":"tax-total","approval":"tax-approval","mgmt":"tax-mgmt","note":"tax-note"};
+    const m={"date":"tax-date","company":"tax-company","vat":"tax-vat","total":"tax-total","approval":"tax-approval","mgmt":"tax-mgmt","note":"tax-note"};
     Object.entries(m).forEach(([k,id])=>{if(json[k]!==undefined){const el=document.getElementById(id);if(el)el.value=json[k];}});
+    if(Array.isArray(json.items) && json.items.length) {
+      dbInitItems("tax", json.items);
+    } else if(json.item || json.supply) {
+      dbInitItems("tax", [{name:json.item||"", unitPrice:Number(json.supply)||0, qty:1, unit:"EA"}]);
+    }
+    if(json.supply) {
+      const autoSum = dbCalcTotal("tax");
+      if(Math.abs(autoSum - json.supply) > 1) {
+        dbOverrideTotal("tax", json.supply);
+        dbRenderItems("tax");
+      }
+    }
+    if(json.vat) {
+      const vatEl = document.getElementById("tax-vat");
+      if(vatEl) vatEl.dataset.manual = "1";
+    }
+    calcTaxTotal();
   });
 }
 
@@ -17779,21 +18108,33 @@ function openConfirmModal(id) {
     const d = _cfmData.find(x=>x.id===id); if(!d) return;
     document.getElementById("cfm-edit-id").value = id;
     document.getElementById("cfmModalTitle").textContent = "✅ 납품확인서 수정";
-    ["date","company","item","qty","po","pjcode","note"].forEach(f=>{
+    ["date","company","po","pjcode","note"].forEach(f=>{
       const el=document.getElementById("cfm-"+f); if(el) el.value=d[f]||"";
     });
-    document.getElementById("cfm-amount").value = d.amount||"";
     document.getElementById("cfm-status").value = d.status||"납품완료";
     document.getElementById("cfm-file-url").value = d.fileUrl||"";
+    // 품목 배열 복원
+    if(Array.isArray(d.items) && d.items.length) {
+      dbInitItems("confirm", d.items);
+    } else if(d.item || d.amount) {
+      dbInitItems("confirm", [{name:d.item||"", unitPrice:Number(d.amount)||0, qty:1, unit:d.qty||"EA"}]);
+    } else {
+      dbInitItems("confirm", []);
+    }
+    const totalEl = document.getElementById("confirm-total-amount");
+    if(totalEl) totalEl.value = _fmtNum(d.amount||0);
   } else {
     document.getElementById("cfm-edit-id").value = "";
     document.getElementById("cfmModalTitle").textContent = "✅ 납품확인서 등록";
-    ["date","company","item","qty","amount","po","pjcode","note"].forEach(f=>{
+    ["date","company","po","pjcode","note"].forEach(f=>{
       const el=document.getElementById("cfm-"+f); if(el) el.value="";
     });
     document.getElementById("cfm-date").value = new Date().toISOString().split("T")[0];
     document.getElementById("cfm-status").value = "납품완료";
     document.getElementById("cfm-file-url").value = "";
+    dbInitItems("confirm", [{name:"", unitPrice:0, qty:1, unit:"EA"}]);
+    const totalEl = document.getElementById("confirm-total-amount");
+    if(totalEl) totalEl.value = "";
   }
   modal.style.display = "flex";
 }
@@ -17803,12 +18144,11 @@ async function saveConfirmEntry() {
   const date    = document.getElementById("cfm-date")?.value;
   if(!company||!date) { alert("납품일과 거래처는 필수입니다"); return; }
   const editId = document.getElementById("cfm-edit-id").value;
+  const {items, total, summary, qtySummary} = dbExtractSaveData("confirm");
   const entry = {
     id: editId || "cfm_"+Date.now(),
     date, company,
-    item:    document.getElementById("cfm-item").value,
-    qty:     document.getElementById("cfm-qty").value,
-    amount:  Number(document.getElementById("cfm-amount").value||0),
+    items, item: summary, qty: qtySummary, amount: total,
     po:      document.getElementById("cfm-po").value,
     pjcode:  document.getElementById("cfm-pjcode").value,
     status:  document.getElementById("cfm-status").value,
@@ -17818,7 +18158,7 @@ async function saveConfirmEntry() {
   };
   if(editId){ const i=_cfmData.findIndex(x=>x.id===editId); if(i>=0)_cfmData[i]=entry; else _cfmData.unshift(entry); }
   else _cfmData.unshift(entry);
-  addDBHistory("confirm", editId?"수정":"신규 등록", `${date} · ${company} · ${entry.item||"-"}`);
+  addDBHistory("confirm", editId?"수정":"신규 등록", `${date} · ${company} · ${summary||"-"}`);
   await saveConfirmToSP();
   renderConfirmDB();
   document.getElementById("cfmModal").style.display = "none";
@@ -17856,19 +18196,31 @@ async function parseCfmPdf(file) {
   const engine = document.querySelector('input[name="cfmAiEngine"]:checked')?.value||"gemini";
   const geminiKey = document.getElementById("cfmGeminiKey")?.value || localStorage.getItem("gemini_key")||"";
   try {
-    const prompt = `납품확인서/거래명세서 PDF에서 다음 필드를 추출해서 JSON으로만 답해. 없으면 빈 문자열:
-{"date":"YYYY-MM-DD","company":"거래처명","item":"품목","qty":"수량","amount":숫자,"po":"PO번호","pjcode":"프로젝트코드","note":"비고"}`;
+    const prompt = `납품확인서/거래명세서 PDF에서 다음 필드를 추출해서 JSON으로만 답해 (숫자는 콤마 없이):
+{"date":"YYYY-MM-DD","company":"거래처명","po":"PO번호","pjcode":"프로젝트코드","note":"비고","items":[{"name":"품목/규격","unitPrice":단가숫자,"qty":수량숫자,"unit":"EA"}],"amount":총합금액숫자}
+※ 품목이 여러 개면 items 배열에 모두 넣어. 단가가 없으면 (총액÷수량)으로 계산.`;
     const result = await parseDocWithAI(file, prompt, engine, geminiKey, document.getElementById("cfmGeminiKey"));
     if(result) {
       if(result.date) document.getElementById("cfm-date").value = result.date;
       if(result.company) document.getElementById("cfm-company").value = result.company;
-      if(result.item) document.getElementById("cfm-item").value = result.item;
-      if(result.qty) document.getElementById("cfm-qty").value = result.qty;
-      if(result.amount) document.getElementById("cfm-amount").value = result.amount;
       if(result.po) document.getElementById("cfm-po").value = result.po;
       if(result.pjcode) document.getElementById("cfm-pjcode").value = result.pjcode;
       if(result.note) document.getElementById("cfm-note").value = result.note;
-      statusEl.textContent = "✅ AI 추출 완료! 내용을 확인하고 저장하세요.";
+      // 품목 배열
+      if(Array.isArray(result.items) && result.items.length) {
+        dbInitItems("confirm", result.items);
+      } else if(result.item || result.amount) {
+        dbInitItems("confirm", [{name:result.item||"", unitPrice:Number(result.amount)||0, qty:Number(result.qty)||1, unit:"EA"}]);
+      }
+      // 총합 불일치 시 AI 값 우선
+      if(result.amount) {
+        const autoSum = dbCalcTotal("confirm");
+        if(Math.abs(autoSum - result.amount) > 1) {
+          dbOverrideTotal("confirm", result.amount);
+          dbRenderItems("confirm");
+        }
+      }
+      statusEl.textContent = "✅ AI 추출 완료! 품목/금액 확인 후 저장하세요.";
     } else { statusEl.textContent = "⚠️ 추출 실패 - 직접 입력해주세요"; }
   } catch(e) { statusEl.textContent = "❌ 오류: "+e.message; }
 }
@@ -17942,21 +18294,33 @@ function openContractModal(id) {
     const d = _ctrData.find(x=>x.id===id); if(!d) return;
     document.getElementById("ctr-edit-id").value = id;
     document.getElementById("ctrModalTitle").textContent = "📑 계약서 수정";
-    ["date","company","item","pjcode","duedate","note"].forEach(f=>{
+    ["date","company","pjcode","duedate","note"].forEach(f=>{
       const el=document.getElementById("ctr-"+f); if(el) el.value=d[f]||"";
     });
-    document.getElementById("ctr-amount").value = d.amount||"";
     document.getElementById("ctr-status").value = d.status||"계약체결";
     document.getElementById("ctr-file-url").value = d.fileUrl||"";
+    // 품목 복원
+    if(Array.isArray(d.items) && d.items.length) {
+      dbInitItems("contract", d.items);
+    } else if(d.item || d.amount) {
+      dbInitItems("contract", [{name:d.item||"", unitPrice:Number(d.amount)||0, qty:1, unit:"SET"}]);
+    } else {
+      dbInitItems("contract", []);
+    }
+    const totalEl = document.getElementById("contract-total-amount");
+    if(totalEl) totalEl.value = _fmtNum(d.amount||0);
   } else {
     document.getElementById("ctr-edit-id").value = "";
     document.getElementById("ctrModalTitle").textContent = "📑 계약서 등록";
-    ["date","company","item","amount","pjcode","duedate","note"].forEach(f=>{
+    ["date","company","pjcode","duedate","note"].forEach(f=>{
       const el=document.getElementById("ctr-"+f); if(el) el.value="";
     });
     document.getElementById("ctr-date").value = new Date().toISOString().split("T")[0];
     document.getElementById("ctr-status").value = "계약체결";
     document.getElementById("ctr-file-url").value = "";
+    dbInitItems("contract", [{name:"", unitPrice:0, qty:1, unit:"SET"}]);
+    const totalEl = document.getElementById("contract-total-amount");
+    if(totalEl) totalEl.value = "";
   }
   modal.style.display = "flex";
 }
@@ -17966,11 +18330,11 @@ async function saveContractEntry() {
   const date    = document.getElementById("ctr-date")?.value;
   if(!company||!date) { alert("계약일과 거래처는 필수입니다"); return; }
   const editId = document.getElementById("ctr-edit-id").value;
+  const {items, total, summary, qtySummary} = dbExtractSaveData("contract");
   const entry = {
     id: editId || "ctr_"+Date.now(),
     date, company,
-    item:    document.getElementById("ctr-item").value,
-    amount:  Number(document.getElementById("ctr-amount").value||0),
+    items, item: summary, amount: total,
     pjcode:  document.getElementById("ctr-pjcode").value,
     duedate: document.getElementById("ctr-duedate").value,
     status:  document.getElementById("ctr-status").value,
@@ -17980,7 +18344,7 @@ async function saveContractEntry() {
   };
   if(editId){ const i=_ctrData.findIndex(x=>x.id===editId); if(i>=0)_ctrData[i]=entry; else _ctrData.unshift(entry); }
   else _ctrData.unshift(entry);
-  addDBHistory("contract", editId?"수정":"신규 등록", `${date} · ${company} · ${entry.item||"-"}`);
+  addDBHistory("contract", editId?"수정":"신규 등록", `${date} · ${company} · ${summary||"-"}`);
   await saveContractToSP();
   renderContractDB();
   document.getElementById("ctrModal").style.display = "none";
@@ -18018,18 +18382,30 @@ async function parseCtrPdf(file) {
   const engine = document.querySelector('input[name="ctrAiEngine"]:checked')?.value||"gemini";
   const geminiKey = document.getElementById("ctrGeminiKey")?.value || localStorage.getItem("gemini_key")||"";
   try {
-    const prompt = `계약서 PDF에서 다음 필드를 추출해서 JSON으로만 답해. 없으면 빈 문자열:
-{"date":"YYYY-MM-DD","company":"거래처명","item":"계약내용","amount":숫자,"pjcode":"프로젝트코드","duedate":"YYYY-MM-DD","note":"비고"}`;
+    const prompt = `계약서 PDF에서 다음 필드를 추출해서 JSON으로만 답해 (숫자는 콤마 없이):
+{"date":"YYYY-MM-DD","company":"거래처명","pjcode":"프로젝트코드","duedate":"YYYY-MM-DD","note":"비고","items":[{"name":"품목/계약항목","unitPrice":단가숫자,"qty":수량숫자,"unit":"SET/EA 등"}],"amount":총계약금액숫자}
+※ 계약 품목이 여러 개면 items 배열에 모두 넣어. 단가가 없으면 (총액÷수량)으로 계산.`;
     const result = await parseDocWithAI(file, prompt, engine, geminiKey, document.getElementById("ctrGeminiKey"));
     if(result) {
       if(result.date) document.getElementById("ctr-date").value = result.date;
       if(result.company) document.getElementById("ctr-company").value = result.company;
-      if(result.item) document.getElementById("ctr-item").value = result.item;
-      if(result.amount) document.getElementById("ctr-amount").value = result.amount;
       if(result.pjcode) document.getElementById("ctr-pjcode").value = result.pjcode;
       if(result.duedate) document.getElementById("ctr-duedate").value = result.duedate;
       if(result.note) document.getElementById("ctr-note").value = result.note;
-      statusEl.textContent = "✅ AI 추출 완료!";
+      // 품목 배열
+      if(Array.isArray(result.items) && result.items.length) {
+        dbInitItems("contract", result.items);
+      } else if(result.item || result.amount) {
+        dbInitItems("contract", [{name:result.item||"", unitPrice:Number(result.amount)||0, qty:1, unit:"SET"}]);
+      }
+      if(result.amount) {
+        const autoSum = dbCalcTotal("contract");
+        if(Math.abs(autoSum - result.amount) > 1) {
+          dbOverrideTotal("contract", result.amount);
+          dbRenderItems("contract");
+        }
+      }
+      statusEl.textContent = "✅ AI 추출 완료! 품목/금액 확인 후 저장하세요.";
     } else { statusEl.textContent = "⚠️ 추출 실패 - 직접 입력해주세요"; }
   } catch(e) { statusEl.textContent = "❌ 오류: "+e.message; }
 }
@@ -18258,13 +18634,14 @@ async function saveDeliveryEntry() {
   const company=document.getElementById("dlv-company")?.value?.trim();
   if(!date||!company){alert("거래일과 거래처는 필수입니다.");return;}
   const editId=document.getElementById("dlv-edit-id")?.value;
+  // 품목 + 공급가액
+  const {items, total: supply, summary, qtySummary} = dbExtractSaveData("delivery");
+  const tax = Number(document.getElementById("dlv-tax")?.value||Math.round(supply*0.1));
+  const total = supply + tax;
   const entry={
     id:editId||"dlv_"+Date.now(), date, company,
-    item:document.getElementById("dlv-item")?.value||"",
-    qty:document.getElementById("dlv-qty")?.value||"",
-    supply:Number(document.getElementById("dlv-supply")?.value||0),
-    tax:Number(document.getElementById("dlv-tax")?.value||0),
-    total:Number(document.getElementById("dlv-total")?.value||0),
+    items, item: summary, qty: qtySummary,
+    supply, tax, total,
     po:document.getElementById("dlv-po")?.value||"",
     pjcode:document.getElementById("dlv-pjcode")?.value||"",
     note:document.getElementById("dlv-note")?.value||"",
@@ -18273,8 +18650,8 @@ async function saveDeliveryEntry() {
   };
   if(editId){const idx=_dlvData.findIndex(x=>x.id===editId);if(idx>=0)_dlvData[idx]=entry;else _dlvData.unshift(entry);}
   else _dlvData.unshift(entry);
-  addDBHistory("delivery", editId?"수정":"신규 등록", `${date} · ${company} · ${entry.po||entry.item||"-"}`);
-  try{await saveDeliveryToSP();renderDeliveryDB();document.getElementById("dlvModal").style.display="none";alert("✅ 거래명세서 저장 완료!");}
+  addDBHistory("delivery", editId?"수정":"신규 등록", `${date} · ${company} · ${entry.po||summary||"-"}`);
+  try{await saveDeliveryToSP();renderDeliveryDB();document.getElementById("dlvModal").style.display="none";alert("✅ 거래명세서 저장 완료!\n품목 "+items.length+"건 / 공급가 "+_fmtNum(supply)+" + 세액 "+_fmtNum(tax)+" = "+_fmtNum(total)+"원");}
   catch(e){alert("저장 실패: "+e.message);}
 }
 
@@ -18283,12 +18660,13 @@ async function saveTaxEntry() {
   const company=document.getElementById("tax-company")?.value?.trim();
   if(!date||!company){alert("작성일과 공급받는자는 필수입니다.");return;}
   const editId=document.getElementById("tax-edit-id")?.value;
+  const {items, total: supply, summary, qtySummary} = dbExtractSaveData("tax");
+  const vat = Number(document.getElementById("tax-vat")?.value||Math.round(supply*0.1));
+  const total = supply + vat;
   const entry={
     id:editId||"tax_"+Date.now(), date, company,
-    item:document.getElementById("tax-item")?.value||"",
-    supply:Number(document.getElementById("tax-supply")?.value||0),
-    vat:Number(document.getElementById("tax-vat")?.value||0),
-    total:Number(document.getElementById("tax-total")?.value||0),
+    items, item: summary,
+    supply, vat, total,
     approval:document.getElementById("tax-approval")?.value||"",
     mgmt:document.getElementById("tax-mgmt")?.value||"",
     note:document.getElementById("tax-note")?.value||"",
@@ -18297,8 +18675,8 @@ async function saveTaxEntry() {
   };
   if(editId){const idx=_taxData.findIndex(x=>x.id===editId);if(idx>=0)_taxData[idx]=entry;else _taxData.unshift(entry);}
   else _taxData.unshift(entry);
-  addDBHistory("tax", editId?"수정":"신규 등록", `${date} · ${company} · ${entry.approval||entry.item||"-"}`);
-  try{await saveTaxToSP();renderTaxDB();document.getElementById("taxModal").style.display="none";alert("✅ 세금계산서 저장 완료!");}
+  addDBHistory("tax", editId?"수정":"신규 등록", `${date} · ${company} · ${entry.approval||summary||"-"}`);
+  try{await saveTaxToSP();renderTaxDB();document.getElementById("taxModal").style.display="none";alert("✅ 세금계산서 저장 완료!\n품목 "+items.length+"건 / 공급가 "+_fmtNum(supply)+" + 세액 "+_fmtNum(vat)+" = "+_fmtNum(total)+"원");}
   catch(e){alert("저장 실패: "+e.message);}
 }
 
@@ -18727,9 +19105,6 @@ function deleteTax(id){
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 발주일 *</label><input class="si" type="date" id="order-date" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 발주처(고객사) *</label><input class="si" type="text" id="order-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📦 품목</label><input class="si" type="text" id="order-item" placeholder="EHD Nozzle Assy 외" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔢 수량</label><input class="si" type="text" id="order-qty" placeholder="8 EA" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:3px">💰 발주금액</label><input class="si" type="number" id="order-amount" placeholder="1584000" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 PO번호</label><input class="si" type="text" id="order-po" placeholder="2064522177" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="order-pjcode" placeholder="BM25999-M020" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--r);display:block;margin-bottom:3px">📅 납기요청일</label><input class="si" type="date" id="order-duedate" style="width:100%;font-size:13px"></div>
@@ -18741,8 +19116,26 @@ function deleteTax(id){
                 <option value="납품완료">납품완료</option>
               </select>
             </div>
+          </div>
+          <!-- 품목 자동계산 영역 -->
+          <div style="margin-bottom:10px">
+            <label style="font-size:12px;font-weight:700;color:#7c3aed;display:block;margin-bottom:5px">📦 품목 (단가 × 수량 자동계산)</label>
+            <div id="order-items-wrap"></div>
+          </div>
+          <!-- 발주금액 (자동/수동 편집) -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div>
+              <label style="font-size:12px;font-weight:700;color:#7c3aed;display:block;margin-bottom:3px">💰 발주 총액 (자동 계산, 직접 편집 가능)</label>
+              <input class="si" type="text" id="order-total-amount" placeholder="0"
+                oninput="dbOverrideTotal('order',this.value);dbRenderItems('order')"
+                style="width:100%;font-size:14px;text-align:right;font-weight:700;color:#7c3aed">
+            </div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="order-note" placeholder="메모" style="width:100%;font-size:13px"></div>
           </div>
+          <!-- 숨김 필드 (기존 호환) -->
+          <input type="hidden" id="order-item">
+          <input type="hidden" id="order-qty">
+          <input type="hidden" id="order-amount">
           <input type="hidden" id="order-edit-id">
           <input type="hidden" id="order-file-url">
           <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -18828,16 +19221,28 @@ function deleteTax(id){
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 납품일 *</label><input class="si" type="date" id="cfm-date" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 거래처 *</label><input class="si" type="text" id="cfm-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📦 품목</label><input class="si" type="text" id="cfm-item" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔢 수량</label><input class="si" type="text" id="cfm-qty" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:3px">💰 납품금액</label><input class="si" type="number" id="cfm-amount" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 PO번호</label><input class="si" type="text" id="cfm-po" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="cfm-pjcode" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔄 상태</label>
+            <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔄 상태</label>
               <select class="si" id="cfm-status" style="width:100%;font-size:13px"><option value="납품완료">납품완료</option><option value="부분납품">부분납품</option><option value="반품">반품</option></select>
             </div>
-            <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="cfm-note" style="width:100%;font-size:13px"></div>
           </div>
+          <!-- 품목 자동계산 -->
+          <div style="margin-bottom:10px">
+            <label style="font-size:12px;font-weight:700;color:#10b981;display:block;margin-bottom:5px">📦 품목 (단가 × 수량 자동계산)</label>
+            <div id="confirm-items-wrap"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div>
+              <label style="font-size:12px;font-weight:700;color:#10b981;display:block;margin-bottom:3px">💰 납품 총액 (자동/수동)</label>
+              <input class="si" type="text" id="confirm-total-amount" placeholder="0"
+                oninput="dbOverrideTotal('confirm',this.value);dbRenderItems('confirm')"
+                style="width:100%;font-size:14px;text-align:right;font-weight:700;color:#10b981">
+            </div>
+            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="cfm-note" style="width:100%;font-size:13px"></div>
+          </div>
+          <!-- 숨김 (기존 호환) -->
+          <input type="hidden" id="cfm-item"><input type="hidden" id="cfm-qty"><input type="hidden" id="cfm-amount">
           <input type="hidden" id="cfm-edit-id"><input type="hidden" id="cfm-file-url">
           <div style="display:flex;justify-content:flex-end;gap:8px">
             <button onclick="document.getElementById('cfmModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
@@ -18874,8 +19279,6 @@ function deleteTax(id){
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 계약일 *</label><input class="si" type="date" id="ctr-date" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 거래처 *</label><input class="si" type="text" id="ctr-company" style="width:100%;font-size:13px"></div>
-            <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📄 품목/계약내용</label><input class="si" type="text" id="ctr-item" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:3px">💰 계약금액</label><input class="si" type="number" id="ctr-amount" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="ctr-pjcode" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--r);display:block;margin-bottom:3px">📅 납기일</label><input class="si" type="date" id="ctr-duedate" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔄 상태</label>
@@ -18883,6 +19286,19 @@ function deleteTax(id){
             </div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="ctr-note" style="width:100%;font-size:13px"></div>
           </div>
+          <!-- 품목 자동계산 -->
+          <div style="margin-bottom:10px">
+            <label style="font-size:12px;font-weight:700;color:#0369a1;display:block;margin-bottom:5px">📄 계약 품목 (단가 × 수량 자동계산)</label>
+            <div id="contract-items-wrap"></div>
+          </div>
+          <div style="margin-bottom:10px">
+            <label style="font-size:12px;font-weight:700;color:#0369a1;display:block;margin-bottom:3px">💰 계약 총액 (자동/수동)</label>
+            <input class="si" type="text" id="contract-total-amount" placeholder="0"
+              oninput="dbOverrideTotal('contract',this.value);dbRenderItems('contract')"
+              style="width:100%;font-size:14px;text-align:right;font-weight:700;color:#0369a1">
+          </div>
+          <!-- 숨김 호환 -->
+          <input type="hidden" id="ctr-item"><input type="hidden" id="ctr-amount">
           <input type="hidden" id="ctr-edit-id"><input type="hidden" id="ctr-file-url">
           <div style="display:flex;justify-content:flex-end;gap:8px">
             <button onclick="document.getElementById('ctrModal').style.display='none'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
@@ -18949,15 +19365,36 @@ function deleteTax(id){
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 거래일 *</label><input class="si" type="date" id="dlv-date" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 거래처 *</label><input class="si" type="text" id="dlv-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📦 품목</label><input class="si" type="text" id="dlv-item" placeholder="EHD Nozzle Assy 외" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔢 수량</label><input class="si" type="text" id="dlv-qty" placeholder="8 EA" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:3px">💰 공급가액</label><input class="si" type="number" id="dlv-supply" placeholder="1440000" style="width:100%;font-size:13px" oninput="calcDlvTotal()"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🧾 세액</label><input class="si" type="number" id="dlv-tax" placeholder="144000" style="width:100%;font-size:13px" oninput="calcDlvTotal()"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:3px">💵 합계금액</label><input class="si" type="number" id="dlv-total" placeholder="1584000" style="width:100%;font-size:13px;font-weight:700;color:var(--g)"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 PO번호</label><input class="si" type="text" id="dlv-po" placeholder="2064522177" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🔖 프로젝트코드</label><input class="si" type="text" id="dlv-pjcode" placeholder="BM25999-M020" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="dlv-note" placeholder="메모" style="width:100%;font-size:13px"></div>
+            <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="dlv-note" placeholder="메모" style="width:100%;font-size:13px"></div>
           </div>
+          <!-- 품목 자동계산 -->
+          <div style="margin-bottom:10px">
+            <label style="font-size:12px;font-weight:700;color:#f59e0b;display:block;margin-bottom:5px">📦 품목 (단가 × 수량 = 공급가액 자동)</label>
+            <div id="delivery-items-wrap"></div>
+          </div>
+          <!-- 공급가액 / 세액 / 합계 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;padding:10px;background:#fff7ed;border-radius:8px">
+            <div>
+              <label style="font-size:12px;font-weight:700;color:#f59e0b;display:block;margin-bottom:3px">💰 공급가액 (자동/수동)</label>
+              <input class="si" type="text" id="delivery-total-amount" placeholder="0"
+                oninput="dbOverrideTotal('delivery',this.value);calcDlvTotal();dbRenderItems('delivery')"
+                style="width:100%;font-size:13px;text-align:right;font-weight:700;color:#f59e0b">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🧾 세액 (10% 자동)</label>
+              <input class="si" type="number" id="dlv-tax" placeholder="0" style="width:100%;font-size:13px;text-align:right" oninput="calcDlvTotal()">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:3px">💵 합계금액</label>
+              <input class="si" type="number" id="dlv-total" placeholder="0" style="width:100%;font-size:13px;text-align:right;font-weight:700;color:var(--g)">
+            </div>
+          </div>
+          <!-- 숨김 (기존 호환) -->
+          <input type="hidden" id="dlv-item">
+          <input type="hidden" id="dlv-qty">
+          <input type="hidden" id="dlv-supply">
           <input type="hidden" id="dlv-edit-id">
           <input type="hidden" id="dlv-file-url">
           <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -19022,14 +19459,35 @@ function deleteTax(id){
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📅 작성일 *</label><input class="si" type="date" id="tax-date" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🏭 공급받는자 *</label><input class="si" type="text" id="tax-company" placeholder="(주)아이마켓코리아" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📦 품목</label><input class="si" type="text" id="tax-item" placeholder="Ink Paste Nozzle 외" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--p);display:block;margin-bottom:3px">💰 공급가액</label><input class="si" type="number" id="tax-supply" placeholder="8940000" style="width:100%;font-size:13px" oninput="calcTaxTotal()"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🧾 세액</label><input class="si" type="number" id="tax-vat" placeholder="894000" style="width:100%;font-size:13px" oninput="calcTaxTotal()"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:3px">💵 합계금액</label><input class="si" type="number" id="tax-total" placeholder="9834000" style="width:100%;font-size:13px;font-weight:700;color:var(--g)"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--r);display:block;margin-bottom:3px">🔑 승인번호</label><input class="si" type="text" id="tax-approval" placeholder="20260430410000080991f3te" style="width:100%;font-size:13px"></div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📋 관리번호</label><input class="si" type="text" id="tax-mgmt" placeholder="202600105113" style="width:100%;font-size:13px"></div>
-            <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="tax-note" placeholder="메모" style="width:100%;font-size:13px"></div>
+            <div style="grid-column:1/-1"><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="tax-note" placeholder="메모" style="width:100%;font-size:13px"></div>
           </div>
+          <!-- 품목 자동계산 -->
+          <div style="margin-bottom:10px">
+            <label style="font-size:12px;font-weight:700;color:#dc2626;display:block;margin-bottom:5px">📦 품목 (단가 × 수량 = 공급가액 자동)</label>
+            <div id="tax-items-wrap"></div>
+          </div>
+          <!-- 공급가액 / 세액 / 합계 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;padding:10px;background:#fef2f2;border-radius:8px">
+            <div>
+              <label style="font-size:12px;font-weight:700;color:#dc2626;display:block;margin-bottom:3px">💰 공급가액 (자동/수동)</label>
+              <input class="si" type="text" id="tax-total-amount" placeholder="0"
+                oninput="dbOverrideTotal('tax',this.value);calcTaxTotal();dbRenderItems('tax')"
+                style="width:100%;font-size:13px;text-align:right;font-weight:700;color:#dc2626">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">🧾 세액 (10% 자동)</label>
+              <input class="si" type="number" id="tax-vat" placeholder="0" style="width:100%;font-size:13px;text-align:right" oninput="calcTaxTotal()">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:700;color:var(--g);display:block;margin-bottom:3px">💵 합계금액</label>
+              <input class="si" type="number" id="tax-total" placeholder="0" style="width:100%;font-size:13px;text-align:right;font-weight:700;color:var(--g)">
+            </div>
+          </div>
+          <!-- 숨김 (기존 호환) -->
+          <input type="hidden" id="tax-item">
+          <input type="hidden" id="tax-supply">
           <input type="hidden" id="tax-edit-id">
           <input type="hidden" id="tax-file-url">
           <div style="display:flex;justify-content:flex-end;gap:8px">
