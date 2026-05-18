@@ -158,11 +158,22 @@
     grid-template-columns: 1fr !important;
     grid-template-rows: auto auto;
   }
-  /* 미리보기 패널 모바일: 최대 높이 제한해서 폼이 가려지지 않게 */
+  /* 미리보기 패널 모바일: 기본 50vh, .expanded 클래스로 80vh */
   #order-preview-pane, #cfm-preview-pane, #ctr-preview-pane, #dlv-preview-pane, #tax-preview-pane {
-    max-height: 40vh !important;
+    max-height: 50vh !important;
+    min-height: 200px !important;
     border-right: none !important;
     border-bottom: 2px solid var(--border);
+    transition: max-height 0.3s ease;
+  }
+  #order-preview-pane.expanded, #cfm-preview-pane.expanded,
+  #ctr-preview-pane.expanded, #dlv-preview-pane.expanded, #tax-preview-pane.expanded {
+    max-height: 80vh !important;
+  }
+  /* 모바일에서 모달 자체도 더 크게 (전체 화면 활용) */
+  #orderModal > div, #cfmModal > div, #ctrModal > div, #dlvModal > div, #taxModal > div {
+    max-height: 96vh !important;
+    border-radius: 8px !important;
   }
 
   /* ── 상단바: 타이틀만 표시, 버튼들 숨김 ── */
@@ -3078,6 +3089,8 @@ async function syncAll() {
     loadOpenAIKeyFromSP().catch(()=>{});
     // DB 작업 이력 SP 로드 (팀 공유)
     loadDBHistoryFromSP().catch(()=>{});
+    // 모달 입력 중인 draft 복원 데이터 로드
+    loadDraftsFromSP().catch(()=>{});
     setSS("live","실시간 연동"); $("lsync","동기화: "+new Date().toLocaleTimeString("ko-KR"));
   } catch(e) { console.error(e); setSS("","연동 실패"); }
 }
@@ -5751,6 +5764,242 @@ function dbExtractSaveData(dbType) {
   };
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 🛡️ DB 데이터 안전망: localStorage 백업 + SP 동기화 + 안전한 로드
+// 데이터가 사라지지 않도록 보호 (탭 전환/새로고침 시 손실 방지)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// SP 저장 + localStorage 백업 (안전 저장)
+// dataKey: localStorage 키 (e.g. "ord_data")
+// spPath: SP 파일 경로
+// data: 저장할 배열
+// 반환: {sp:true/false, local:true/false}
+async function safeSaveDB(dataKey, spPath, data) {
+  const result = { sp: false, local: false, error: null };
+  // 1. localStorage 백업 먼저 (즉시 안전)
+  try {
+    localStorage.setItem(dataKey, JSON.stringify({
+      data: data,
+      ts: new Date().toISOString(),
+      count: data.length,
+    }));
+    result.local = true;
+  } catch(e) {
+    console.warn("⚠️ localStorage 백업 실패:", e.message);
+  }
+  // 2. SP 저장
+  try {
+    await getIds();
+    const t = await getToken();
+    const enc = spPath.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
+      method:"PUT",
+      headers:{"Authorization":"Bearer "+t, "Content-Type":"application/json"},
+      body: JSON.stringify(data, null, 2)
+    });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    result.sp = true;
+    console.log(`✅ SP 저장: ${spPath} (${data.length}건)`);
+  } catch(e) {
+    result.error = e.message;
+    console.warn(`⚠️ SP 저장 실패: ${spPath}`, e.message);
+  }
+  return result;
+}
+
+// SP 로드 + localStorage 폴백 (안전 로드)
+// SP에서 로드 실패 시 localStorage 백업 사용 → 데이터 절대 안 사라짐
+async function safeLoadDB(dataKey, spPath) {
+  // 1. SP에서 시도
+  try {
+    await getIds();
+    const t = await getToken();
+    const enc = spPath.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
+      headers:{"Authorization":"Bearer "+t}
+    });
+    if(r.ok) {
+      const data = await r.json();
+      if(Array.isArray(data)) {
+        // SP 성공 → localStorage 백업도 같이 갱신
+        try {
+          localStorage.setItem(dataKey, JSON.stringify({
+            data: data,
+            ts: new Date().toISOString(),
+            count: data.length,
+          }));
+        } catch(_){}
+        return data;
+      }
+    }
+  } catch(e) {
+    console.warn(`⚠️ SP 로드 실패: ${spPath}`, e.message);
+  }
+  // 2. localStorage 폴백
+  try {
+    const cached = localStorage.getItem(dataKey);
+    if(cached) {
+      const parsed = JSON.parse(cached);
+      if(Array.isArray(parsed.data)) {
+        console.log(`🛡️ localStorage 백업에서 복원: ${dataKey} (${parsed.data.length}건, ${parsed.ts})`);
+        return parsed.data;
+      }
+    }
+  } catch(_){}
+  return [];
+}
+
+// 변경 감지 - 로컬 데이터가 SP 데이터보다 새로우면 SP 덮어쓰기 안 하게
+function isLocalNewer(dataKey, spDataLength) {
+  try {
+    const cached = localStorage.getItem(dataKey);
+    if(!cached) return false;
+    const parsed = JSON.parse(cached);
+    // 로컬에 데이터가 더 많으면 (사용자가 추가하고 저장 실패한 케이스)
+    return Array.isArray(parsed.data) && parsed.data.length > spDataLength;
+  } catch(_){ return false; }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📝 모달 입력값 자동 SP 저장 (Draft)
+// 사용자가 입력 중에 다른 탭 가도 입력값 보존
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const DRAFTS_SP_FILE = "📦영업/99.Dashboard(real-time)/modal-drafts.json";
+
+// 디바운스용 타이머
+window._draftSaveTimers = window._draftSaveTimers || {};
+
+// 모든 draft를 메모리에 들고 있음 (SP 로드 후)
+window._drafts = window._drafts || {};
+
+// 모달 폼 입력값을 객체로 수집
+function _collectModalDraft(modalId, fieldIds) {
+  const draft = {};
+  for(const fid of fieldIds) {
+    const el = document.getElementById(fid);
+    if(!el) continue;
+    if(el.type === "checkbox") draft[fid] = el.checked;
+    else draft[fid] = el.value;
+  }
+  // DB 모달의 품목도 같이 저장
+  if(["orderModal","ctrModal","dlvModal","taxModal","cfmModal"].includes(modalId)) {
+    const dbType = {orderModal:"order",ctrModal:"contract",dlvModal:"delivery",taxModal:"tax",cfmModal:"confirm"}[modalId];
+    draft._items = window._dbItems?.[dbType] || [];
+    draft._totalOverride = window._dbItemsTotalOverride?.[dbType] || false;
+  }
+  return draft;
+}
+
+// 모달 폼에 draft 복원
+function _applyModalDraft(modalId, fieldIds, draft) {
+  if(!draft) return;
+  for(const fid of fieldIds) {
+    if(draft[fid] === undefined) continue;
+    const el = document.getElementById(fid);
+    if(!el) continue;
+    if(el.type === "checkbox") el.checked = !!draft[fid];
+    else el.value = draft[fid];
+  }
+  // 품목 복원
+  if(["orderModal","ctrModal","dlvModal","taxModal","cfmModal"].includes(modalId) && Array.isArray(draft._items) && draft._items.length) {
+    const dbType = {orderModal:"order",ctrModal:"contract",dlvModal:"delivery",taxModal:"tax",cfmModal:"confirm"}[modalId];
+    if(typeof dbInitItems === "function") dbInitItems(dbType, draft._items);
+    if(draft._totalOverride && window._dbItemsTotalOverride) {
+      window._dbItemsTotalOverride[dbType] = true;
+    }
+  }
+}
+
+// SP에서 모든 draft 로드
+async function loadDraftsFromSP() {
+  try {
+    await getIds();
+    const enc = DRAFTS_SP_FILE.split("/").map(encodeURIComponent).join("/");
+    const fd = await gGet("/drives/"+spDrive+"/root:/"+enc);
+    const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
+    const data = await res.json();
+    if(data && typeof data === "object") {
+      window._drafts = data;
+      console.log("✅ Draft SP 로드:", Object.keys(data).length+"개");
+    }
+  } catch(e) {
+    window._drafts = {};
+    console.log("ℹ️ Draft 파일 없음 (처음 사용)");
+  }
+}
+
+// 모든 draft를 SP에 저장 (디바운스됨)
+async function saveDraftsToSP() {
+  try {
+    await getIds();
+    const t = await getToken();
+    const enc = DRAFTS_SP_FILE.split("/").map(encodeURIComponent).join("/");
+    await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+":/content", {
+      method:"PUT",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+      body: JSON.stringify(window._drafts, null, 2)
+    });
+    console.log("💾 Draft SP 저장 완료");
+  } catch(e) {
+    console.warn("⚠️ Draft SP 저장 실패:", e.message);
+  }
+}
+
+// 특정 모달의 draft 저장 (2초 디바운스)
+function saveDraft(modalId, fieldIds) {
+  if(!window._drafts) window._drafts = {};
+  window._drafts[modalId] = {
+    ..._collectModalDraft(modalId, fieldIds),
+    _ts: new Date().toISOString(),
+  };
+  // 디바운스 (2초)
+  if(window._draftSaveTimers[modalId]) clearTimeout(window._draftSaveTimers[modalId]);
+  window._draftSaveTimers[modalId] = setTimeout(() => {
+    saveDraftsToSP();
+  }, 2000);
+}
+
+// 모달 저장 성공 시 해당 draft 제거
+function clearDraft(modalId) {
+  if(!window._drafts) return;
+  delete window._drafts[modalId];
+  // 즉시 SP 갱신
+  if(window._draftSaveTimers[modalId]) clearTimeout(window._draftSaveTimers[modalId]);
+  saveDraftsToSP();
+  console.log("✅ Draft 클리어:", modalId);
+}
+
+// 모달 열 때 draft 있는지 확인하고 복원 제안
+function checkAndRestoreDraft(modalId, fieldIds, label) {
+  if(!window._drafts || !window._drafts[modalId]) return false;
+  const draft = window._drafts[modalId];
+  // 빈 draft는 무시
+  const hasContent = Object.entries(draft).some(([k,v]) => !k.startsWith("_") && v && String(v).trim());
+  if(!hasContent) return false;
+  // 시간 표시
+  const ts = draft._ts ? new Date(draft._ts).toLocaleString("ko-KR") : "알 수 없음";
+  if(confirm(`🛡️ 이전에 입력 중이던 ${label} 내용이 있습니다.\n\n📅 마지막 저장: ${ts}\n\n복원하시겠습니까?\n\n[확인] 복원 | [취소] 새로 시작`)) {
+    _applyModalDraft(modalId, fieldIds, draft);
+    return true;
+  } else {
+    // 사용자가 취소 → draft 제거
+    clearDraft(modalId);
+    return false;
+  }
+}
+
+// 모달에 자동저장 바인딩 (input/change 이벤트 청취)
+function bindModalAutosave(modalId, fieldIds) {
+  for(const fid of fieldIds) {
+    const el = document.getElementById(fid);
+    if(!el) continue;
+    // 이미 바인딩되어 있으면 skip
+    if(el.dataset.autosaveBound) continue;
+    el.dataset.autosaveBound = "1";
+    const evt = (el.tagName === "SELECT" || el.type === "checkbox") ? "change" : "input";
+    el.addEventListener(evt, () => saveDraft(modalId, fieldIds));
+  }
+}
 
 // SharePoint에서 컨택 로드 (페이지 시작 시 호출)
 async function loadCustContactsFromSP() {
@@ -7378,24 +7627,36 @@ let slGroupId = null;
 
 // ─── SP JSON 저장/로드 ───
 async function saveSLToSP() {
-  await getIds();
-  const t = await getToken();
-  const enc = SL_SP_JSON.split("/").map(encodeURIComponent).join("/");
-  await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+":/content",{
-    method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-    body: JSON.stringify(slData,null,2)
-  });
+  const result = await safeSaveDB("sl_data", SL_SP_JSON, slData);
+  if(!result.sp && !result.local) {
+    alert("⚠️ 영업활동 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+  } else if(!result.sp) {
+    console.warn("⚠️ 영업활동 SP 저장 실패 - 로컬 백업만 됨");
+  }
+  return result;
 }
 async function loadSLFromSP() {
   try {
-    await getIds();
-    const enc = SL_SP_JSON.split("/").map(encodeURIComponent).join("/");
-    const fd = await gGet("/drives/"+spDrive+"/root:/"+enc);
-    const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
-    const rawData = await res.json();
-    // 전시회 항목 자동 제거
-    const before = rawData.length;
-    slData = rawData.filter(item => isSLEvent(item));
+    const data = await safeLoadDB("sl_data", SL_SP_JSON);
+    // 로컬이 SP보다 더 많으면 → 사용자가 추가한 데이터 SP 저장 실패한 경우 → 로컬 우선
+    try {
+      const cached = localStorage.getItem("sl_data");
+      if(cached) {
+        const parsed = JSON.parse(cached);
+        if(Array.isArray(parsed.data) && parsed.data.length > data.length) {
+          console.log(`🛡️ 영업활동 로컬 우선 (${parsed.data.length} > ${data.length})`);
+          slData = parsed.data.filter(item => isSLEvent(item));
+          safeSaveDB("sl_data", SL_SP_JSON, slData).catch(()=>{});
+          renderSLAll();
+          $("slUpd","🛡️ 로컬 복원: "+new Date().toLocaleTimeString("ko-KR"));
+          if(Array.isArray(PD) && PD.length > 0) syncPipelineFromSL();
+          return;
+        }
+      }
+    } catch(_){}
+    // 일반 흐름: SP 데이터 사용
+    const before = data.length;
+    slData = data.filter(item => isSLEvent(item));
     const removed = before - slData.length;
     if(removed > 0) {
       console.log(`전시회 항목 ${removed}개 제거됨`);
@@ -7403,12 +7664,23 @@ async function loadSLFromSP() {
     }
     renderSLAll();
     $("slUpd","로드: "+new Date().toLocaleTimeString("ko-KR"));
-    // PD가 이미 로드된 경우에만 동기화 (없으면 loadSalesAndProject 완료 후 호출됨)
     if(Array.isArray(PD) && PD.length > 0) {
       syncPipelineFromSL();
     }
   } catch(e) {
-    slData = [];
+    console.error("영업활동 로드 실패:", e);
+    // 로컬에서 폴백
+    try {
+      const cached = localStorage.getItem("sl_data");
+      if(cached) {
+        const parsed = JSON.parse(cached);
+        if(Array.isArray(parsed.data)) {
+          slData = parsed.data.filter(item => isSLEvent(item));
+          console.log(`🛡️ 영업활동 로컬에서 복원: ${slData.length}건`);
+        }
+      }
+    } catch(_){}
+    if(!slData || !slData.length) slData = [];
     renderSLAll();
   }
 }
@@ -13737,6 +14009,13 @@ function openSLModal(act) {
     document.getElementById("sl-f-start").value=new Date().toISOString().split("T")[0];
     document.getElementById("sl-f-end").value="";
   }
+
+  // 🛡️ 자동저장 + 복원 (신규 모드)
+  const _FIELDS_slModal = ["sl-f-company","sl-f-pjcode","sl-f-status","sl-f-custmgr","sl-f-salesmgr","sl-f-start","sl-f-end","sl-f-stime","sl-f-etime","sl-f-note","sl-f-attendees"];
+  if(!act) {
+    setTimeout(() => checkAndRestoreDraft("slModal", _FIELDS_slModal, "영업활동"), 200);
+  }
+  bindModalAutosave("slModal", _FIELDS_slModal);
 }
 
 // 모달 내 프로젝트코드 표시 업데이트
@@ -13822,7 +14101,9 @@ function openCustMgrPickerForModal() {
   // 선택 콜백을 모달 전용으로 오버라이드
   _custMgrModalMode = true;
 }
-function closeSLModal(){document.getElementById("slModal").style.display="none";}
+function closeSLModal(){
+  document.getElementById("slModal").style.display="none";
+}
 
 // ─── 신규 차수 자동 부여 헬퍼 ───
 // 같은 고객사에 "신규N차" 패턴이 몇 개 있는지 보고 다음 차수 반환
@@ -13905,6 +14186,7 @@ async function saveSLActivity() {
   };
 
   closeSLModal();
+  clearDraft("slModal");  // 🛡️ draft 클리어
   $("slUpd","저장 중...");
 
   if(slEditId) slData=slData.map(x=>x.id===slEditId?act:x);
@@ -14650,36 +14932,36 @@ let quoteDB = []; // 견적서 DB 배열
 
 // SP에서 로드
 async function loadQuoteDB() {
+  const data = await safeLoadDB("qdb_data", QDB_SP_FILE);
   try {
-    await getIds();
-    const enc = QDB_SP_FILE.split("/").map(encodeURIComponent).join("/");
-    const fd = await gGet(`/drives/${spDrive}/root:/${enc}`);
-    const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
-    quoteDB = await res.json();
-    console.log("✅ 견적서 DB 로드:", quoteDB.length+"건");
-  } catch(e) {
-    quoteDB = [];
-    console.log("ℹ️ 견적서 DB 없음 (첫 사용)");
-  }
+    const cached = localStorage.getItem("qdb_data");
+    if(cached) {
+      const parsed = JSON.parse(cached);
+      if(Array.isArray(parsed.data) && parsed.data.length > data.length) {
+        console.log(`🛡️ 견적서 DB 로컬 우선 (${parsed.data.length} > ${data.length})`);
+        quoteDB = parsed.data;
+        safeSaveDB("qdb_data", QDB_SP_FILE, quoteDB).catch(()=>{});
+        $("badge-qdb", quoteDB.length);
+        renderQDB();
+        return;
+      }
+    }
+  } catch(_){}
+  quoteDB = data;
+  console.log("✅ 견적서 DB 로드:", quoteDB.length+"건");
+  $("badge-qdb", quoteDB.length);
   renderQDB();
 }
 
 // SP에 저장
 async function saveQuoteDB() {
-  try {
-    await getIds();
-    const t = await getToken();
-    const enc = QDB_SP_FILE.split("/").map(encodeURIComponent).join("/");
-    await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`,{
-      method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-      body: JSON.stringify(quoteDB, null, 2)
-    });
-    console.log("✅ 견적서 DB 저장:", quoteDB.length+"건");
-    return true;
-  } catch(e) {
-    console.warn("견적서 DB 저장 실패:", e.message);
+  const result = await safeSaveDB("qdb_data", QDB_SP_FILE, quoteDB);
+  $("badge-qdb", quoteDB.length);
+  if(!result.sp && !result.local) {
+    alert("⚠️ 견적서 DB 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
     return false;
   }
+  return true;
 }
 
 // 견적서 DB에 항목 추가 (generateQuoteExcel에서 호출)
@@ -15186,6 +15468,12 @@ function openMtgDBModal() {
     if(hint) hint.style.display = "none";
     const fi = document.getElementById("mtgdb-file"); if(fi) fi.value = "";
     modal.style.display = "flex";
+
+    // 🛡️ 자동저장 + 복원
+    const _FIELDS_mtgDBModal = ["mtgdb-company","mtgdb-pjcode","mtgdb-date","mtgdb-type","mtgdb-place","mtgdb-content"];
+    setTimeout(() => checkAndRestoreDraft("mtgDBModal", _FIELDS_mtgDBModal, "회의록"), 200);
+    bindModalAutosave("mtgDBModal", _FIELDS_mtgDBModal);
+
     console.log("✅ 회의록 모달 열림");
   } catch(e) {
     console.error("❌ openMtgDBModal 에러:", e);
@@ -15273,6 +15561,7 @@ async function saveMtgDBEntry() {
   await saveMtgLogsToSP();
   renderMtgLog(window._mtgLogs);
   closeMtgDBModal();
+  clearDraft("mtgDBModal");
   _mtgSaving = false;
 
   // 영업활동 연결 제안 (고객사 입력된 경우)
@@ -17360,13 +17649,11 @@ window.addEventListener("DOMContentLoaded",()=>{
 });
 
 async function saveMtgLogsToSP() {
-  try {
-    await getIds(); const t = await getToken();
-    const enc = MTG_LOG_SP_PATH.split("/").map(encodeURIComponent).join("/");
-    await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+":/content",
-      {method:"PUT",headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-       body:JSON.stringify(window._mtgLogs||[],null,2)});
-  } catch(e){console.warn("mtglog:",e.message);}
+  const result = await safeSaveDB("mtg_data", MTG_LOG_SP_PATH, window._mtgLogs||[]);
+  if(!result.sp && !result.local) {
+    console.warn("⚠️ 회의록 저장 실패!");
+  }
+  return result;
 }
 async function loadMtgLogsFromSP() {
   // 기존 메모리 백업 (방금 저장한 회의록이 SP 반영되기 전일 수 있음)
@@ -17378,10 +17665,27 @@ async function loadMtgLogsFromSP() {
     const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
     const fromSP = await res.json();
     if(Array.isArray(fromSP)) {
-      // 머지: SP + 메모리 (id 중복 제거)
+      // 머지: SP + 메모리 + localStorage (id 중복 제거)
+      let local = [];
+      try {
+        const cached = localStorage.getItem("mtg_data");
+        if(cached) {
+          const parsed = JSON.parse(cached);
+          if(Array.isArray(parsed.data)) local = parsed.data;
+        }
+      } catch(_){}
       const ids = new Set(fromSP.map(x => x.id));
       const onlyMem = memBackup.filter(x => x.id && !ids.has(x.id));
-      window._mtgLogs = [...onlyMem, ...fromSP];
+      const localOnly = local.filter(x => x.id && !ids.has(x.id) && !memBackup.find(m => m.id === x.id));
+      window._mtgLogs = [...onlyMem, ...localOnly, ...fromSP];
+      // localStorage 갱신
+      try {
+        localStorage.setItem("mtg_data", JSON.stringify({
+          data: window._mtgLogs,
+          ts: new Date().toISOString(),
+          count: window._mtgLogs.length,
+        }));
+      } catch(_){}
     } else {
       window._mtgLogs = memBackup;
     }
@@ -17417,22 +17721,34 @@ const ORD_SP_PATH = "📦영업/99.Dashboard(real-time)/order-db.json";
 let _ordData = [];
 
 async function saveOrderToSP() {
-  await getIds(); const t = await getToken();
-  const enc = ORD_SP_PATH.split("/").map(encodeURIComponent).join("/");
-  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
-    method:"PUT", headers:{"Authorization":"Bearer "+t,"Content-Type":"application/json"},
-    body: JSON.stringify(_ordData)
-  });
+  const result = await safeSaveDB("ord_data", ORD_SP_PATH, _ordData);
   $("badge-ord", _ordData.length);
+  if(!result.sp && !result.local) {
+    alert("⚠️ 발주서 저장 실패!\n네트워크/권한 문제로 SP와 로컬 모두 저장 실패.\n다시 시도하거나 페이지 새로고침해주세요.");
+  } else if(!result.sp) {
+    console.warn("⚠️ SP 저장 실패 - 로컬 백업만 됨. 네트워크 복구 후 다시 저장 권장.");
+  }
+  return result;
 }
 
 async function loadOrderDB() {
+  const data = await safeLoadDB("ord_data", ORD_SP_PATH);
+  // 로컬이 SP보다 더 많은 데이터를 가지고 있으면 → 사용자가 신규 추가했는데 SP 저장 실패한 경우
+  // 이 경우 로컬 데이터 우선 + SP에 다시 저장 시도
   try {
-    await getIds(); const t = await getToken();
-    const enc = ORD_SP_PATH.split("/").map(encodeURIComponent).join("/");
-    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, { headers:{"Authorization":"Bearer "+t} });
-    if(r.ok) _ordData = await r.json();
-  } catch(e) { _ordData = []; }
+    const cached = localStorage.getItem("ord_data");
+    if(cached) {
+      const parsed = JSON.parse(cached);
+      if(Array.isArray(parsed.data) && parsed.data.length > data.length) {
+        console.log(`🛡️ 로컬 데이터 더 많음 (${parsed.data.length} > ${data.length}) - 로컬 우선 사용 + SP 재저장`);
+        _ordData = parsed.data;
+        safeSaveDB("ord_data", ORD_SP_PATH, _ordData).catch(()=>{});
+        renderOrderDB();
+        return;
+      }
+    }
+  } catch(_){}
+  _ordData = data;
   renderOrderDB();
 }
 
@@ -17528,6 +17844,19 @@ function openOrderModal(id) {
     if(totalEl) totalEl.value = "";
   }
   modal.style.display = "flex";
+
+  // 🛡️ 자동저장 + 복원 (신규 모드에서만)
+  const ORDER_FIELDS = ["order-date","order-company","order-po","order-pjcode","order-duedate","order-status","order-note","order-total-amount"];
+  if(!id) {
+    setTimeout(() => {
+      const restored = checkAndRestoreDraft("orderModal", ORDER_FIELDS, "발주서");
+      if(restored) {
+        const coVal = document.getElementById("order-company")?.value || "";
+        if(coVal) onOrderCompanyChange(coVal);
+      }
+    }, 200);
+  }
+  bindModalAutosave("orderModal", ORDER_FIELDS);
 }
 
 // 영업활동 데이터 기반 datalist 채우기
@@ -17793,7 +18122,7 @@ async function saveOrderEntry() {
   else _ordData.unshift(entry);
   const _label = `${date} · ${company} · ${entry.po||summary||"-"}`;
   addDBHistory("order", editId?"수정":"신규 등록", _label);
-  try{await saveOrderToSP();renderOrderDB();document.getElementById("orderModal").style.display="none";alert("✅ 발주서 저장 완료!\n품목 "+items.length+"건 / 총액 "+_fmtNum(total)+"원");}
+  try{await saveOrderToSP();renderOrderDB();document.getElementById("orderModal").style.display="none";clearDraft("orderModal");alert("✅ 발주서 저장 완료!\n품목 "+items.length+"건 / 총액 "+_fmtNum(total)+"원");}
   catch(e){alert("저장 실패: "+e.message);}
 }
 
@@ -17816,39 +18145,51 @@ let _dlvData = [], _taxData = [];
 const fmtWon = n => n ? Number(n).toLocaleString("ko-KR") + "원" : "-";
 
 async function saveDeliveryToSP() {
-  await getIds(); const t = await getToken();
-  const enc = DLV_SP_PATH.split("/").map(encodeURIComponent).join("/");
-  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
-    method:"PUT", headers:{"Authorization":"Bearer "+t,"Content-Type":"application/json"},
-    body: JSON.stringify(_dlvData)
-  });
+  const result = await safeSaveDB("dlv_data", DLV_SP_PATH, _dlvData);
   $("badge-dlv", _dlvData.length);
+  if(!result.sp && !result.local) alert("⚠️ 거래명세서 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+  return result;
 }
 async function loadDeliveryDB() {
+  const data = await safeLoadDB("dlv_data", DLV_SP_PATH);
   try {
-    await getIds(); const t = await getToken();
-    const enc = DLV_SP_PATH.split("/").map(encodeURIComponent).join("/");
-    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, { headers:{"Authorization":"Bearer "+t} });
-    if(r.ok) _dlvData = await r.json();
-  } catch(e) { _dlvData = []; }
+    const cached = localStorage.getItem("dlv_data");
+    if(cached) {
+      const parsed = JSON.parse(cached);
+      if(Array.isArray(parsed.data) && parsed.data.length > data.length) {
+        console.log(`🛡️ 로컬 데이터 우선 (${parsed.data.length} > ${data.length})`);
+        _dlvData = parsed.data;
+        safeSaveDB("dlv_data", DLV_SP_PATH, _dlvData).catch(()=>{});
+        renderDeliveryDB();
+        return;
+      }
+    }
+  } catch(_){}
+  _dlvData = data;
   renderDeliveryDB();
 }
 async function saveTaxToSP() {
-  await getIds(); const t = await getToken();
-  const enc = TAX_SP_PATH.split("/").map(encodeURIComponent).join("/");
-  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
-    method:"PUT", headers:{"Authorization":"Bearer "+t,"Content-Type":"application/json"},
-    body: JSON.stringify(_taxData)
-  });
+  const result = await safeSaveDB("tax_data", TAX_SP_PATH, _taxData);
   $("badge-tax", _taxData.length);
+  if(!result.sp && !result.local) alert("⚠️ 세금계산서 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+  return result;
 }
 async function loadTaxDB() {
+  const data = await safeLoadDB("tax_data", TAX_SP_PATH);
   try {
-    await getIds(); const t = await getToken();
-    const enc = TAX_SP_PATH.split("/").map(encodeURIComponent).join("/");
-    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, { headers:{"Authorization":"Bearer "+t} });
-    if(r.ok) _taxData = await r.json();
-  } catch(e) { _taxData = []; }
+    const cached = localStorage.getItem("tax_data");
+    if(cached) {
+      const parsed = JSON.parse(cached);
+      if(Array.isArray(parsed.data) && parsed.data.length > data.length) {
+        console.log(`🛡️ 로컬 데이터 우선 (${parsed.data.length} > ${data.length})`);
+        _taxData = parsed.data;
+        safeSaveDB("tax_data", TAX_SP_PATH, _taxData).catch(()=>{});
+        renderTaxDB();
+        return;
+      }
+    }
+  } catch(_){}
+  _taxData = data;
   renderTaxDB();
 }
 
@@ -18024,7 +18365,20 @@ function openDeliveryModal(id) {
     const totalEl = document.getElementById("delivery-total-amount");
     if(totalEl) totalEl.value = "";
   }
-  modal.style.display="flex";
+  modal.style.display = "flex";
+
+  // 🛡️ 자동저장 + 복원 (신규 모드에서만)
+  const _FIELDS_dlvModal = ["dlv-date","dlv-company","dlv-po","dlv-pjcode","dlv-note","delivery-total-amount","dlv-tax","dlv-total"];
+  if(!id) {
+    setTimeout(() => {
+      const restored = checkAndRestoreDraft("dlvModal", _FIELDS_dlvModal, "거래명세서");
+      if(restored) {
+        const coEl = document.getElementById("dlv-company");
+        if(coEl?.value && typeof onDeliveryCompanyChange === "function") onDeliveryCompanyChange(coEl.value);
+      }
+    }, 200);
+  }
+  bindModalAutosave("dlvModal", _FIELDS_dlvModal);
 }
 function openTaxModal(id) {
   const modal=document.getElementById("taxModal"); if(!modal) return;
@@ -18068,7 +18422,20 @@ function openTaxModal(id) {
     const totalEl = document.getElementById("tax-total-amount");
     if(totalEl) totalEl.value = "";
   }
-  modal.style.display="flex";
+  modal.style.display = "flex";
+
+  // 🛡️ 자동저장 + 복원 (신규 모드에서만)
+  const _FIELDS_taxModal = ["tax-date","tax-company","tax-approval","tax-mgmt","tax-note","tax-total-amount","tax-vat","tax-total"];
+  if(!id) {
+    setTimeout(() => {
+      const restored = checkAndRestoreDraft("taxModal", _FIELDS_taxModal, "세금계산서");
+      if(restored) {
+        const coEl = document.getElementById("tax-company");
+        if(coEl?.value && typeof onTaxCompanyChange === "function") onTaxCompanyChange(coEl.value);
+      }
+    }, 200);
+  }
+  bindModalAutosave("taxModal", _FIELDS_taxModal);
 }
 
 async function parsePdfWithAI(file, docType, statusElId, fillFn) {
@@ -18241,6 +18608,15 @@ function previewZoomReset(containerId) {
   _previewZoomApply(containerId);
 }
 
+// 모바일: 미리보기 패널 확장/축소 토글
+function previewToggleExpand(containerId) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.classList.toggle("expanded");
+  const btn = document.getElementById(containerId + "-expand-btn");
+  if(btn) btn.textContent = el.classList.contains("expanded") ? "⤢ 축소" : "⤡ 확장";
+}
+
 async function renderFilePreview(file, containerId) {
   const container = document.getElementById(containerId);
   if(!container) return;
@@ -18275,37 +18651,44 @@ async function renderFilePreview(file, containerId) {
       return;
     }
 
+    // 모바일 감지
+    const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
+
     // 공통: 줌 컨트롤 + 스크롤 영역 + 줌 wrapper
     // 컨테이너 자체는 스크롤 영역 (overflow:auto)
     // 내부 zoom-wrap이 transform:scale 받음
     container.style.position = "relative";
+    container.style.touchAction = "pan-x pan-y"; // 모바일에서 스크롤 허용 (핀치는 우리가 처리)
     container.innerHTML = `
-      <!-- 줌 컨트롤 바 (hover 시에만 보이는 floating) -->
-      <div id="${containerId}-zoom-controls" style="position:sticky;top:8px;z-index:10;display:flex;justify-content:flex-end;padding:0 8px;pointer-events:none;opacity:0;transition:opacity 0.2s ease;margin-bottom:-32px">
-        <div style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,.95);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:8px;padding:4px 6px;box-shadow:0 2px 10px rgba(0,0,0,.12);pointer-events:auto;font-family:var(--s)">
-          <button onclick="previewZoomOut('${containerId}')" title="축소 (또는 Ctrl + 휠 ↓)" style="border:1px solid var(--border2);background:#fff;color:var(--t);width:26px;height:26px;border-radius:5px;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:var(--m)">−</button>
-          <span id="${containerId}-zoom-level" style="font-size:11px;color:var(--p);font-weight:800;min-width:38px;text-align:center;font-family:var(--m)">100%</span>
-          <button onclick="previewZoomIn('${containerId}')" title="확대 (또는 Ctrl + 휠 ↑)" style="border:1px solid var(--border2);background:#fff;color:var(--t);width:26px;height:26px;border-radius:5px;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:var(--m)">+</button>
-          <button onclick="previewZoomReset('${containerId}')" title="100% 복원" style="border:1px solid var(--border2);background:#fff;color:var(--t2);padding:3px 7px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:700;margin-left:3px;font-family:var(--s)">⟳</button>
+      <!-- 줌 컨트롤 바 (PC: hover시 floating / 모바일: 항상 보임) -->
+      <div id="${containerId}-zoom-controls" style="position:sticky;top:8px;z-index:10;display:flex;justify-content:flex-end;padding:0 8px;pointer-events:none;opacity:${isMobile?'1':'0'};transition:opacity 0.2s ease;margin-bottom:-${isMobile?40:32}px">
+        <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.97);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:10px;padding:${isMobile?'6px 8px':'4px 6px'};box-shadow:0 3px 12px rgba(0,0,0,.18);pointer-events:auto;font-family:var(--s)">
+          <button onclick="previewZoomOut('${containerId}')" title="축소 (Ctrl+휠↓)" style="border:1px solid var(--border2);background:#fff;color:var(--t);width:${isMobile?34:26}px;height:${isMobile?34:26}px;border-radius:6px;cursor:pointer;font-size:${isMobile?18:14}px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:var(--m)">−</button>
+          <span id="${containerId}-zoom-level" style="font-size:${isMobile?12:11}px;color:var(--p);font-weight:800;min-width:${isMobile?44:38}px;text-align:center;font-family:var(--m)">100%</span>
+          <button onclick="previewZoomIn('${containerId}')" title="확대 (Ctrl+휠↑)" style="border:1px solid var(--border2);background:#fff;color:var(--t);width:${isMobile?34:26}px;height:${isMobile?34:26}px;border-radius:6px;cursor:pointer;font-size:${isMobile?18:14}px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:var(--m)">+</button>
+          <button onclick="previewZoomReset('${containerId}')" title="100% 복원" style="border:1px solid var(--border2);background:#fff;color:var(--t2);padding:${isMobile?'5px 9px':'3px 7px'};border-radius:6px;cursor:pointer;font-size:${isMobile?12:10}px;font-weight:700;margin-left:3px;font-family:var(--s)">⟳</button>
+          ${isMobile ? `<button id="${containerId}-expand-btn" onclick="previewToggleExpand('${containerId}')" title="미리보기 영역 확장/축소" style="border:1px solid var(--p);background:var(--pd);color:var(--p);padding:5px 9px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;margin-left:3px;font-family:var(--s)">⤡ 확장</button>` : ''}
         </div>
       </div>
       <!-- 파일명 표시 (상단 작게) -->
       <div style="padding:4px 10px;background:rgba(248,250,252,.9);backdrop-filter:blur(4px);border-bottom:1px solid var(--border);font-size:11px;color:var(--t3);font-weight:700;position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px">
         <span style="max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${file.name.replace(/"/g,"&quot;")}">📄 ${file.name}</span>
-        <span style="margin-left:auto;color:var(--p);font-size:10px;font-weight:700;background:var(--pd);padding:2px 7px;border-radius:8px;white-space:nowrap">💡 Ctrl + 휠 = 확대/축소</span>
+        <span style="margin-left:auto;color:var(--p);font-size:10px;font-weight:700;background:var(--pd);padding:2px 7px;border-radius:8px;white-space:nowrap">${isMobile?'💡 두 손가락으로 확대/축소':'💡 Ctrl + 휠 = 확대/축소'}</span>
       </div>
       <!-- 줌 wrap (transform:scale 적용) -->
       <div id="${containerId}-zoom-wrap" style="padding:8px;transform-origin:0 0;width:fit-content;min-width:100%"></div>
     `;
 
-    // hover 시 줌 컨트롤 fade in
+    // PC: hover 시 줌 컨트롤 fade in (모바일은 항상 보임)
     const zoomControls = document.getElementById(containerId + "-zoom-controls");
-    container.addEventListener("mouseenter", () => {
-      if(zoomControls) zoomControls.style.opacity = "1";
-    });
-    container.addEventListener("mouseleave", () => {
-      if(zoomControls) zoomControls.style.opacity = "0";
-    });
+    if(!isMobile) {
+      container.addEventListener("mouseenter", () => {
+        if(zoomControls) zoomControls.style.opacity = "1";
+      });
+      container.addEventListener("mouseleave", () => {
+        if(zoomControls) zoomControls.style.opacity = "0";
+      });
+    }
 
     const zoomWrap = document.getElementById(containerId + "-zoom-wrap");
 
@@ -18418,6 +18801,38 @@ async function renderFilePreview(file, containerId) {
     };
     // 평소 커서 = grab (드래그 가능 시각화)
     container.style.cursor = "grab";
+
+    // ━━ 터치 핀치 줌 (모바일) ━━
+    let touchStartDistance = 0;
+    let touchStartZoom = 1;
+    container.ontouchstart = (e) => {
+      if(e.touches.length === 2) {
+        // 두 손가락 - 핀치 줌 시작
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        touchStartDistance = Math.hypot(dx, dy);
+        touchStartZoom = window._previewZoom[containerId] || 1;
+        e.preventDefault();
+      }
+    };
+    container.ontouchmove = (e) => {
+      if(e.touches.length === 2 && touchStartDistance > 0) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const scale = dist / touchStartDistance;
+        const next = Math.max(0.3, Math.min(5, touchStartZoom * scale));
+        window._previewZoom[containerId] = next;
+        _previewZoomApply(containerId);
+        e.preventDefault();
+      }
+      // 한 손가락은 기본 스크롤 동작 유지
+    };
+    container.ontouchend = (e) => {
+      if(e.touches.length < 2) {
+        touchStartDistance = 0;
+      }
+    };
 
     // 줌 적용
     _previewZoomApply(containerId);
@@ -18562,22 +18977,29 @@ const CFM_SP_PATH = "📦영업/99.Dashboard(real-time)/confirm-db.json";
 let _cfmData = [];
 
 async function saveConfirmToSP() {
-  await getIds(); const t = await getToken();
-  const enc = CFM_SP_PATH.split("/").map(encodeURIComponent).join("/");
-  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
-    method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-    body: JSON.stringify(_cfmData)
-  });
+  const result = await safeSaveDB("cfm_data", CFM_SP_PATH, _cfmData);
   $("badge-cfm", _cfmData.length);
+  if(!result.sp && !result.local) alert("⚠️ 납품확인서 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+  return result;
 }
 
 async function loadConfirmDB() {
+  const data = await safeLoadDB("cfm_data", CFM_SP_PATH);
   try {
-    await getIds(); const t = await getToken();
-    const enc = CFM_SP_PATH.split("/").map(encodeURIComponent).join("/");
-    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {headers:{"Authorization":"Bearer "+t}});
-    if(r.ok) _cfmData = await r.json();
-  } catch(e) { _cfmData = []; }
+    const cached = localStorage.getItem("cfm_data");
+    if(cached) {
+      const parsed = JSON.parse(cached);
+      if(Array.isArray(parsed.data) && parsed.data.length > data.length) {
+        console.log(`🛡️ 납품확인서 로컬 우선 (${parsed.data.length} > ${data.length})`);
+        _cfmData = parsed.data;
+        safeSaveDB("cfm_data", CFM_SP_PATH, _cfmData).catch(()=>{});
+        $("badge-cfm", _cfmData.length);
+        renderConfirmDB();
+        return;
+      }
+    }
+  } catch(_){}
+  _cfmData = data;
   $("badge-cfm", _cfmData.length);
   renderConfirmDB();
 }
@@ -18658,6 +19080,19 @@ function openConfirmModal(id) {
     if(totalEl) totalEl.value = "";
   }
   modal.style.display = "flex";
+
+  // 🛡️ 자동저장 + 복원 (신규 모드에서만)
+  const _FIELDS_cfmModal = ["cfm-date","cfm-company","cfm-po","cfm-pjcode","cfm-status","cfm-note","confirm-total-amount"];
+  if(!id) {
+    setTimeout(() => {
+      const restored = checkAndRestoreDraft("cfmModal", _FIELDS_cfmModal, "납품확인서");
+      if(restored) {
+        const coEl = document.getElementById("cfm-company");
+        if(coEl?.value && typeof onConfirmCompanyChange === "function") onConfirmCompanyChange(coEl.value);
+      }
+    }, 200);
+  }
+  bindModalAutosave("cfmModal", _FIELDS_cfmModal);
 }
 
 async function saveConfirmEntry() {
@@ -18682,7 +19117,7 @@ async function saveConfirmEntry() {
   addDBHistory("confirm", editId?"수정":"신규 등록", `${date} · ${company} · ${summary||"-"}`);
   await saveConfirmToSP();
   renderConfirmDB();
-  document.getElementById("cfmModal").style.display = "none";
+  document.getElementById("cfmModal").style.display = "none";clearDraft("cfmModal");
 }
 
 async function deleteConfirmEntry(id) {
@@ -18762,22 +19197,29 @@ const CTR_SP_PATH = "📦영업/99.Dashboard(real-time)/contract-db.json";
 let _ctrData = [];
 
 async function saveContractToSP() {
-  await getIds(); const t = await getToken();
-  const enc = CTR_SP_PATH.split("/").map(encodeURIComponent).join("/");
-  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
-    method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-    body: JSON.stringify(_ctrData)
-  });
+  const result = await safeSaveDB("ctr_data", CTR_SP_PATH, _ctrData);
   $("badge-ctr", _ctrData.length);
+  if(!result.sp && !result.local) alert("⚠️ 계약서 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+  return result;
 }
 
 async function loadContractDB() {
+  const data = await safeLoadDB("ctr_data", CTR_SP_PATH);
   try {
-    await getIds(); const t = await getToken();
-    const enc = CTR_SP_PATH.split("/").map(encodeURIComponent).join("/");
-    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {headers:{"Authorization":"Bearer "+t}});
-    if(r.ok) _ctrData = await r.json();
-  } catch(e) { _ctrData = []; }
+    const cached = localStorage.getItem("ctr_data");
+    if(cached) {
+      const parsed = JSON.parse(cached);
+      if(Array.isArray(parsed.data) && parsed.data.length > data.length) {
+        console.log(`🛡️ 계약서 로컬 우선 (${parsed.data.length} > ${data.length})`);
+        _ctrData = parsed.data;
+        safeSaveDB("ctr_data", CTR_SP_PATH, _ctrData).catch(()=>{});
+        $("badge-ctr", _ctrData.length);
+        renderContractDB();
+        return;
+      }
+    }
+  } catch(_){}
+  _ctrData = data;
   $("badge-ctr", _ctrData.length);
   renderContractDB();
 }
@@ -18857,6 +19299,19 @@ function openContractModal(id) {
     if(totalEl) totalEl.value = "";
   }
   modal.style.display = "flex";
+
+  // 🛡️ 자동저장 + 복원 (신규 모드에서만)
+  const _FIELDS_ctrModal = ["ctr-date","ctr-company","ctr-pjcode","ctr-duedate","ctr-status","ctr-note","contract-total-amount"];
+  if(!id) {
+    setTimeout(() => {
+      const restored = checkAndRestoreDraft("ctrModal", _FIELDS_ctrModal, "계약서");
+      if(restored) {
+        const coEl = document.getElementById("ctr-company");
+        if(coEl?.value && typeof onContractCompanyChange === "function") onContractCompanyChange(coEl.value);
+      }
+    }, 200);
+  }
+  bindModalAutosave("ctrModal", _FIELDS_ctrModal);
 }
 
 async function saveContractEntry() {
@@ -18881,7 +19336,7 @@ async function saveContractEntry() {
   addDBHistory("contract", editId?"수정":"신규 등록", `${date} · ${company} · ${summary||"-"}`);
   await saveContractToSP();
   renderContractDB();
-  document.getElementById("ctrModal").style.display = "none";
+  document.getElementById("ctrModal").style.display = "none";clearDraft("ctrModal");
 }
 
 async function deleteContractEntry(id) {
@@ -18957,22 +19412,29 @@ const PDB_SP_PATH = "📦영업/99.Dashboard(real-time)/proposal-db.json";
 let _pdbData = [];
 
 async function saveProposalToSP() {
-  await getIds(); const t = await getToken();
-  const enc = PDB_SP_PATH.split("/").map(encodeURIComponent).join("/");
-  await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {
-    method:"PUT", headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
-    body: JSON.stringify(_pdbData)
-  });
+  const result = await safeSaveDB("pdb_data", PDB_SP_PATH, _pdbData);
   $("badge-pdb", _pdbData.length);
+  if(!result.sp && !result.local) alert("⚠️ 자료 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+  return result;
 }
 
 async function loadProposalDB() {
+  const data = await safeLoadDB("pdb_data", PDB_SP_PATH);
   try {
-    await getIds(); const t = await getToken();
-    const enc = PDB_SP_PATH.split("/").map(encodeURIComponent).join("/");
-    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`, {headers:{"Authorization":"Bearer "+t}});
-    if(r.ok) _pdbData = await r.json();
-  } catch(e) { _pdbData = []; }
+    const cached = localStorage.getItem("pdb_data");
+    if(cached) {
+      const parsed = JSON.parse(cached);
+      if(Array.isArray(parsed.data) && parsed.data.length > data.length) {
+        console.log(`🛡️ 자료 로컬 우선 (${parsed.data.length} > ${data.length})`);
+        _pdbData = parsed.data;
+        safeSaveDB("pdb_data", PDB_SP_PATH, _pdbData).catch(()=>{});
+        $("badge-pdb", _pdbData.length);
+        renderProposalDB();
+        return;
+      }
+    }
+  } catch(_){}
+  _pdbData = data;
   $("badge-pdb", _pdbData.length);
   renderProposalDB();
 }
@@ -19191,7 +19653,7 @@ async function saveDeliveryEntry() {
   if(editId){const idx=_dlvData.findIndex(x=>x.id===editId);if(idx>=0)_dlvData[idx]=entry;else _dlvData.unshift(entry);}
   else _dlvData.unshift(entry);
   addDBHistory("delivery", editId?"수정":"신규 등록", `${date} · ${company} · ${entry.po||summary||"-"}`);
-  try{await saveDeliveryToSP();renderDeliveryDB();document.getElementById("dlvModal").style.display="none";alert("✅ 거래명세서 저장 완료!\n품목 "+items.length+"건 / 공급가 "+_fmtNum(supply)+" + 세액 "+_fmtNum(tax)+" = "+_fmtNum(total)+"원");}
+  try{await saveDeliveryToSP();renderDeliveryDB();document.getElementById("dlvModal").style.display="none";clearDraft("dlvModal");alert("✅ 거래명세서 저장 완료!\n품목 "+items.length+"건 / 공급가 "+_fmtNum(supply)+" + 세액 "+_fmtNum(tax)+" = "+_fmtNum(total)+"원");}
   catch(e){alert("저장 실패: "+e.message);}
 }
 
@@ -19216,7 +19678,7 @@ async function saveTaxEntry() {
   if(editId){const idx=_taxData.findIndex(x=>x.id===editId);if(idx>=0)_taxData[idx]=entry;else _taxData.unshift(entry);}
   else _taxData.unshift(entry);
   addDBHistory("tax", editId?"수정":"신규 등록", `${date} · ${company} · ${entry.approval||summary||"-"}`);
-  try{await saveTaxToSP();renderTaxDB();document.getElementById("taxModal").style.display="none";alert("✅ 세금계산서 저장 완료!\n품목 "+items.length+"건 / 공급가 "+_fmtNum(supply)+" + 세액 "+_fmtNum(vat)+" = "+_fmtNum(total)+"원");}
+  try{await saveTaxToSP();renderTaxDB();document.getElementById("taxModal").style.display="none";clearDraft("taxModal");alert("✅ 세금계산서 저장 완료!\n품목 "+items.length+"건 / 공급가 "+_fmtNum(supply)+" + 세액 "+_fmtNum(vat)+" = "+_fmtNum(total)+"원");}
   catch(e){alert("저장 실패: "+e.message);}
 }
 
