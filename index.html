@@ -10632,7 +10632,7 @@ async function executeSPFolderMigration() {
   const plan = window._spMigrationPlan.filter(p => !p.skip);
   const total = plan.length;
   let done = 0, failed = 0;
-  const moveLog = [];  // 이동 기록 (롤백용)
+  const moveLog = [];
 
   // 진행률 표시
   const progress = document.createElement("div");
@@ -10642,8 +10642,10 @@ async function executeSPFolderMigration() {
     <div style="background:var(--bg3);height:8px;border-radius:4px;overflow:hidden">
       <div id="spMigBar" style="height:100%;background:linear-gradient(90deg,#10b981,#34d399);width:0%;transition:width .3s"></div>
     </div>
-    <div id="spMigCount" style="font-size:12px;color:var(--t3);margin-top:6px">0 / ${total}</div>`;
+    <div id="spMigCount" style="font-size:12px;color:var(--t3);margin-top:6px">0 / ${total}</div>
+    <button id="spMigCancel" onclick="window._spMigCancelled=true" style="margin-top:12px;padding:6px 14px;border-radius:6px;border:1px solid var(--r);background:#fff;color:var(--r);font-size:12px;cursor:pointer;font-family:var(--s)">중지</button>`;
   document.body.appendChild(progress);
+  window._spMigCancelled = false;
 
   const updateProgress = (msg) => {
     document.getElementById("spMigStatus").textContent = msg;
@@ -10652,47 +10654,158 @@ async function executeSPFolderMigration() {
     document.getElementById("spMigCount").textContent = `${done} / ${total} (실패: ${failed})`;
   };
 
+  // 부모 폴더 ID 캐시 (같은 부모는 한 번만 생성/조회)
+  const parentIdCache = {};
+
+  // 부모 폴더 ID 가져오기 (없으면 재귀적으로 생성)
+  async function ensureFolderAndGetId(folderPath, token) {
+    if(parentIdCache[folderPath]) return parentIdCache[folderPath];
+    const enc = folderPath.split("/").map(encodeURIComponent).join("/");
+    // 먼저 GET으로 존재 확인
+    try {
+      const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}`, {
+        headers: {"Authorization":"Bearer "+token}
+      });
+      if(r.ok) {
+        const data = await r.json();
+        parentIdCache[folderPath] = data.id;
+        return data.id;
+      }
+    } catch(_){}
+    // 없으면 재귀적으로 부모부터 생성
+    const lastSlash = folderPath.lastIndexOf("/");
+    if(lastSlash < 0) throw new Error("Root 도달 - 폴더 없음");
+    const parentPath = folderPath.substring(0, lastSlash);
+    const folderName = folderPath.substring(lastSlash+1);
+    const parentId = await ensureFolderAndGetId(parentPath, token);
+    // 부모 ID 안에서 생성
+    const createRes = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/items/${parentId}/children`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json","Authorization":"Bearer "+token},
+      body: JSON.stringify({
+        name: folderName,
+        folder: {},
+        "@microsoft.graph.conflictBehavior": "replace"
+      })
+    });
+    if(!createRes.ok) {
+      const errText = await createRes.text();
+      throw new Error(`부모 폴더 생성 실패 (${createRes.status}): ${errText.substring(0,100)}`);
+    }
+    const data = await createRes.json();
+    parentIdCache[folderPath] = data.id;
+    return data.id;
+  }
+
   try {
     const t = await getToken();
     for(const p of plan) {
+      if(window._spMigCancelled) {
+        updateProgress("⏸️ 사용자 중지");
+        break;
+      }
       try {
         updateProgress(`이동: ${p.from.substring(0,40)}...`);
         const oldPath = `${SL_SP_BASE}/${p.from}`;
         const newPath = `${SL_SP_BASE}/${p.to}`;
         const oldEnc = oldPath.split("/").map(encodeURIComponent).join("/");
-        // 새 부모 폴더 ID 찾기 (없으면 생성)
         const newParentPath = newPath.substring(0, newPath.lastIndexOf("/"));
-        const newParentEnc = newParentPath.split("/").map(encodeURIComponent).join("/");
-        // 부모 폴더 보장 - PUT으로 생성 시도 (이미 있으면 무시)
+        const newName = newPath.substring(newPath.lastIndexOf("/")+1);
+
+        // 1) 원본 폴더 ID 가져오기
+        const oldRes = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${oldEnc}`, {
+          headers: {"Authorization":"Bearer "+t}
+        });
+        if(!oldRes.ok) {
+          throw new Error(`원본 조회 실패 (${oldRes.status})`);
+        }
+        const oldItem = await oldRes.json();
+        const oldId = oldItem.id;
+
+        // 2) 새 부모 폴더 ID 보장 (재귀 생성)
+        const newParentId = await ensureFolderAndGetId(newParentPath, t);
+
+        // 3) 같은 부모 안에 newName 폴더가 이미 있는지 확인 (병합 대상)
+        let mergeTargetId = null;
         try {
-          await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${newParentEnc}:/children`, {
-            method: "POST",
-            headers: {"Content-Type":"application/json","Authorization":"Bearer "+t},
-            body: JSON.stringify({name: newPath.split("/").pop(), folder:{}, "@microsoft.graph.conflictBehavior":"replace"})
+          const checkRes = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/items/${newParentId}:/${encodeURIComponent(newName)}`, {
+            headers: {"Authorization":"Bearer "+t}
           });
+          if(checkRes.ok) {
+            const checkItem = await checkRes.json();
+            // 자기 자신은 제외
+            if(checkItem.id !== oldId) {
+              mergeTargetId = checkItem.id;
+            }
+          }
         } catch(_){}
 
-        // 이동: PATCH parentReference
-        const moveRes = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${oldEnc}:/`, {
-          method: "PATCH",
-          headers: {"Content-Type":"application/json","Authorization":"Bearer "+t},
-          body: JSON.stringify({
-            parentReference: {path: `/drives/${spDrive}/root:/${newParentEnc}`},
-            name: newPath.split("/").pop(),
-          })
-        });
-        if(!moveRes.ok) {
-          const errText = await moveRes.text();
-          throw new Error(`HTTP ${moveRes.status}: ${errText.substring(0,100)}`);
+        if(mergeTargetId) {
+          // 병합: 원본 폴더의 자식들을 mergeTarget 폴더로 이동
+          const childrenRes = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/items/${oldId}/children?$top=500`, {
+            headers: {"Authorization":"Bearer "+t}
+          });
+          if(childrenRes.ok) {
+            const children = (await childrenRes.json()).value || [];
+            for(const child of children) {
+              try {
+                await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/items/${child.id}`, {
+                  method: "PATCH",
+                  headers: {"Content-Type":"application/json","Authorization":"Bearer "+t},
+                  body: JSON.stringify({
+                    parentReference: { id: mergeTargetId }
+                  })
+                });
+              } catch(_){}
+            }
+          }
+          // 빈 원본 폴더 삭제
+          try {
+            await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/items/${oldId}`, {
+              method: "DELETE",
+              headers: {"Authorization":"Bearer "+t}
+            });
+          } catch(_){}
+          moveLog.push({from: oldPath, to: newPath, mode: "merge", success: true, ts: new Date().toISOString()});
+          done++;
+        } else {
+          // 단순 이동: 부모만 변경 (이름은 그대로 유지가 아니라 newName으로)
+          // ⚠️ 중요: parentReference만 보내고 name은 보내지 않음 (충돌 방지)
+          // 이동 후 별도로 rename
+          const moveRes = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/items/${oldId}`, {
+            method: "PATCH",
+            headers: {"Content-Type":"application/json","Authorization":"Bearer "+t},
+            body: JSON.stringify({
+              parentReference: { id: newParentId }
+            })
+          });
+          if(!moveRes.ok) {
+            const errText = await moveRes.text();
+            throw new Error(`이동 실패 (${moveRes.status}): ${errText.substring(0,150)}`);
+          }
+          // 이름이 다르면 별도로 rename
+          if(oldItem.name !== newName) {
+            // 이미 같은 이름 폴더 있으면 충돌 → 병합으로 처리해야 했으나 위에서 확인됨
+            const renameRes = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/items/${oldId}`, {
+              method: "PATCH",
+              headers: {"Content-Type":"application/json","Authorization":"Bearer "+t},
+              body: JSON.stringify({ name: newName })
+            });
+            if(!renameRes.ok) {
+              console.warn(`이름변경 실패 (이동은 성공): ${oldItem.name} → ${newName}`);
+            }
+          }
+          moveLog.push({from: oldPath, to: newPath, mode: "move", success: true, ts: new Date().toISOString()});
+          done++;
         }
-        moveLog.push({from: oldPath, to: newPath, success: true, ts: new Date().toISOString()});
-        done++;
       } catch(e) {
         failed++;
         moveLog.push({from: `${SL_SP_BASE}/${p.from}`, to: `${SL_SP_BASE}/${p.to}`, success: false, error: e.message, ts: new Date().toISOString()});
         console.warn(`이동 실패: ${p.from}`, e.message);
       }
       updateProgress(`완료: ${done}/${total}`);
+      // rate limit 방지 - 약간의 딜레이
+      await new Promise(r=>setTimeout(r, 100));
     }
   } catch(e) {
     console.error("마이그레이션 치명적 오류:", e);
@@ -10704,11 +10817,9 @@ async function executeSPFolderMigration() {
     await safeSaveDB(`sp_mig_${Date.now()}`, logPath, moveLog);
   } catch(_){}
 
-  // 결과 표시
   progress.remove();
   alert(`✅ SP 폴더 마이그레이션 완료!\n\n성공: ${done}건\n실패: ${failed}건\n\n※ 영업활동/DB 데이터의 fileUrl은 자동으로 새 위치를 반영합니다.\n※ 페이지를 새로고침하면 새 폴더 구조로 표시됩니다.`);
 
-  // 자동 새로고침 권유
   if(confirm("페이지를 새로고침하시겠습니까?\n(새 폴더 구조와 변경된 fileUrl 반영)")) {
     location.reload();
   }
