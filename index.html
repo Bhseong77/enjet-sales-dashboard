@@ -16318,7 +16318,11 @@ function renderQDB(data) {
       </td>
       <td style="font-size:13px">${q.items||q.subject||"-"}</td>
       <td style="text-align:right;font-size:14px;font-weight:700;color:var(--p)">${amt}</td>
-      <td style="font-size:13px">${q.manager||"-"}</td>
+      <td style="font-size:13px">${q.manager || (function(){
+        if(!q.company) return "-";
+        const _m = slData.find(a => a.company===q.company && (!q.pjcode||a.pjcode===q.pjcode));
+        return _m?.salesMgr ? `<span style="color:var(--t3);font-size:12px" title="영업활동에서 자동매칭">${_m.salesMgr}</span>` : "-";
+      })()}</td>
       <td><span style="font-size:12px;padding:2px 8px;border-radius:10px;font-weight:700;${ss}">${q.status||"견적중"}</span></td>
       <td style="text-align:center">
         ${q.fileUrl?`<a href="${q.fileUrl}" target="_blank" onclick="event.stopPropagation()" style="color:var(--p);font-size:13px;text-decoration:underline">📄 열기</a>`:
@@ -16586,7 +16590,19 @@ function openQuickEdit(dbType, id) {
     console.log("🔧 찾은 item:", item);
     if(!item) { alert(`항목을 찾을 수 없습니다.\nID: ${id}\nDB: ${cfg.dataVar} (${dataArr.length}개)`); return; }
 
-    window._quickEditCtx = { dbType, id, fields: cfg.fields, dataArr };
+    // 🎯 빈 필드 영업활동에서 자동 채움 (custMgr, salesMgr 등)
+    let _matchedAct = null;
+    if(item.company && Array.isArray(slData)) {
+      if(item.pjcode) {
+        _matchedAct = slData.find(a => a.company === item.company && a.pjcode === item.pjcode);
+      }
+      if(!_matchedAct) {
+        const candidates = slData.filter(a => a.company === item.company);
+        if(candidates.length === 1) _matchedAct = candidates[0];
+      }
+    }
+
+    window._quickEditCtx = { dbType, id, fields: cfg.fields, dataArr, matchedAct: _matchedAct };
 
     // 모달 존재 확인
     const modal = document.getElementById("quickEditModal");
@@ -21204,7 +21220,11 @@ function renderProposalDB() {
     <td style="font-size:13px;white-space:nowrap">${d.date||""}</td>
     <td style="font-size:12px"><span style="background:var(--pd);color:var(--p);padding:2px 8px;border-radius:6px;font-weight:700">${d.folder||""}</span></td>
     <td style="font-size:12px;color:var(--t2)">${d.filename||""}</td>
-    <td style="font-size:12px">${d.salesMgr||""}</td>
+    <td style="font-size:12px">${d.salesMgr || (function(){
+      if(!d.company) return "";
+      const _m = slData.find(a => a.company===d.company && (!d.pjcode||a.pjcode===d.pjcode));
+      return _m?.salesMgr ? `<span style="color:var(--t3);font-style:italic" title="영업활동 자동매칭">${_m.salesMgr}</span>` : "";
+    })()}</td>
     <td style="text-align:center">${d.fileUrl?`<a href="${d.fileUrl}" target="_blank" onclick="event.stopPropagation()" style="font-size:12px;color:var(--p)">📎</a>`:"-"}</td>
     <td style="text-align:center;white-space:nowrap" onclick="event.stopPropagation()">
       <button onclick="openProposalModal('${d.id}')" style="padding:3px 8px;border-radius:5px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:12px;cursor:pointer">✏️</button>
