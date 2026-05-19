@@ -16592,15 +16592,33 @@ function openQuickEdit(dbType, id) {
 
     // 🎯 빈 필드 영업활동에서 자동 채움 (custMgr, salesMgr 등)
     let _matchedAct = null;
+    console.log("🔍 영업활동 자동매칭 시도:", { company: item.company, pjcode: item.pjcode, slDataLength: slData?.length });
     if(item.company && Array.isArray(slData)) {
       if(item.pjcode) {
         _matchedAct = slData.find(a => a.company === item.company && a.pjcode === item.pjcode);
+        console.log("🔍 1차 매칭 (회사+프로젝트):", _matchedAct?.id || "없음");
       }
       if(!_matchedAct) {
         const candidates = slData.filter(a => a.company === item.company);
-        if(candidates.length === 1) _matchedAct = candidates[0];
+        console.log("🔍 회사명 후보:", candidates.length, "개");
+        if(candidates.length >= 1) {
+          // 후보가 여러 개여도 우선 첫 번째 사용 (영업활동 1개만일 때만 사용했던 제약 완화)
+          _matchedAct = candidates[0];
+        }
+      }
+      // 그래도 못 찾으면 회사명 부분 일치 시도 (괄호 등 차이)
+      if(!_matchedAct) {
+        const normCo = item.company.replace(/\s*\(.*?\)\s*/g, "").trim();
+        if(normCo) {
+          _matchedAct = slData.find(a => {
+            const an = (a.company||"").replace(/\s*\(.*?\)\s*/g, "").trim();
+            return an === normCo;
+          });
+          console.log("🔍 부분일치 매칭(괄호제거):", _matchedAct?.id || "없음", "정규화회사명:", normCo);
+        }
       }
     }
+    console.log("🔍 최종 매칭 결과:", _matchedAct ? {company: _matchedAct.company, custMgr: _matchedAct.custMgr, salesMgr: _matchedAct.salesMgr} : "매칭 실패");
 
     window._quickEditCtx = { dbType, id, fields: cfg.fields, dataArr, matchedAct: _matchedAct };
 
@@ -16639,26 +16657,52 @@ function openQuickEdit(dbType, id) {
       return;
     }
     fieldsContainer.innerHTML = cfg.fields.map(f => {
-      const val = item[f.key] !== undefined && item[f.key] !== null ? item[f.key] : "";
+      let val = item[f.key] !== undefined && item[f.key] !== null ? item[f.key] : "";
+      // 🎯 빈 필드는 영업활동에서 자동 매칭 시도
+      let autoFilled = false;
+      if((val === "" || val === 0 || val === null) && _matchedAct) {
+        const actSalesMgr = Array.isArray(_matchedAct.salesMgr) ? _matchedAct.salesMgr.join(", ") : (_matchedAct.salesMgr || "");
+        const actCustMgr = Array.isArray(_matchedAct.custMgr) ? _matchedAct.custMgr.join(", ") : (_matchedAct.custMgr || "");
+        const fromAct = {
+          custMgr: actCustMgr,
+          salesMgr: actSalesMgr,
+          manager: actSalesMgr,  // 견적서의 영업담당
+          pjcode: _matchedAct.pjcode || "",
+          company: _matchedAct.company || "",
+        }[f.key];
+        if(fromAct) {
+          val = fromAct;
+          autoFilled = true;
+        }
+      }
       const isFullWidth = f.fullWidth || f.type === "textarea";
       const gridStyle = isFullWidth ? "grid-column:1 / -1" : "";
       let inputHtml = "";
+      const bgStyle = autoFilled ? "background:#fef9c3;" : "";
       if(f.type === "select") {
-        inputHtml = `<select class="si" id="qe-${f.key}" style="width:100%;font-size:14px">
+        inputHtml = `<select class="si" id="qe-${f.key}" style="${bgStyle}width:100%;font-size:14px">
           <option value="">선택...</option>
           ${(f.options||[]).map(o => `<option value="${o}"${o===val?' selected':''}>${o}</option>`).join("")}
         </select>`;
       } else if(f.type === "textarea") {
-        inputHtml = `<textarea class="si" id="qe-${f.key}" rows="2" style="width:100%;font-size:14px;font-family:var(--s);resize:vertical">${String(val).replace(/</g,"&lt;")}</textarea>`;
+        inputHtml = `<textarea class="si" id="qe-${f.key}" rows="2" style="${bgStyle}width:100%;font-size:14px;font-family:var(--s);resize:vertical">${String(val).replace(/</g,"&lt;")}</textarea>`;
       } else if(f.type === "number") {
-        inputHtml = `<input class="si" type="number" id="qe-${f.key}" value="${val||0}" style="width:100%;font-size:14px">`;
+        inputHtml = `<input class="si" type="number" id="qe-${f.key}" value="${val||0}" style="${bgStyle}width:100%;font-size:14px">`;
       } else {
-        inputHtml = `<input class="si" type="${f.type}" id="qe-${f.key}" value="${String(val).replace(/"/g,'&quot;')}" style="width:100%;font-size:14px">`;
+        inputHtml = `<input class="si" type="${f.type}" id="qe-${f.key}" value="${String(val).replace(/"/g,'&quot;')}" style="${bgStyle}width:100%;font-size:14px">`;
       }
-      const labelColor = (!val || val === "" || val === 0) ? "var(--r)" : "var(--t2)";
-      const emptyHint = (!val || val === "" || val === 0) ? '<span style="font-size:10px;color:var(--r);margin-left:4px">비어있음</span>' : '';
+      // 라벨 색/안내
+      let labelColor = "var(--t2)";
+      let hint = "";
+      if(autoFilled) {
+        labelColor = "#854d0e";
+        hint = '<span style="font-size:10px;color:#ca8a04;margin-left:4px;font-weight:600">✨ 영업활동에서 자동입력</span>';
+      } else if(!val || val === "" || val === 0) {
+        labelColor = "var(--r)";
+        hint = '<span style="font-size:10px;color:var(--r);margin-left:4px">비어있음</span>';
+      }
       return `<div style="${gridStyle}">
-        <label style="font-size:12px;font-weight:700;color:${labelColor};display:block;margin-bottom:4px">${f.label}${emptyHint}</label>
+        <label style="font-size:12px;font-weight:700;color:${labelColor};display:block;margin-bottom:4px">${f.label}${hint}</label>
         ${inputHtml}
       </div>`;
     }).join("");
