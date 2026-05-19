@@ -14908,6 +14908,122 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
       renderSLAll();
       $("slUpd","✅ "+uploaded.length+"개 업로드 완료 ("+subFolder+")");
 
+      // 🆕 견적서/발주서/계약서/거래명세서/세금계산서/납품확인서 → 해당 DB에 자동 등록 (기본정보)
+      //   AI 파싱 모달은 별도로 뜨지만, 사용자가 취소해도 일단 DB에는 등록됨
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const co = act.company || "";
+        const pj = act.pjcode || "";
+        const fileUrl = uploaded[0]?.url || "";
+        const fileName = uploaded[0]?.name || "";
+
+        if(fileType === "estimate" && uploaded.length > 0 && Array.isArray(window.quoteDB)) {
+          // 견적서 DB - 중복 체크 (같은 URL 있으면 skip)
+          if(!quoteDB.find(q => q.fileUrl === fileUrl)) {
+            const docNo = (fileName.match(/Q\d{8}-\d+|EST-\d+|견적-\d+/) || [""])[0] || ("Q"+today.replace(/-/g,"").slice(2)+"-"+(quoteDB.length+1));
+            quoteDB.unshift({
+              id: "q_" + Date.now(),
+              docNo: docNo,
+              date: today,
+              company: co,
+              pjcode: pj,
+              amount: 0,
+              status: "임시",
+              fileName: fileName,
+              fileUrl: fileUrl,
+              source: "영업활동 자동등록",
+              createdAt: new Date().toISOString(),
+            });
+            await saveQuoteDB();
+            if(typeof renderQDB === "function") renderQDB();
+            console.log(`✅ 견적서 DB 자동 등록: ${docNo} · ${co}`);
+          }
+        }
+        else if(fileType === "order" && uploaded.length > 0 && Array.isArray(window._ordData)) {
+          if(!_ordData.find(o => o.fileUrl === fileUrl)) {
+            _ordData.unshift({
+              id: "ord_" + Date.now(),
+              date: today,
+              company: co,
+              pjcode: pj,
+              po: "",
+              item: fileName.replace(/\.[^.]+$/,""),
+              qty: "",
+              amount: 0,
+              status: "수신",
+              note: "영업활동 자동등록",
+              fileUrl: fileUrl,
+              createdAt: new Date().toISOString(),
+            });
+            await saveOrderToSP();
+            if(typeof renderOrderDB === "function") renderOrderDB();
+            console.log(`✅ 발주서 DB 자동 등록: ${co}`);
+          }
+        }
+        else if(fileType === "contract" && uploaded.length > 0 && Array.isArray(window._ctrData)) {
+          if(!_ctrData.find(c => c.fileUrl === fileUrl)) {
+            _ctrData.unshift({
+              id: "ctr_" + Date.now(),
+              date: today, company: co, pjcode: pj,
+              item: fileName.replace(/\.[^.]+$/,""), amount: 0,
+              status: "계약체결", note: "영업활동 자동등록",
+              fileUrl: fileUrl, createdAt: new Date().toISOString(),
+            });
+            await saveContractToSP();
+            if(typeof renderContractDB === "function") renderContractDB();
+            console.log(`✅ 계약서 DB 자동 등록: ${co}`);
+          }
+        }
+        else if(fileType === "delivery" && uploaded.length > 0 && Array.isArray(window._dlvData)) {
+          if(!_dlvData.find(d => d.fileUrl === fileUrl)) {
+            _dlvData.unshift({
+              id: "dlv_" + Date.now(),
+              date: today, company: co, pjcode: pj,
+              item: fileName.replace(/\.[^.]+$/,""), qty:"",
+              supply: 0, tax: 0, total: 0,
+              po: "", note: "영업활동 자동등록",
+              fileUrl: fileUrl, createdAt: new Date().toISOString(),
+            });
+            await saveDeliveryToSP();
+            if(typeof renderDeliveryDB === "function") renderDeliveryDB();
+            console.log(`✅ 거래명세서 DB 자동 등록: ${co}`);
+          }
+        }
+        else if(fileType === "tax" && uploaded.length > 0 && Array.isArray(window._taxData)) {
+          if(!_taxData.find(t => t.fileUrl === fileUrl)) {
+            _taxData.unshift({
+              id: "tax_" + Date.now(),
+              date: today, company: co,
+              item: fileName.replace(/\.[^.]+$/,""),
+              supply: 0, vat: 0, total: 0,
+              approval: "", mgmt: pj,
+              note: "영업활동 자동등록",
+              fileUrl: fileUrl, createdAt: new Date().toISOString(),
+            });
+            await saveTaxToSP();
+            if(typeof renderTaxDB === "function") renderTaxDB();
+            console.log(`✅ 세금계산서 DB 자동 등록: ${co}`);
+          }
+        }
+        else if(fileType === "confirm" && uploaded.length > 0 && Array.isArray(window._cfmData)) {
+          if(!_cfmData.find(c => c.fileUrl === fileUrl)) {
+            _cfmData.unshift({
+              id: "cfm_" + Date.now(),
+              date: today, company: co, pjcode: pj,
+              item: fileName.replace(/\.[^.]+$/,""), qty:"", amount: 0,
+              po: "", status: "납품완료",
+              note: "영업활동 자동등록",
+              fileUrl: fileUrl, createdAt: new Date().toISOString(),
+            });
+            await saveConfirmToSP();
+            if(typeof renderConfirmDB === "function") renderConfirmDB();
+            console.log(`✅ 납품확인서 DB 자동 등록: ${co}`);
+          }
+        }
+      } catch(autoRegErr) {
+        console.warn("⚠️ DB 자동 등록 실패 (수동 등록 가능):", autoRegErr.message);
+      }
+
       // 🆕 세금계산서 업로드 시 AI 파싱 모달 자동 오픈
       if(fileType === "tax" && uploaded.length > 0 && files.length > 0) {
         const pdfFile = files.find(f=>f.name.toLowerCase().endsWith(".pdf"));
