@@ -1100,6 +1100,112 @@
         </div>
       </div>
 
+      <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+      <!-- 📋 PR 품목 검토 모달 (AI 파싱 결과 편집) -->
+      <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+      <div id="prReviewModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.7);z-index:10010;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+        <div class="modal-inner" style="background:#fff;border-radius:16px;width:96vw;max-width:1600px;height:94vh;max-height:94vh;position:relative;display:flex;flex-direction:column;overflow:hidden">
+          <!-- 헤더 -->
+          <div style="padding:16px 24px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#eff6ff">
+            <div>
+              <div style="font-size:18px;font-weight:900;color:#1e40af">📋 PR 품목 검토 — AI 파싱 결과</div>
+              <div style="font-size:12px;color:var(--t3);margin-top:2px">각 셀 클릭하여 직접 편집 가능 · [✅ PR 생성] 클릭 시 표시된 품목 수만큼 PR 자동 등록</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span id="prReviewCount" style="font-size:14px;color:#1e40af;font-weight:700;padding:5px 12px;background:#fff;border-radius:6px;border:1.5px solid #3b82f6">0건</span>
+              <button onclick="closePRReviewModal()" style="border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--t3)">✕</button>
+            </div>
+          </div>
+
+          <!-- 2단 그리드 -->
+          <div style="flex:1;display:grid;grid-template-columns:1fr 1.4fr;gap:0;overflow:hidden;min-height:0">
+
+            <!-- ╔═════ 좌측: PDF 미리보기 큰 화면 ═════╗ -->
+            <div style="background:#f8fafc;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-height:0">
+              <div style="padding:9px 14px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+                <div style="font-size:13px;font-weight:700;color:var(--t)">📄 구매요청서 PDF</div>
+                <div style="display:flex;gap:5px;align-items:center">
+                  <span id="prReview-zoom-label" style="font-size:11px;color:var(--t3);font-family:var(--m)">100%</span>
+                  <button type="button" onclick="zoomPRReview(-0.2)" style="padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:#fff;cursor:pointer;font-size:12px;font-family:var(--m)">−</button>
+                  <button type="button" onclick="zoomPRReview(0.2)" style="padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:#fff;cursor:pointer;font-size:12px;font-family:var(--m)">+</button>
+                  <button type="button" onclick="zoomPRReview(0)" style="padding:3px 9px;border-radius:5px;border:1px solid var(--border2);background:#fff;cursor:pointer;font-size:11px;font-family:var(--s)">초기화</button>
+                </div>
+              </div>
+              <div id="prReview-preview-pane" style="flex:1;overflow:auto;padding:12px;background:#f1f5f9;min-height:0">
+                <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--t3);font-size:13px">PDF 미리보기 영역</div>
+              </div>
+            </div>
+
+            <!-- ╔═════ 우측: 품목 리스트 (편집 가능) ═════╗ -->
+            <div style="display:flex;flex-direction:column;overflow:hidden;min-height:0">
+              <!-- AI 메타 정보 -->
+              <div style="padding:10px 16px;background:#fff7ed;border-bottom:1px solid var(--border);flex-shrink:0">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+                  <div>
+                    <label style="font-size:10px;font-weight:700;color:var(--t3);display:block">영업프로젝트</label>
+                    <input class="si" type="text" id="prReview-pjcode" style="width:100%;font-size:12px;padding:5px 8px;font-family:var(--m);background:#fff" placeholder="자동" readonly>
+                  </div>
+                  <div>
+                    <label style="font-size:10px;font-weight:700;color:var(--t3);display:block">고객사</label>
+                    <input class="si" type="text" id="prReview-company" style="width:100%;font-size:12px;padding:5px 8px;background:#fff" placeholder="자동" readonly>
+                  </div>
+                  <div>
+                    <label style="font-size:10px;font-weight:700;color:var(--t3);display:block">요청자</label>
+                    <input class="si" type="text" id="prReview-requester" style="width:100%;font-size:12px;padding:5px 8px">
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:6px;margin-top:6px">
+                  <div>
+                    <label style="font-size:10px;font-weight:700;color:var(--t3);display:block">문서번호</label>
+                    <input class="si" type="text" id="prReview-docno" style="width:100%;font-size:11px;padding:5px 8px;font-family:var(--m)">
+                  </div>
+                  <div>
+                    <label style="font-size:10px;font-weight:700;color:var(--t3);display:block">요청번호</label>
+                    <input class="si" type="text" id="prReview-reqno" style="width:100%;font-size:11px;padding:5px 8px;font-family:var(--m)">
+                  </div>
+                  <div>
+                    <label style="font-size:10px;font-weight:700;color:var(--t3);display:block">구매요청구분</label>
+                    <input class="si" type="text" id="prReview-purchasetype" style="width:100%;font-size:11px;padding:5px 8px">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 품목 테이블 헤더 -->
+              <div style="padding:7px 12px;background:#1e40af;color:#fff;font-size:11px;font-weight:700;display:grid;grid-template-columns:24px 1fr 1.2fr 0.9fr 0.5fr 0.6fr 1fr 0.9fr 30px;gap:4px;flex-shrink:0;border-bottom:2px solid #1e3a8a">
+                <div style="text-align:center">#</div>
+                <div>품명</div>
+                <div>품번</div>
+                <div>규격</div>
+                <div style="text-align:center">단위</div>
+                <div style="text-align:right">수량</div>
+                <div>거래처/제조사</div>
+                <div>납기요청일</div>
+                <div></div>
+              </div>
+
+              <!-- 품목 리스트 (스크롤) -->
+              <div id="prReview-items-body" style="flex:1;overflow-y:auto;background:#fff">
+                <div style="padding:40px;text-align:center;color:var(--t3);font-size:13px">AI 파싱 후 품목이 여기에 표시됩니다</div>
+              </div>
+
+              <!-- 풋터: 추가 + 통계 + 저장 -->
+              <div style="padding:12px 16px;background:var(--bg3);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px">
+                <div style="display:flex;gap:6px;align-items:center">
+                  <button type="button" onclick="addPRReviewItem()" style="padding:7px 12px;border-radius:6px;border:1.5px dashed var(--p);background:#fff;color:var(--p);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 품목 추가</button>
+                  <button type="button" onclick="clearPRReviewItems()" style="padding:7px 12px;border-radius:6px;border:1px solid var(--border2);background:#fff;color:var(--r);font-size:12px;cursor:pointer;font-family:var(--s)">🗑️ 비우기</button>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <span id="prReview-summary" style="font-size:11px;color:var(--t3)"></span>
+                  <button type="button" onclick="closePRReviewModal()" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:#fff;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+                  <button type="button" onclick="confirmPRReview()" style="padding:9px 22px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">✅ PR 생성</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
 
       <!-- 자료 서브폴더 선택 모달 -->
       <div id="proposalPickerModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
@@ -3018,6 +3124,295 @@ async function _purchaseCallAI(base64, prompt, engine) {
 // 🔧 AI 파싱 결과 임시 저장 (저장 버튼 클릭 시 품목별 PR 생성에 사용)
 let _slAIParseResult = null;
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📋 PR 품목 검토 모달 (AI 파싱 결과 편집)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// 검토 모달 상태
+let _prReviewItems = [];      // 편집 중인 품목 배열
+let _prReviewMeta = {};       // 메타 정보 (docNo, reqNo, etc)
+let _prReviewFile = null;     // 원본 PDF 파일 객체 (미리보기용)
+let _prReviewSLContext = null; // 구매활동 컨텍스트 (pjcode, company, etc)
+
+function openPRReviewModal(aiResult, file, slContext) {
+  _prReviewItems = (aiResult?.items || []).map((it, i) => ({
+    no: it.no || (i + 1),
+    name: it.name || "",
+    partNo: it.partNo || "",
+    spec: it.spec || "",
+    unit: it.unit || "EA",
+    qty: Number(it.qty) || 0,
+    dueDate: it.dueDate || "",
+    projectName: it.projectName || "",
+    projectNo: it.projectNo || "",
+    vendor: it.vendor || "",
+  }));
+  _prReviewMeta = {
+    docNo: aiResult?.docNo || "",
+    reqNo: aiResult?.requestNo || "",
+    purchaseType: aiResult?.purchaseType || "",
+    requester: aiResult?.requester || "",
+    reqDate: aiResult?.reqDate || "",
+    specialNote: aiResult?.specialNote || "",
+  };
+  _prReviewFile = file || null;
+  _prReviewSLContext = slContext || {};
+  
+  // 모달 표시
+  const modal = document.getElementById("prReviewModal");
+  if(!modal) { alert("PR 검토 모달 DOM 없음"); return; }
+  modal.style.display = "flex";
+  
+  // 🆕 영업프로젝트 자동 매칭: PDF의 projectNo로 영업 슬데이터에서 검색
+  let matchedPjcode = slContext?.pjcode || "";
+  let matchedCompany = slContext?.company || "";
+  const aiProjectNo = (_prReviewItems[0]?.projectNo || "").trim();
+  
+  if(!matchedPjcode && aiProjectNo) {
+    // 영업 슬데이터에서 projectNo와 일치하는 SL/SP 코드 검색
+    try {
+      const sd = Array.isArray(slData) ? slData : [];
+      // 1순위: pjcode에 projectNo 포함된 활동 (예: BR25006-P001 안에 BM26005)
+      let match = sd.find(s => 
+        (s.pjcode||"").toUpperCase().includes(aiProjectNo.toUpperCase()) ||
+        (s.salesPjName||"").toUpperCase().includes(aiProjectNo.toUpperCase()) ||
+        (s.projectNo||"").toUpperCase() === aiProjectNo.toUpperCase()
+      );
+      if(match) {
+        matchedPjcode = match.pjcode || "";
+        matchedCompany = match.company || "";
+        console.log(`🎯 영업프로젝트 자동 매칭: PDF projectNo(${aiProjectNo}) → SL ${matchedPjcode} (${matchedCompany})`);
+      } else {
+        console.log(`⚠️ 영업프로젝트 자동 매칭 실패: PDF projectNo(${aiProjectNo})와 일치하는 SL/SP 없음`);
+      }
+    } catch(e) { console.warn("프로젝트 매칭 검색 에러:", e); }
+  }
+  
+  // 메타 정보 채우기 (자동 매칭된 값 또는 컨텍스트 값)
+  const setVal = (id, val, readonly) => { 
+    const el = document.getElementById(id); 
+    if(el) {
+      el.value = val || "";
+      if(readonly === false) el.removeAttribute("readonly");
+    }
+  };
+  setVal("prReview-pjcode", matchedPjcode);
+  setVal("prReview-company", matchedCompany);
+  setVal("prReview-requester", _prReviewMeta.requester);
+  setVal("prReview-docno", _prReviewMeta.docNo);
+  setVal("prReview-reqno", _prReviewMeta.reqNo);
+  setVal("prReview-purchasetype", _prReviewMeta.purchaseType);
+  
+  // 매칭 실패 시 영업프로젝트 input은 편집 가능하게 + 시각적 표시
+  if(!matchedPjcode && aiProjectNo) {
+    const pjEl = document.getElementById("prReview-pjcode");
+    if(pjEl) {
+      pjEl.removeAttribute("readonly");
+      pjEl.style.background = "#fef3c7";
+      pjEl.style.color = "#92400e";
+      pjEl.value = aiProjectNo; // PDF의 projectNo를 그대로 일단 표시
+      pjEl.title = `⚠️ 영업프로젝트 미매칭 (PDF: ${aiProjectNo}) - 직접 입력해주세요`;
+    }
+  }
+  
+  // PDF 미리보기
+  if(file && typeof renderFilePreview === "function") {
+    renderFilePreview(file, "prReview-preview-pane").catch(e => console.warn("미리보기:", e));
+  }
+  
+  // 품목 리스트 렌더
+  renderPRReviewItems();
+}
+
+function closePRReviewModal() {
+  const modal = document.getElementById("prReviewModal");
+  if(modal) modal.style.display = "none";
+  // 데이터는 유지 (재오픈 시 보존). confirmPRReview 또는 clearPRReviewItems에서 클리어
+}
+
+function renderPRReviewItems() {
+  const body = document.getElementById("prReview-items-body");
+  if(!body) return;
+  
+  if(!_prReviewItems.length) {
+    body.innerHTML = `<div style="padding:50px 30px;text-align:center;color:var(--t3);font-size:13px;line-height:1.7">
+      <div style="font-size:42px;margin-bottom:10px;opacity:0.5">📦</div>
+      <b style="color:var(--t2);font-size:14px">품목이 없습니다</b><br>
+      <span style="font-size:12px">[+ 품목 추가] 버튼으로 직접 입력하거나, 이 모달을 닫고 AI 파싱을 다시 시도하세요.</span>
+    </div>`;
+    updatePRReviewSummary();
+    return;
+  }
+  
+  body.innerHTML = _prReviewItems.map((it, i) => {
+    const isInhouse = (it.vendor||"").trim() === "엔젯(재고)";
+    const vendorBg = isInhouse ? "background:#dcfce7;color:#15803d;font-weight:700" : "";
+    const safeName = (it.name||"").replace(/"/g,"&quot;");
+    const safePartNo = (it.partNo||"").replace(/"/g,"&quot;");
+    const safeSpec = (it.spec||"").replace(/"/g,"&quot;");
+    const safeUnit = (it.unit||"EA").replace(/"/g,"&quot;");
+    const safeVendor = (it.vendor||"").replace(/"/g,"&quot;");
+    return `<div style="display:grid;grid-template-columns:24px 1fr 1.2fr 0.9fr 0.5fr 0.6fr 1fr 0.9fr 30px;gap:4px;align-items:center;padding:4px 6px;border-bottom:1px solid var(--border);${i%2?"background:#fafbfc":""}">
+      <div style="font-size:10px;color:var(--t3);text-align:center;font-weight:700">${i+1}</div>
+      <input type="text" value="${safeName}" oninput="updatePRReviewItem(${i},'name',this.value)"
+        placeholder="품명" style="padding:5px 6px;border:1px solid var(--border2);border-radius:4px;font-size:11px;width:100%;box-sizing:border-box;font-weight:600">
+      <input type="text" value="${safePartNo}" oninput="updatePRReviewItem(${i},'partNo',this.value)"
+        placeholder="품번" style="padding:5px 6px;border:1px solid var(--border2);border-radius:4px;font-size:10px;width:100%;box-sizing:border-box;font-family:var(--m)">
+      <input type="text" value="${safeSpec}" oninput="updatePRReviewItem(${i},'spec',this.value)"
+        placeholder="규격" style="padding:5px 6px;border:1px solid var(--border2);border-radius:4px;font-size:10px;width:100%;box-sizing:border-box">
+      <input type="text" value="${safeUnit}" oninput="updatePRReviewItem(${i},'unit',this.value)"
+        style="padding:5px 4px;border:1px solid var(--border2);border-radius:4px;font-size:11px;width:100%;text-align:center;box-sizing:border-box;font-family:var(--m)">
+      <input type="number" value="${it.qty||0}" min="0" step="0.01"
+        oninput="updatePRReviewItem(${i},'qty',this.value)"
+        style="padding:5px 4px;border:1px solid var(--border2);border-radius:4px;font-size:11px;width:100%;text-align:right;box-sizing:border-box;font-family:var(--m);font-weight:700">
+      <input type="text" value="${safeVendor}" oninput="updatePRReviewItem(${i},'vendor',this.value)" onblur="normalizePRReviewVendor(${i})"
+        placeholder="거래처" style="padding:5px 6px;border:1px solid var(--border2);border-radius:4px;font-size:11px;width:100%;box-sizing:border-box;${vendorBg}">
+      <input type="date" value="${(it.dueDate||"").substring(0,10)}" oninput="updatePRReviewItem(${i},'dueDate',this.value)"
+        style="padding:5px 4px;border:1px solid var(--border2);border-radius:4px;font-size:10px;width:100%;box-sizing:border-box;font-family:var(--m)">
+      <button type="button" onclick="removePRReviewItem(${i})" title="이 행 삭제"
+        style="border:none;background:transparent;color:var(--r);cursor:pointer;font-size:15px;padding:0;font-weight:700">×</button>
+    </div>`;
+  }).join("");
+  
+  updatePRReviewSummary();
+}
+
+function updatePRReviewItem(idx, field, value) {
+  if(!_prReviewItems[idx]) return;
+  _prReviewItems[idx][field] = field === "qty" ? (Number(value) || 0) : value;
+  // qty 변경 시에만 summary 갱신 (퍼포먼스)
+  if(field === "qty" || field === "vendor") updatePRReviewSummary();
+}
+
+function normalizePRReviewVendor(idx) {
+  if(!_prReviewItems[idx]) return;
+  const v = (_prReviewItems[idx].vendor||"").trim();
+  // "엔젯" 또는 "ENJET" 입력 시 자동으로 "엔젯(재고)"로 변환
+  if(v === "엔젯" || v.toLowerCase() === "enjet") {
+    _prReviewItems[idx].vendor = "엔젯(재고)";
+    renderPRReviewItems();
+  }
+}
+
+function addPRReviewItem() {
+  _prReviewItems.push({
+    no: _prReviewItems.length + 1,
+    name: "", partNo: "", spec: "", unit: "EA", qty: 0,
+    dueDate: "", projectName: _prReviewItems[0]?.projectName || "",
+    projectNo: _prReviewItems[0]?.projectNo || "",
+    vendor: "",
+  });
+  renderPRReviewItems();
+}
+
+function removePRReviewItem(idx) {
+  _prReviewItems.splice(idx, 1);
+  renderPRReviewItems();
+}
+
+function clearPRReviewItems() {
+  if(!_prReviewItems.length) return;
+  if(!confirm(`⚠️ 표시된 ${_prReviewItems.length}개 품목을 모두 삭제하시겠어요?`)) return;
+  _prReviewItems = [];
+  renderPRReviewItems();
+}
+
+function updatePRReviewSummary() {
+  const cnt = document.getElementById("prReviewCount");
+  const summary = document.getElementById("prReview-summary");
+  if(cnt) cnt.textContent = `${_prReviewItems.length}건`;
+  if(summary) {
+    const totalQty = _prReviewItems.reduce((s, it) => s + Number(it.qty||0), 0);
+    const vendors = [...new Set(_prReviewItems.map(it => it.vendor).filter(Boolean))];
+    summary.textContent = `총수량 ${totalQty} · 거래처 ${vendors.length}곳`;
+  }
+}
+
+// 줌 함수 (영업 패턴 활용)
+function zoomPRReview(delta) {
+  const containerId = "prReview-preview-pane";
+  const cur = (window._previewZoom||{})[containerId] || 1;
+  const newZoom = delta === 0 ? 1 : Math.max(0.3, Math.min(5, cur + delta));
+  window._previewZoom = window._previewZoom || {};
+  window._previewZoom[containerId] = newZoom;
+  if(typeof _previewZoomApply === "function") _previewZoomApply(containerId);
+  const lbl = document.getElementById("prReview-zoom-label");
+  if(lbl) lbl.textContent = Math.round(newZoom*100) + "%";
+}
+
+// 확인 → 실제 PR 생성
+async function confirmPRReview() {
+  if(!_prReviewItems.length) {
+    alert("⚠️ 품목이 없습니다. 최소 1개 이상의 품목을 추가하세요.");
+    return;
+  }
+  
+  // 빈 품명 체크
+  const emptyName = _prReviewItems.findIndex(it => !it.name?.trim());
+  if(emptyName >= 0) {
+    if(!confirm(`⚠️ ${emptyName+1}번 행의 품명이 비어있습니다.\n그래도 PR 생성하시겠어요?`)) return;
+  }
+  
+  // 메타 정보 다시 수집 (편집된 값 반영)
+  const getVal = (id) => document.getElementById(id)?.value?.trim() || "";
+  const meta = {
+    docNo: getVal("prReview-docno"),
+    requestNo: getVal("prReview-reqno"),
+    purchaseType: getVal("prReview-purchasetype"),
+    requester: getVal("prReview-requester"),
+    reqDate: _prReviewMeta.reqDate,
+    specialNote: _prReviewMeta.specialNote,
+  };
+  
+  // _slAIParseResult를 검토된 결과로 업데이트 → saveSLActivity의 PR 생성 로직이 사용
+  _slAIParseResult = {
+    ...meta,
+    items: _prReviewItems.map((it, i) => ({
+      no: i+1,
+      name: it.name?.trim() || "",
+      partNo: it.partNo?.trim() || "",
+      spec: it.spec?.trim() || "",
+      unit: it.unit?.trim() || "EA",
+      qty: Number(it.qty) || 0,
+      dueDate: it.dueDate || "",
+      projectName: it.projectName || "",
+      projectNo: it.projectNo || "",
+      vendor: it.vendor?.trim() || "",
+    })),
+    _reviewed: true,
+    _fileName: _prReviewFile?.name || "",
+  };
+  
+  console.log("✅ PR 검토 완료, 저장 시 자동 생성 대기:", _slAIParseResult);
+  
+  // slModal 비고/메모도 갱신
+  const noteEl = document.getElementById("sl-f-note");
+  if(noteEl) {
+    const totalQty = _prReviewItems.reduce((s,it) => s + Number(it.qty||0), 0);
+    const vendors = [...new Set(_prReviewItems.map(it => it.vendor).filter(Boolean))];
+    noteEl.value = `[AI 파싱 + 검토 완료]
+문서번호: ${meta.docNo||"-"}
+요청번호: ${meta.requestNo||"-"}
+품목 수: ${_prReviewItems.length}개 / 총수량: ${totalQty}
+거래처(${vendors.length}곳): ${vendors.slice(0,5).join(", ")}${vendors.length>5?` 외 ${vendors.length-5}곳`:""}
+
+✅ 저장 시 PR ${_prReviewItems.length}건 자동 생성됩니다`;
+  }
+  
+  // slModal PR 파일 정보 갱신
+  const info = document.getElementById("sl-f-prfile-info");
+  if(info && _prReviewFile) {
+    info.style.display = "block";
+    info.textContent = `✅ ${_prReviewFile.name} · 품목 ${_prReviewItems.length}개 검토 완료 (저장 시 PR ${_prReviewItems.length}건 생성)`;
+    info.style.color = "var(--g)";
+  }
+  
+  closePRReviewModal();
+  alert(`✅ PR ${_prReviewItems.length}건 검토 완료\n\n구매활동 모달의 [💾 저장 + PR 생성] 버튼을 클릭하면 자동 등록됩니다.`);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 async function aiParsePR() {
   const fileInput = document.getElementById("sl-f-prfile");
   const file = fileInput?.files?.[0];
@@ -3124,31 +3519,22 @@ async function aiParsePR() {
     }
     
     if(info) {
-      info.textContent = `✅ AI 파싱 완료: ${file.name} · 품목 ${itemCount}개 추출됨 (저장 시 PR ${itemCount}건 자동 생성)`;
+      info.textContent = `✅ AI 파싱 완료: ${file.name} · 품목 ${itemCount}개 추출됨 → 검토 모달 자동 표시`;
       info.style.color = "var(--g)";
     }
     
-    // 상세 결과 alert
-    const itemPreview = (result.items||[]).slice(0,5).map((it,i) => 
-      `  ${i+1}. ${it.name||"-"} (${it.partNo||"-"}) · ${it.qty||0}${it.unit||""} · ${it.vendor||"-"}`
-    ).join("\n");
+    // 🆕 PR 검토 모달 자동 오픈 (좌:큰 PDF / 우:33개 품목 편집 가능)
+    // slContext: 현재 구매활동 모달의 영업프로젝트 정보
+    const slContext = {
+      pjcode: document.getElementById("sl-f-pjcode")?.value || "",
+      company: document.getElementById("sl-f-company")?.value || "",
+      salesPjName: document.getElementById("sl-f-salesname")?.value || "",
+    };
+    // 파일명도 result에 보존
+    result._fileName = file.name;
     
-    alert(`🤖 구매요청서 AI 파싱 완료!\n\n` +
-          `📋 문서: ${result.docNo||"-"}\n` +
-          `📅 요청일: ${result.reqDate||"-"}\n` +
-          `👤 요청자: ${result.requester||"-"} (${result.reqDept||"-"})\n\n` +
-          `📦 품목 총 ${itemCount}건 추출:\n${itemPreview}${itemCount>5?`\n  ... 외 ${itemCount-5}건`:""}\n\n` +
-          `💾 저장 버튼 클릭 시 PR ${itemCount}건이 자동 생성됩니다.`);
-    
-  } catch(e) {
-    console.error("AI 파싱 실패:", e);
-    if(info) {
-      info.textContent = `⚠️ AI 파싱 실패: ${e.message}`;
-      info.style.color = "var(--r)";
-    }
-    alert("⚠️ AI 파싱 실패\n\n" + e.message + "\n\n파일은 그대로 첨부됩니다. 수동으로 입력 후 저장하세요.");
-  }
-}
+    // 검토 모달 열기 (slModal과 동시에 띄움 - z-index 10010이 더 높음)
+    openPRReviewModal(result, file, slContext);
     
   } catch(e) {
     console.error("AI 파싱 실패:", e);
@@ -10289,6 +10675,8 @@ async function loadSLFromSP() {
         if(Array.isArray(parsed.data) && parsed.data.length > data.length) {
           console.log(`🛡️ 구매활동 로컬 우선 (${parsed.data.length} > ${data.length})`);
           slData = parsed.data.filter(item => isSLEvent(item));
+          // 🆕 영업 잔재 감지 시 경고
+          _detectAndWarnSalesLeftover(parsed.data, slData);
           safeSaveDB("pa_data", SL_SP_JSON, slData).catch(()=>{});
           renderSLAll();
           $("slUpd","🛡️ 로컬 복원: "+new Date().toLocaleTimeString("ko-KR"));
@@ -10302,7 +10690,9 @@ async function loadSLFromSP() {
     slData = data.filter(item => isSLEvent(item));
     const removed = before - slData.length;
     if(removed > 0) {
-      console.log(`전시회 항목 ${removed}개 제거됨`);
+      console.log(`🧹 비구매 항목 ${removed}개 자동 제거됨 (전시회/영업 데이터)`);
+      // 🆕 영업 잔재 감지 시 경고
+      _detectAndWarnSalesLeftover(data, slData);
       await saveSLToSP();
     }
     renderSLAll();
@@ -10326,6 +10716,21 @@ async function loadSLFromSP() {
     if(!slData || !slData.length) slData = [];
     renderSLAll();
   }
+}
+
+// 🚨 영업 데이터 잔재 감지 - _kind 마커 없는 항목들 경고
+function _detectAndWarnSalesLeftover(allData, filteredData) {
+  try {
+    const noKind = (allData||[]).filter(item => !item._kind && !item.kind);
+    if(noKind.length > 0 && !window._salesLeftoverWarned) {
+      window._salesLeftoverWarned = true;  // 한 번만 경고
+      console.warn(`⚠️ 구매 JSON에 _kind 마커 없는 항목 ${noKind.length}건 발견 (영업 데이터 잔재 가능성)`);
+      console.warn("샘플:", noKind.slice(0,3).map(x => ({
+        id: x.id, company: x.company, pjcode: x.pjcode, status: x.status
+      })));
+      console.warn("정리 명령: cleanupSalesDataFromPurchase() 또는 resetPurchaseRequestsJson()");
+    }
+  } catch(_){}
 }
 
 
@@ -11554,18 +11959,64 @@ async function getPlannerPlanId() {
   if(!r.ok) { const e=await r.json(); throw new Error("Planner 플랜 조회 실패: "+(e.error?.message||r.status)); }
   const data = await r.json();
   const plans = data.value||[];
-  console.log("📋 구매 그룹의 Planner 플랜 목록:", plans.map(p=>p.title+"("+p.id+")"));
+  console.log("📋 구매 그룹의 Planner 플랜 목록:", plans.length, "개");
+  plans.forEach(p => console.log("  -", p.title, "(id:", p.id, ")"));
 
-  if(!plans.length) throw new Error("Planner 플랜 없음 - Teams 구매 채널에 Planner 탭 추가 필요");
+  // 🆕 플랜이 비어있으면 자동 생성 시도
+  if(!plans.length) {
+    console.log("⚠️ Planner 플랜 없음 - 자동 생성 시도");
+    try {
+      const createRes = await fetch("https://graph.microsoft.com/v1.0/planner/plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + t },
+        body: JSON.stringify({
+          owner: gid,
+          title: "구매 Todo",
+        }),
+      });
+      if(createRes.ok) {
+        const newPlan = await createRes.json();
+        _plannerPlanId = newPlan.id;
+        sessionStorage.setItem("enjet_planner_kind", "purchase");
+        sessionStorage.setItem("enjet_planner_plan_id", newPlan.id);
+        console.log("✅ 구매 Planner 자동 생성 완료:", newPlan.title, newPlan.id);
+        return newPlan.id;
+      } else {
+        const errBody = await createRes.text().catch(()=>"");
+        console.error("Plan 자동 생성 실패:", createRes.status, errBody.substring(0,200));
+        throw new Error(
+          "Planner 플랜 자동 생성 실패 (상태: " + createRes.status + ")\n\n" +
+          "📋 해결 방법:\n" +
+          "1. Teams 구매 채널(pr@enjet.co.kr)에 들어가서\n" +
+          "2. 채널 상단의 [+] → Planner 또는 Tasks 추가\n" +
+          "3. '새 플랜 만들기' 선택 → 이름: 구매 Todo\n" +
+          "4. 만들기 클릭 후 1~2분 기다린 다음 [🔄 동기화] 클릭\n\n" +
+          "또는 콘솔에서: " + JSON.stringify({status: createRes.status, hint: errBody.substring(0,150)})
+        );
+      }
+    } catch(e) {
+      if(e.message.startsWith("Planner 플랜 자동 생성 실패")) throw e;
+      console.error("Plan 자동 생성 에러:", e);
+      throw new Error(
+        "Planner 플랜 없음 - Teams 구매 채널에 Planner 탭 추가 필요\n\n" +
+        "📋 해결 방법:\n" +
+        "1. Teams → 06.Back Office → 🏭 구매 채널\n" +
+        "2. 채널 상단 [+] → Planner 또는 Tasks 추가\n" +
+        "3. '새 플랜 만들기' → 이름: 구매 Todo\n" +
+        "4. 만든 후 1~2분 후 [🔄 동기화] 클릭"
+      );
+    }
+  }
   
   // 🔧 구매 관련 플랜 우선 (영업 키워드 절대 매칭하지 않음)
   const purchasePlan = plans.find(p => {
     const title = (p.title||"").toLowerCase();
-    return title.includes("구매") || title.includes("purchase") || title.includes("pr") || title.includes("procure");
+    return title.includes("구매") || title.includes("purchase") || title.includes("pr") || title.includes("procure") || title.includes("todo");
   });
   // 구매 키워드 없어도 첫 번째 플랜 사용 (구매 그룹 내에 있으니 안전)
   _plannerPlanId = (purchasePlan||plans[0]).id;
   sessionStorage.setItem("enjet_planner_kind", "purchase");
+  sessionStorage.setItem("enjet_planner_plan_id", _plannerPlanId);
   console.log("✅ 사용할 구매 Planner 플랜:", (purchasePlan||plans[0]).title, _plannerPlanId);
   return _plannerPlanId;
 }
@@ -12662,8 +13113,62 @@ function isSLEvent(item) {
   const title = item.company || item.title || "";
   // [전시회] prefix면 구매활동 아님
   if(isExhEvent(item)) return false;
+  // 🆕 영업 데이터 필터: 영업 마커 명시적으로 있으면 배제
+  if(item._kind === "sales" || item.kind === "sales") return false;
+  // 🆕 구매가 아닌 영업 활동 패턴: 영업 status값 (제안/견적/잔금/완료/유지보수 등)
+  const SALES_ONLY_STATUS = ["제안", "견적", "잔금", "유지보수(무상)", "납품완료", "세금계산서미발행", "세금계산서완료"];
+  if(item.status && SALES_ONLY_STATUS.includes(item.status)) return false;
   return true;
 }
+
+// 🧹 콘솔에서 호출: 영업 데이터 잔재 강제 제거
+// 사용법: console.log → cleanupSalesDataFromPurchase()
+window.cleanupSalesDataFromPurchase = async function() {
+  if(!confirm("⚠️ 구매 JSON에 섞인 영업 데이터를 정리합니다.\n\n다음 항목들을 삭제 시도:\n- _kind=sales 마커 있는 항목\n- 영업 전용 상태값 (제안/견적/잔금 등) 항목\n\n계속하시겠어요?")) return;
+  
+  if(!Array.isArray(slData)) { alert("slData 없음 - 먼저 페이지 로드 완료 후 다시 시도"); return; }
+  
+  const before = slData.length;
+  const SALES_ONLY_STATUS = ["제안", "견적", "잔금", "유지보수(무상)", "납품완료", "세금계산서미발행", "세금계산서완료"];
+  const purchaseOnly = slData.filter(item => {
+    if(item._kind === "sales" || item.kind === "sales") return false;
+    if(item.status && SALES_ONLY_STATUS.includes(item.status)) return false;
+    return true;
+  });
+  const removed = before - purchaseOnly.length;
+  
+  if(removed === 0) {
+    alert(`✅ 영업 데이터 잔재 없음. 현재 ${before}건 모두 정상 구매 데이터입니다.`);
+    return;
+  }
+  
+  slData = purchaseOnly;
+  // SP에도 즉시 반영
+  try {
+    await safeSaveDB("pa_data", SL_SP_JSON, slData);
+    if(typeof renderSLAll === "function") renderSLAll();
+    if(typeof updateAllBadges === "function") updateAllBadges();
+    alert(`✅ 영업 데이터 ${removed}건 정리 완료\n남은 구매활동: ${slData.length}건\n\nSharePoint에도 반영되었습니다.`);
+  } catch(e) {
+    alert(`⚠️ SP 저장 실패: ${e.message}\n메모리에는 반영됨. 새로고침 시 복원될 수 있음.`);
+  }
+};
+
+// 🧹 콘솔에서 호출: 구매 데이터 완전 초기화 (위험!)
+window.resetPurchaseRequestsJson = async function() {
+  if(!confirm("⚠️ 구매활동 JSON을 완전히 비웁니다.\n\n모든 구매활동 데이터가 삭제됩니다.\n정말 진행하시겠어요?")) return;
+  if(!confirm("⚠️ 한 번 더 확인합니다. 정말 모두 삭제하시겠어요?")) return;
+  
+  slData = [];
+  try {
+    await safeSaveDB("pa_data", SL_SP_JSON, []);
+    localStorage.removeItem("pa_data");
+    if(typeof renderSLAll === "function") renderSLAll();
+    alert("✅ 구매활동 JSON 완전 초기화 완료. 새로고침하세요.");
+  } catch(e) {
+    alert("⚠️ 실패: " + e.message);
+  }
+};
 
 async function updateSLStatus(id, newStatus) {
   const act = slData.find(x=>x.id===id);
@@ -17656,6 +18161,7 @@ async function saveSLActivity() {
 
   const act = {
     id: slEditId || "sl_"+Date.now(),
+    _kind: "purchase",                                              // 🆕 구매 데이터 마커 (영업과 격리)
     company, pjcode, status,
     // 🆕 구매 전용 필드
     salesPjName: document.getElementById("sl-f-salesname")?.value.trim() || "",
