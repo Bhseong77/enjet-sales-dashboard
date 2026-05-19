@@ -962,10 +962,10 @@
             <span id="slCntBadge" style="font-size:12px;color:var(--p);margin-left:8px;font-weight:700;background:var(--pd);padding:2px 8px;border-radius:8px">전체</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
-            <!-- 저장 버튼 (변경 시에만 표시) -->
+            <!-- 저장 버튼 (항상 표시 - 변경 시 빨강, 저장됨 시 회색) -->
             <button id="slSaveBtn" onclick="slSaveChanges()"
-              style="display:none;align-items:center;padding:6px 14px;border-radius:7px;border:none;background:#ef4444;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s);box-shadow:0 2px 6px rgba(239,68,68,.4)"
-              title="변경된 영업활동을 SharePoint에 즉시 저장">💾 변경 저장</button>
+              style="display:inline-flex;align-items:center;padding:6px 14px;border-radius:7px;border:none;background:#94a3b8;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s);transition:all 0.3s ease"
+              title="영업활동 변경사항을 SharePoint에 즉시 저장">💾 저장됨</button>
             <input class="si" type="text" id="slSrch" placeholder="🔍 고객사/프로젝트코드..." oninput="filterSL()" style="width:180px">
             <select class="ss" id="slStatusFilter" onchange="filterSL()" style="font-size:15px">
               <option value="">전체 상태</option>
@@ -8156,17 +8156,12 @@ async function syncSLFromTeams() {
 
     const now = new Date();
     let from, to;
-    if(slView==="week"){
-      const mon = new Date(now); mon.setDate(now.getDate()-now.getDay()+1);
-      const sun = new Date(mon); sun.setDate(mon.getDate()+6);
-      from=mon.toISOString().split("T")[0]; to=sun.toISOString().split("T")[0];
-    } else if(slView==="month"){
-      from=now.getFullYear()+"-"+(now.getMonth()+1).toString().padStart(2,"0")+"-01";
-      const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0);
-      to=lastDay.toISOString().split("T")[0];
-    } else {
-      from="2024-01-01"; to="2028-12-31";
-    }
+    // 🛡️ 캘린더 조회는 항상 전체 기간 (영업활동 목록 보호)
+    // slView는 캘린더 표시 모드일 뿐, 조회 범위는 무관하게 전체로
+    // → 주간/월간/전체 어떤 뷰든 영업활동 목록은 항상 전체 표시됨
+    from="2024-01-01"; to="2028-12-31";
+    // (이전 동작: slView에 따라 from/to를 좁혔는데, 이게 syncSLActivityFromEvent의
+    //  Teams 삭제 동기화 로직과 충돌해서 주간 뷰일 때 영업활동이 사라지는 문제가 있었음)
     $("sl-period",from+" ~ "+to);
 
     // 그룹 캘린더에서 영업 일정 가져오기 - 연도별 분할 (calendarView 최대 ~1년)
@@ -10253,16 +10248,26 @@ async function updateSLStatus(id, newStatus) {
   }
 }
 
-// SL 변경 카운터 + 저장 버튼 상태 갱신
+// SL 변경 카운터 + 저장 버튼 상태 갱신 (항상 표시)
 window._slPendingChanges = window._slPendingChanges || 0;
 function updateSLSaveBadge() {
   const btn = document.getElementById("slSaveBtn");
   if(!btn) return;
+  btn.style.display = "inline-flex";
   if(window._slPendingChanges > 0) {
-    btn.style.display = "inline-flex";
+    // 변경 있음: 빨강 + 펄스
     btn.innerHTML = `💾 저장 <span style="background:#fff;color:#ef4444;border-radius:10px;padding:1px 7px;margin-left:5px;font-size:11px;font-weight:800">${window._slPendingChanges}</span>`;
+    btn.style.background = "#ef4444";
+    btn.style.boxShadow = "0 2px 6px rgba(239,68,68,.4)";
+    btn.style.animation = "pulse 1.5s ease-in-out infinite";
+    btn.title = `${window._slPendingChanges}개 변경사항을 SharePoint에 저장합니다`;
   } else {
-    btn.style.display = "none";
+    // 변경 없음: 회색 (저장됨)
+    btn.innerHTML = "💾 저장됨";
+    btn.style.background = "#94a3b8";
+    btn.style.boxShadow = "";
+    btn.style.animation = "";
+    btn.title = "모든 변경사항 SharePoint에 저장 완료. 클릭 시 강제 재저장.";
   }
 }
 
@@ -17967,6 +17972,10 @@ window.addEventListener("DOMContentLoaded",()=>{
   // 버튼 이벤트
   document.getElementById("btnLogin")?.addEventListener("click",login);
   document.getElementById("btnLogout")?.addEventListener("click",logout);
+  // 저장 버튼 초기 상태 (저장됨)
+  setTimeout(() => {
+    if(typeof updateSLSaveBadge === "function") updateSLSaveBadge();
+  }, 500);
   initApp();
 });
 
