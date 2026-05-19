@@ -966,6 +966,10 @@
             <button id="slSaveBtn" onclick="slSaveChanges()"
               style="display:inline-flex;align-items:center;padding:6px 14px;border-radius:7px;border:none;background:#94a3b8;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s);transition:all 0.3s ease"
               title="영업활동 변경사항을 SharePoint에 즉시 저장">💾 저장됨</button>
+            <!-- DB 마이그레이션 - 기존 영업활동 파일들을 각 DB에 일괄 등록 -->
+            <button onclick="migrateSLFilesToDBs()"
+              style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)"
+              title="영업활동에 이미 업로드된 모든 파일을 견적서/발주서/계약서/거래명세서/세금계산서/납품확인서 DB에 일괄 등록">🔄 DB 동기화</button>
             <input class="si" type="text" id="slSrch" placeholder="🔍 고객사/프로젝트코드..." oninput="filterSL()" style="width:180px">
             <select class="ss" id="slStatusFilter" onchange="filterSL()" style="font-size:15px">
               <option value="">전체 상태</option>
@@ -6074,6 +6078,59 @@ function isLocalNewer(dataKey, spDataLength) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 🔢 DB 항목 회차 자동 계산
+// 같은 (회사, 프로젝트코드) 묶음 안에서 날짜순 정렬 후 1차/2차/3차... 부여
+// data: DB 배열, keyFields: 그룹 키 필드 [회사, 프로젝트코드]
+// 반환: { [id]: "1차", [id]: "2차", ... }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function computeDBRevisions(data, keyFields, dateField) {
+  if(!Array.isArray(data)) return {};
+  dateField = dateField || "date";
+  keyFields = keyFields || ["company", "pjcode"];
+  // 그룹별로 묶기
+  const groups = {};
+  for(const item of data) {
+    if(!item || !item.id) continue;
+    const key = keyFields.map(f => (item[f]||"").toString().trim()).filter(Boolean).join("|");
+    if(!key) continue;  // 회사명도 없으면 회차 부여 안함
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(item);
+  }
+  // 각 그룹 내에서 날짜 + createdAt 순 정렬 (오래된 것 → 최신)
+  const result = {};
+  for(const key of Object.keys(groups)) {
+    const list = groups[key];
+    if(list.length === 0) continue;
+    // 그룹에 1개만 있으면 회차 표시 안 함 (불필요한 노이즈 제거)
+    if(list.length === 1) {
+      // 단일 항목은 회차 정보 부여하지 않음 (필요 시 result[list[0].id] = "1차"로 변경 가능)
+      continue;
+    }
+    list.sort((a, b) => {
+      const da = (a[dateField]||a.createdAt||"").toString();
+      const db = (b[dateField]||b.createdAt||"").toString();
+      if(da !== db) return da.localeCompare(db);
+      // 같은 날짜면 createdAt으로 정렬
+      return (a.createdAt||"").localeCompare(b.createdAt||"");
+    });
+    list.forEach((item, idx) => {
+      result[item.id] = (idx + 1) + "차";
+    });
+  }
+  return result;
+}
+
+// 회차 뱃지 HTML 생성
+function _revBadge(revText) {
+  if(!revText) return "";
+  // 1차/2차 등 숫자에 따라 색상 변화
+  const num = parseInt(revText) || 1;
+  const colors = ["#10b981","#3b82f6","#8b5cf6","#f59e0b","#ef4444","#ec4899"];
+  const color = colors[Math.min(num-1, colors.length-1)] || colors[colors.length-1];
+  return `<span style="display:inline-block;padding:1px 7px;border-radius:8px;background:${color}15;color:${color};font-size:11px;font-weight:800;font-family:var(--m);border:1px solid ${color}55;margin-left:5px">${revText}</span>`;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📝 모달 입력값 자동 SP 저장 (Draft)
 // 사용자가 입력 중에 다른 탭 가도 입력값 보존
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -10294,6 +10351,193 @@ async function slSaveChanges() {
     alert("⚠️ 저장 실패: " + e.message);
     if(btn) { btn.disabled = false; updateSLSaveBadge(); }
   }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 🔄 영업활동의 모든 업로드 파일을 각 DB에 일괄 등록 (마이그레이션)
+// 기존에 업로드된 견적서/발주서/계약서/거래명세서/세금계산서/납품확인서 파일들을
+// 해당 DB에 자동으로 등록 (AI 파싱 없이 기본정보만)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function migrateSLFilesToDBs() {
+  if(!Array.isArray(slData) || slData.length === 0) {
+    alert("영업활동 데이터가 없습니다.");
+    return;
+  }
+  if(!confirm("영업활동에 업로드된 모든 파일을 각 DB(견적서/발주서/계약서/거래명세서/세금계산서/납품확인서)에 일괄 등록합니다.\n\n이미 같은 파일 URL이 등록되어 있으면 건너뜁니다.\n\n계속할까요?")) return;
+
+  const counts = { estimate:0, order:0, contract:0, delivery:0, tax:0, confirm:0 };
+  const skipped = { estimate:0, order:0, contract:0, delivery:0, tax:0, confirm:0 };
+
+  // 데이터 배열 안전 초기화
+  if(!Array.isArray(window.quoteDB)) window.quoteDB = [];
+  if(!Array.isArray(window._ordData)) window._ordData = [];
+  if(!Array.isArray(window._ctrData)) window._ctrData = [];
+  if(!Array.isArray(window._dlvData)) window._dlvData = [];
+  if(!Array.isArray(window._taxData)) window._taxData = [];
+  if(!Array.isArray(window._cfmData)) window._cfmData = [];
+
+  // 각 영업활동을 순회하면서 act.files의 6개 타입 모두 처리
+  for(const act of slData) {
+    if(!act.files) continue;
+    const co = act.company || "";
+    const pj = act.pjcode || "";
+
+    // 견적서
+    if(Array.isArray(act.files.estimate)) {
+      for(const f of act.files.estimate) {
+        const url = f.url || f.webUrl || "";
+        if(!url) continue;
+        if(quoteDB.find(q => q.fileUrl === url)) { skipped.estimate++; continue; }
+        const fname = f.name || "";
+        const docNo = f.docNo || (fname.match(/Q\d{8}-\d+|EST-\d+|견적-\d+/) || [""])[0]
+                     || ("Q" + (f.uploadedAt||new Date().toISOString()).slice(2,10).replace(/-/g,"") + "-" + (quoteDB.length+1));
+        const date = (f.uploadedAt||"").slice(0,10) || (act.lastActivity||"").slice(0,10) || new Date().toISOString().slice(0,10);
+        quoteDB.unshift({
+          id: "q_mig_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+          docNo: docNo,
+          date: date,
+          company: co,
+          pjcode: pj,
+          amount: 0,
+          status: f.isDraft ? "임시" : "발행",
+          fileName: fname,
+          fileUrl: url,
+          source: "영업활동 마이그레이션",
+          createdAt: f.uploadedAt || new Date().toISOString(),
+        });
+        counts.estimate++;
+      }
+    }
+    // 발주서
+    if(Array.isArray(act.files.order)) {
+      for(const f of act.files.order) {
+        const url = f.url || f.webUrl || "";
+        if(!url) continue;
+        if(_ordData.find(o => o.fileUrl === url)) { skipped.order++; continue; }
+        const date = (f.uploadedAt||"").slice(0,10) || (act.lastActivity||"").slice(0,10) || new Date().toISOString().slice(0,10);
+        _ordData.unshift({
+          id: "ord_mig_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+          date: date, company: co, pjcode: pj,
+          po: "", item: (f.name||"").replace(/\.[^.]+$/,""), qty: "", amount: 0,
+          status: "수신", note: "영업활동 마이그레이션",
+          fileUrl: url, createdAt: f.uploadedAt || new Date().toISOString(),
+        });
+        counts.order++;
+      }
+    }
+    // 계약서
+    if(Array.isArray(act.files.contract)) {
+      for(const f of act.files.contract) {
+        const url = f.url || f.webUrl || "";
+        if(!url) continue;
+        if(_ctrData.find(c => c.fileUrl === url)) { skipped.contract++; continue; }
+        const date = (f.uploadedAt||"").slice(0,10) || (act.lastActivity||"").slice(0,10) || new Date().toISOString().slice(0,10);
+        _ctrData.unshift({
+          id: "ctr_mig_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+          date: date, company: co, pjcode: pj,
+          item: (f.name||"").replace(/\.[^.]+$/,""), amount: 0,
+          status: "계약체결", note: "영업활동 마이그레이션",
+          fileUrl: url, createdAt: f.uploadedAt || new Date().toISOString(),
+        });
+        counts.contract++;
+      }
+    }
+    // 거래명세서
+    if(Array.isArray(act.files.delivery)) {
+      for(const f of act.files.delivery) {
+        const url = f.url || f.webUrl || "";
+        if(!url) continue;
+        if(_dlvData.find(d => d.fileUrl === url)) { skipped.delivery++; continue; }
+        const date = (f.uploadedAt||"").slice(0,10) || (act.lastActivity||"").slice(0,10) || new Date().toISOString().slice(0,10);
+        _dlvData.unshift({
+          id: "dlv_mig_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+          date: date, company: co, pjcode: pj,
+          item: (f.name||"").replace(/\.[^.]+$/,""), qty:"",
+          supply: 0, tax: 0, total: 0, po: "",
+          note: "영업활동 마이그레이션",
+          fileUrl: url, createdAt: f.uploadedAt || new Date().toISOString(),
+        });
+        counts.delivery++;
+      }
+    }
+    // 세금계산서
+    if(Array.isArray(act.files.tax)) {
+      for(const f of act.files.tax) {
+        const url = f.url || f.webUrl || "";
+        if(!url) continue;
+        if(_taxData.find(t => t.fileUrl === url)) { skipped.tax++; continue; }
+        const date = (f.uploadedAt||"").slice(0,10) || (act.lastActivity||"").slice(0,10) || new Date().toISOString().slice(0,10);
+        _taxData.unshift({
+          id: "tax_mig_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+          date: date, company: co,
+          item: (f.name||"").replace(/\.[^.]+$/,""),
+          supply: 0, vat: 0, total: 0,
+          approval: "", mgmt: pj,
+          note: "영업활동 마이그레이션",
+          fileUrl: url, createdAt: f.uploadedAt || new Date().toISOString(),
+        });
+        counts.tax++;
+      }
+    }
+    // 납품확인서
+    if(Array.isArray(act.files.confirm)) {
+      for(const f of act.files.confirm) {
+        const url = f.url || f.webUrl || "";
+        if(!url) continue;
+        if(_cfmData.find(c => c.fileUrl === url)) { skipped.confirm++; continue; }
+        const date = (f.uploadedAt||"").slice(0,10) || (act.lastActivity||"").slice(0,10) || new Date().toISOString().slice(0,10);
+        _cfmData.unshift({
+          id: "cfm_mig_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+          date: date, company: co, pjcode: pj,
+          item: (f.name||"").replace(/\.[^.]+$/,""), qty:"", amount: 0,
+          po: "", status: "납품완료",
+          note: "영업활동 마이그레이션",
+          fileUrl: url, createdAt: f.uploadedAt || new Date().toISOString(),
+        });
+        counts.confirm++;
+      }
+    }
+  }
+
+  // 변경분 SP에 저장
+  const saveResults = [];
+  if(counts.estimate > 0) saveResults.push(saveQuoteDB());
+  if(counts.order > 0) saveResults.push(saveOrderToSP());
+  if(counts.contract > 0) saveResults.push(saveContractToSP());
+  if(counts.delivery > 0) saveResults.push(saveDeliveryToSP());
+  if(counts.tax > 0) saveResults.push(saveTaxToSP());
+  if(counts.confirm > 0) saveResults.push(saveConfirmToSP());
+
+  try {
+    await Promise.all(saveResults);
+  } catch(e) {
+    console.warn("일부 DB 저장 실패:", e.message);
+  }
+
+  // UI 갱신
+  if(typeof renderQDB === "function") renderQDB();
+  if(typeof renderOrderDB === "function") renderOrderDB();
+  if(typeof renderContractDB === "function") renderContractDB();
+  if(typeof renderDeliveryDB === "function") renderDeliveryDB();
+  if(typeof renderTaxDB === "function") renderTaxDB();
+  if(typeof renderConfirmDB === "function") renderConfirmDB();
+
+  const total = counts.estimate + counts.order + counts.contract + counts.delivery + counts.tax + counts.confirm;
+  const totalSkip = skipped.estimate + skipped.order + skipped.contract + skipped.delivery + skipped.tax + skipped.confirm;
+
+  alert(
+    `✅ DB 동기화 완료!\n\n` +
+    `등록: 총 ${total}건\n` +
+    `  📄 견적서: ${counts.estimate}건\n` +
+    `  📦 발주서: ${counts.order}건\n` +
+    `  📑 계약서: ${counts.contract}건\n` +
+    `  🚚 거래명세서: ${counts.delivery}건\n` +
+    `  🧾 세금계산서: ${counts.tax}건\n` +
+    `  ✅ 납품확인서: ${counts.confirm}건\n\n` +
+    `중복 건너뜀: ${totalSkip}건\n\n` +
+    `※ 회사명/프로젝트코드/파일 링크는 자동 설정됨\n` +
+    `※ 금액/품목 등은 각 DB에서 수정 가능`
+  );
 }
 
 // ━━ 파일 업로드 시 자동 상태 전환 ━━
@@ -15422,6 +15666,8 @@ function renderQDB(data) {
     "실패":   "background:#fee2e2;color:#991b1b",
     "보류":   "background:#fef9c3;color:#854d0e",
   };
+  // 회차 자동 계산 (같은 회사+프로젝트코드 묶음 내)
+  const revs = computeDBRevisions(list, ["company","pjcode"], "date");
   body.innerHTML = list.map(q=>{
     const ss = STATUS_STYLE[q.status]||"background:var(--bg3);color:var(--t3)";
     const amt = q.amount ? (q.amount/1e8).toFixed(2)+"억" : "-";
@@ -15436,7 +15682,7 @@ function renderQDB(data) {
         <div style="font-size:12px;color:var(--t3)">${q.quoteNo||""}</div>
         <div style="margin-top:3px">${linkBadge}</div>
       </td>
-      <td style="font-size:14px;font-weight:600">${q.company||"<span style='color:var(--t3);font-style:italic'>미확정</span>"}</td>
+      <td style="font-size:14px;font-weight:600">${q.company||"<span style='color:var(--t3);font-style:italic'>미확정</span>"}${_revBadge(revs[q.id])}</td>
       <td style="font-size:13px">${q.items||q.subject||"-"}</td>
       <td style="text-align:right;font-size:14px;font-weight:700;color:var(--p)">${amt}</td>
       <td style="font-size:13px;color:var(--t3)">${(q.date||"").substring(0,10)}</td>
@@ -18151,9 +18397,12 @@ function renderMtgLogTable(data){
   if(!body) return;
   const cnt=document.getElementById("mtgLogCnt"); if(cnt) cnt.textContent=data.length+"건";
   if(!data.length){body.innerHTML='<tr><td colspan="7"><div class="empty"><div class="et">미팅 로그 없음</div></div></td></tr>';return;}
-  body.innerHTML=data.map(m=>`<tr>
+  // mtg id가 없을 수 있으므로 fallback으로 spPath 사용
+  const dataWithId = data.map((m,i) => ({...m, id: m.id || m.spPath || ("mtg_"+i)}));
+  const revs = computeDBRevisions(dataWithId, ["company","pjcode"], "date");
+  body.innerHTML=dataWithId.map(m=>`<tr>
     <td style="font-size:14px;white-space:nowrap">${m.date||"-"}</td>
-    <td style="font-weight:700">${m.company||"-"}</td>
+    <td style="font-weight:700">${m.company||"-"}${_revBadge(revs[m.id])}</td>
     <td style="font-size:13px;color:var(--t3)">${m.pjcode||"-"}</td>
     <td style="font-size:13px">${m.location||"-"}</td>
     <td style="font-size:13px">${m.attendees||"-"}</td>
@@ -18210,9 +18459,10 @@ function renderOrderDB() {
   if(!filtered.length) {
     body.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="ei">📦</div><div class="et">발주서 없음</div></div></td></tr>`;
   } else {
+    const revs = computeDBRevisions(filtered, ["company","pjcode"], "date");
     body.innerHTML = filtered.map(d => `<tr>
       <td style="font-size:13px;color:var(--t3)">${d.date||"-"}</td>
-      <td style="font-size:14px;font-weight:600">${d.company||"-"}</td>
+      <td style="font-size:14px;font-weight:600">${d.company||"-"}${_revBadge(revs[d.id])}</td>
       <td style="font-size:13px">${d.item||"-"}</td>
       <td style="font-size:13px;text-align:center">${d.qty||"-"}</td>
       <td style="font-size:13px;text-align:right;font-weight:700;color:var(--p)">${d.amount?Number(d.amount).toLocaleString():"-"}</td>
@@ -18650,9 +18900,10 @@ function renderDeliveryDB() {
   if(!filtered.length) {
     body.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="ei">🚚</div><div class="et">거래명세서 없음</div></div></td></tr>`;
   } else {
+    const revs = computeDBRevisions(filtered, ["company","pjcode"], "date");
     body.innerHTML = filtered.map(d => `<tr>
       <td style="font-size:13px;color:var(--t3)">${d.date||"-"}</td>
-      <td style="font-size:14px;font-weight:600">${d.company||"-"}</td>
+      <td style="font-size:14px;font-weight:600">${d.company||"-"}${_revBadge(revs[d.id])}</td>
       <td style="font-size:13px">${d.item||"-"}</td>
       <td style="font-size:13px;text-align:center">${d.qty||"-"}</td>
       <td style="font-size:13px;text-align:right">${d.supply?Number(d.supply).toLocaleString():"-"}</td>
@@ -18689,9 +18940,10 @@ function renderTaxDB() {
   if(!filtered.length) {
     body.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="ei">🧾</div><div class="et">세금계산서 없음</div></div></td></tr>`;
   } else {
+    const revs = computeDBRevisions(filtered, ["company","mgmt"], "date");
     body.innerHTML = filtered.map(d => `<tr>
       <td style="font-size:13px;color:var(--t3)">${d.date||"-"}</td>
-      <td style="font-size:14px;font-weight:600">${d.company||"-"}</td>
+      <td style="font-size:14px;font-weight:600">${d.company||"-"}${_revBadge(revs[d.id])}</td>
       <td style="font-size:13px">${d.item||"-"}</td>
       <td style="font-size:13px;text-align:right">${d.supply?Number(d.supply).toLocaleString():"-"}</td>
       <td style="font-size:13px;text-align:right;color:var(--t3)">${d.vat?Number(d.vat).toLocaleString():"-"}</td>
@@ -19468,9 +19720,10 @@ function renderConfirmDB() {
   const body = document.getElementById("cfmBody");
   if(!body) return;
   if(!sorted.length) { body.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">✅</div><div class="et">납품확인서 없음</div></div></td></tr>'; return; }
+  const revs = computeDBRevisions(sorted, ["company","pjcode"], "date");
   body.innerHTML = sorted.map(d => `<tr>
     <td style="font-size:13px">${d.date||""}</td>
-    <td style="font-size:13px;font-weight:700">${d.company||""}</td>
+    <td style="font-size:13px;font-weight:700">${d.company||""}${_revBadge(revs[d.id])}</td>
     <td style="font-size:13px">${d.item||""}</td>
     <td style="font-size:13px;text-align:center">${d.qty||""}</td>
     <td style="font-size:13px;text-align:right;font-weight:700;color:var(--g)">${d.amount?Number(d.amount).toLocaleString():""}</td>
@@ -19688,9 +19941,11 @@ function renderContractDB() {
   const body = document.getElementById("ctrBody");
   if(!body) return;
   if(!filtered.length) { body.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📑</div><div class="et">계약서 없음</div></div></td></tr>'; return; }
-  body.innerHTML = [...filtered].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(d => `<tr>
+  const _ctrSorted = [...filtered].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const revs = computeDBRevisions(_ctrSorted, ["company","pjcode"], "date");
+  body.innerHTML = _ctrSorted.map(d => `<tr>
     <td style="font-size:13px">${d.date||""}</td>
-    <td style="font-size:13px;font-weight:700">${d.company||""}</td>
+    <td style="font-size:13px;font-weight:700">${d.company||""}${_revBadge(revs[d.id])}</td>
     <td style="font-size:13px">${d.item||""}</td>
     <td style="font-size:13px;text-align:right;font-weight:700;color:var(--p)">${d.amount?Number(d.amount).toLocaleString():""}</td>
     <td style="font-size:12px;color:var(--p)">${d.pjcode||""}</td>
@@ -19904,9 +20159,11 @@ function renderProposalDB() {
   const body = document.getElementById("pdbBody");
   if(!body) return;
   if(!filtered.length) { body.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📂</div><div class="et">자료 없음</div></div></td></tr>'; return; }
-  body.innerHTML = [...filtered].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(d => `<tr>
+  const _pdbSorted = [...filtered].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const revs = computeDBRevisions(_pdbSorted, ["company","pjcode","folder"], "date");
+  body.innerHTML = _pdbSorted.map(d => `<tr>
     <td style="font-size:13px;white-space:nowrap">${d.date||""}</td>
-    <td style="font-size:13px;font-weight:700">${d.company||""}</td>
+    <td style="font-size:13px;font-weight:700">${d.company||""}${_revBadge(revs[d.id])}</td>
     <td style="font-size:12px;color:var(--p)">${d.pjcode||""}</td>
     <td style="font-size:12px"><span style="background:var(--pd);color:var(--p);padding:2px 8px;border-radius:6px;font-weight:700">${d.folder||""}</span></td>
     <td style="font-size:12px;color:var(--t2)">${d.filename||""}</td>
