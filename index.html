@@ -10869,13 +10869,13 @@ async function autoLinkDBsToActivities(silent) {
     }
     return c;
   }
-  if(Array.isArray(window.quoteDB)) counts.quote = tryLinkArray(quoteDB, "견적서");
-  if(Array.isArray(window._ordData)) counts.order = tryLinkArray(_ordData, "발주서");
-  if(Array.isArray(window._ctrData)) counts.contract = tryLinkArray(_ctrData, "계약서");
-  if(Array.isArray(window._dlvData)) counts.delivery = tryLinkArray(_dlvData, "거래명세서");
-  if(Array.isArray(window._taxData)) counts.tax = tryLinkArray(_taxData, "세금계산서");
-  if(Array.isArray(window._cfmData)) counts.confirm = tryLinkArray(_cfmData, "납품확인서");
-  if(Array.isArray(window._pdbData)) counts.proposal = tryLinkArray(_pdbData, "자료");
+  if((typeof quoteDB !== "undefined" && Array.isArray(quoteDB))) counts.quote = tryLinkArray(quoteDB, "견적서");
+  if((typeof _ordData !== "undefined" && Array.isArray(_ordData))) counts.order = tryLinkArray(_ordData, "발주서");
+  if((typeof _ctrData !== "undefined" && Array.isArray(_ctrData))) counts.contract = tryLinkArray(_ctrData, "계약서");
+  if((typeof _dlvData !== "undefined" && Array.isArray(_dlvData))) counts.delivery = tryLinkArray(_dlvData, "거래명세서");
+  if((typeof _taxData !== "undefined" && Array.isArray(_taxData))) counts.tax = tryLinkArray(_taxData, "세금계산서");
+  if((typeof _cfmData !== "undefined" && Array.isArray(_cfmData))) counts.confirm = tryLinkArray(_cfmData, "납품확인서");
+  if((typeof _pdbData !== "undefined" && Array.isArray(_pdbData))) counts.proposal = tryLinkArray(_pdbData, "자료");
 
   const total = Object.values(counts).reduce((a,b)=>a+b, 0);
   if(total === 0) {
@@ -10930,12 +10930,12 @@ async function migrateSLFilesToDBs() {
   const skipped = { estimate:0, order:0, contract:0, delivery:0, tax:0, confirm:0, proposal:0 };
 
   // 데이터 배열 안전 초기화
-  if(!Array.isArray(window.quoteDB)) window.quoteDB = [];
-  if(!Array.isArray(window._ordData)) window._ordData = [];
-  if(!Array.isArray(window._ctrData)) window._ctrData = [];
-  if(!Array.isArray(window._dlvData)) window._dlvData = [];
-  if(!Array.isArray(window._taxData)) window._taxData = [];
-  if(!Array.isArray(window._cfmData)) window._cfmData = [];
+  if(!(typeof quoteDB !== "undefined" && Array.isArray(quoteDB))) window.quoteDB = [];
+  if(!(typeof _ordData !== "undefined" && Array.isArray(_ordData))) window._ordData = [];
+  if(!(typeof _ctrData !== "undefined" && Array.isArray(_ctrData))) window._ctrData = [];
+  if(!(typeof _dlvData !== "undefined" && Array.isArray(_dlvData))) window._dlvData = [];
+  if(!(typeof _taxData !== "undefined" && Array.isArray(_taxData))) window._taxData = [];
+  if(!(typeof _cfmData !== "undefined" && Array.isArray(_cfmData))) window._cfmData = [];
 
   // 각 영업활동을 순회하면서 act.files의 6개 타입 모두 처리
   for(const act of slData) {
@@ -15757,7 +15757,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
         const fileUrl = uploaded[0]?.url || "";
         const fileName = uploaded[0]?.name || "";
 
-        if(fileType === "estimate" && uploaded.length > 0 && Array.isArray(window.quoteDB)) {
+        if(fileType === "estimate" && uploaded.length > 0 && (typeof quoteDB !== "undefined" && Array.isArray(quoteDB))) {
           // 견적서 DB - 중복 체크 (같은 URL 있으면 skip)
           if(!quoteDB.find(q => q.fileUrl === fileUrl)) {
             const docNo = (fileName.match(/Q\d{8}-\d+|EST-\d+|견적-\d+/) || [""])[0] || ("Q"+today.replace(/-/g,"").slice(2)+"-"+(quoteDB.length+1));
@@ -15780,7 +15780,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
             console.log(`✅ 견적서 DB 자동 등록: ${docNo} · ${co}`);
           }
         }
-        else if(fileType === "order" && uploaded.length > 0 && Array.isArray(window._ordData)) {
+        else if(fileType === "order" && uploaded.length > 0 && (typeof _ordData !== "undefined" && Array.isArray(_ordData))) {
           if(!_ordData.find(o => o.fileUrl === fileUrl)) {
             _ordData.unshift({
               id: "ord_" + Date.now(),
@@ -15801,7 +15801,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
             console.log(`✅ 발주서 DB 자동 등록: ${co}`);
           }
         }
-        else if(fileType === "contract" && uploaded.length > 0 && Array.isArray(window._ctrData)) {
+        else if(fileType === "contract" && uploaded.length > 0 && (typeof _ctrData !== "undefined" && Array.isArray(_ctrData))) {
           if(!_ctrData.find(c => c.fileUrl === fileUrl)) {
             _ctrData.unshift({
               id: "ctr_" + Date.now(),
@@ -15816,7 +15816,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
             console.log(`✅ 계약서 DB 자동 등록: ${co}`);
           }
         }
-        else if(fileType === "delivery" && uploaded.length > 0 && Array.isArray(window._dlvData)) {
+        else if(fileType === "delivery" && uploaded.length > 0 && (typeof _dlvData !== "undefined" && Array.isArray(_dlvData))) {
           if(!_dlvData.find(d => d.fileUrl === fileUrl)) {
             _dlvData.unshift({
               id: "dlv_" + Date.now(),
@@ -15831,7 +15831,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
             console.log(`✅ 거래명세서 DB 자동 등록: ${co}`);
           }
         }
-        else if(fileType === "tax" && uploaded.length > 0 && Array.isArray(window._taxData)) {
+        else if(fileType === "tax" && uploaded.length > 0 && (typeof _taxData !== "undefined" && Array.isArray(_taxData))) {
           if(!_taxData.find(t => t.fileUrl === fileUrl)) {
             _taxData.unshift({
               id: "tax_" + Date.now(),
@@ -15848,7 +15848,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
             console.log(`✅ 세금계산서 DB 자동 등록: ${co}`);
           }
         }
-        else if(fileType === "confirm" && uploaded.length > 0 && Array.isArray(window._cfmData)) {
+        else if(fileType === "confirm" && uploaded.length > 0 && (typeof _cfmData !== "undefined" && Array.isArray(_cfmData))) {
           if(!_cfmData.find(c => c.fileUrl === fileUrl)) {
             _cfmData.unshift({
               id: "cfm_" + Date.now(),
@@ -15864,7 +15864,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
             console.log(`✅ 납품확인서 DB 자동 등록: ${co}`);
           }
         }
-        else if(fileType === "proposal" && uploaded.length > 0 && Array.isArray(window._pdbData)) {
+        else if(fileType === "proposal" && uploaded.length > 0 && (typeof _pdbData !== "undefined" && Array.isArray(_pdbData))) {
           if(!_pdbData.find(p => p.fileUrl === fileUrl)) {
             _pdbData.unshift({
               id: "pdb_" + Date.now(),
