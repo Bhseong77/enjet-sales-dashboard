@@ -970,6 +970,10 @@
             <button onclick="migrateSLFilesToDBs()"
               style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:7px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)"
               title="영업활동에 이미 업로드된 모든 파일을 견적서/발주서/계약서/거래명세서/세금계산서/납품확인서 DB에 일괄 등록">🔄 DB 동기화</button>
+            <!-- SP 폴더 마이그레이션 - 기존 SP 폴더를 새 구조로 정리 -->
+            <button onclick="previewSPFolderMigration()"
+              style="display:inline-flex;align-items:center;padding:6px 12px;border-radius:7px;border:1px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)"
+              title="SharePoint 폴더 구조를 새 구조로 정리 (YYYY년/고객사/프로젝트코드/문서종류)">📂 SP 폴더 정리</button>
             <input class="si" type="text" id="slSrch" placeholder="🔍 고객사/프로젝트코드..." oninput="filterSL()" style="width:180px">
             <select class="ss" id="slStatusFilter" onchange="filterSL()" style="font-size:15px">
               <option value="">전체 상태</option>
@@ -6154,6 +6158,45 @@ function computeDBRevisions(data, keyFields, dateField) {
   return result;
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 💾 DB 저장 시각 표시 + 강제 재저장 버튼
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+window._dbLastSaved = window._dbLastSaved || {};
+// DB key → (cnt span id, save 함수명)
+const DB_SAVED_DISPLAY_MAP = {
+  quote:    { cntId: "qdb-upd",  saveFn: "saveQuoteDB",     label: "견적서" },
+  order:    { cntId: "ord-cnt",  saveFn: "saveOrderToSP",   label: "발주서" },
+  delivery: { cntId: "dlv-cnt",  saveFn: "saveDeliveryToSP",label: "거래명세서" },
+  tax:      { cntId: "tax-cnt",  saveFn: "saveTaxToSP",     label: "세금계산서" },
+  confirm:  { cntId: "cfm-cnt",  saveFn: "saveConfirmToSP", label: "납품확인서" },
+  contract: { cntId: "ctr-cnt",  saveFn: "saveContractToSP",label: "계약서" },
+  proposal: { cntId: "pdb-cnt",  saveFn: "saveProposalToSP",label: "자료" },
+};
+function updateDBSavedDisplay(key) {
+  const cfg = DB_SAVED_DISPLAY_MAP[key];
+  if(!cfg) return;
+  const el = document.getElementById(cfg.cntId);
+  if(!el) return;
+  const ts = window._dbLastSaved[key] || "-";
+  // cnt 텍스트 + 저장 시각 + 강제 저장 버튼
+  const cntText = el.dataset.cntText || el.textContent.split("|")[0].trim();
+  el.dataset.cntText = cntText;
+  el.innerHTML = `${cntText} <span style="margin-left:10px;color:var(--g);font-weight:600">💾 저장됨 ${ts}</span> <button onclick="forceDBSave('${key}')" style="margin-left:8px;padding:2px 10px;border-radius:6px;border:1px solid var(--p);background:#fff;color:var(--p);font-size:12px;cursor:pointer;font-weight:700" title="${cfg.label} 즉시 SP 저장">🔄 재저장</button>`;
+}
+async function forceDBSave(key) {
+  const cfg = DB_SAVED_DISPLAY_MAP[key];
+  if(!cfg) return;
+  const fn = window[cfg.saveFn];
+  if(typeof fn !== "function") { alert("저장 함수 없음: " + cfg.saveFn); return; }
+  await fn();
+  // 토스트
+  const toast = document.createElement("div");
+  toast.textContent = `✅ ${cfg.label} SP 저장 완료`;
+  toast.style.cssText = "position:fixed;top:20px;right:20px;background:#10b981;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;z-index:10600;box-shadow:0 4px 12px rgba(0,0,0,.2)";
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
 // 회차 뱃지 HTML 생성
 function _revBadge(revText) {
   if(!revText) return "";
@@ -7871,7 +7914,9 @@ async function ensureSLChannelId() {
 const SL_SP_BASE   = "📦영업/7.영업활동";
 
 // ━━ 영업활동 폴더/파일명 헬퍼 ━━
-// 폴더 구조: 📦영업/7.영업활동/YYYY년/프로젝트코드 YYMMDD 고객사/문서종류/
+// ✅ 신규 폴더 구조 (2026-05-19~): 📦영업/7.영업활동/YYYY년/고객사/프로젝트코드/문서종류/
+// (이전 구조: 📦영업/7.영업활동/YYYY년/프로젝트코드 YYMMDD 고객사/문서종류/)
+// 같은 (고객사, 프로젝트코드) → 폴더 1개만 생성 (날짜별 중복 폴더 방지)
 // 파일명:     프로젝트코드_고객사_문서종류_작성일자_담당자_고객담당자.ext
 
 function slSanitize(s) {
@@ -7885,15 +7930,15 @@ function slYearFolder(act) {
 }
 
 function slProjectFolder(act) {
-  // 프로젝트 폴더: "프로젝트코드 YYMMDD 고객사"
+  // ✅ 새 구조: 고객사/프로젝트코드 (2단계 폴더)
+  // 반환값은 "고객사/프로젝트코드" 형태 → slFolderPath에서 그대로 경로에 합침
+  const co   = slSanitize(act.company) || "공통";
   const pj   = slSanitize(act.pjcode) || "신규";
-  const co   = slSanitize(act.company);
-  const d    = (act.date||act.start||new Date().toISOString().substring(0,10)).replace(/-/g,"").substring(2,8); // YYMMDD
-  return `${pj} ${d} ${co}`;
+  return `${co}/${pj}`;
 }
 
 function slFolderPath(act, docType) {
-  // 전체 경로: SL_SP_BASE/YYYY년/프로젝트코드 YYMMDD 고객사/문서종류
+  // ✅ 새 구조: SL_SP_BASE/YYYY년/고객사/프로젝트코드/문서종류
   const FOLDER_MAP = {
     minutes:"회의록", proposal:"자료", estimate:"견적서",
     order:"발주서", contract:"계약서", delivery:"거래명세서",
@@ -10415,6 +10460,344 @@ async function slSaveChanges() {
 // 기존에 업로드된 견적서/발주서/계약서/거래명세서/세금계산서/납품확인서 파일들을
 // 해당 DB에 자동으로 등록 (AI 파싱 없이 기본정보만)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 🔗 기존 DB 항목들의 actId 자동 매칭
+// 회사명 + 프로젝트코드가 일치하는 영업활동을 찾아 actId 채움
+// 페이지 로드 시 자동 실행 + 영업활동 헤더 버튼으로 수동 실행 가능
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📂 SP 폴더 구조 마이그레이션
+// 기존: YYYY년/[프로젝트코드 YYMMDD 고객사]/문서종류/...
+// 신규: YYYY년/고객사/프로젝트코드/문서종류/...
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// 1단계: 드라이런 - 어떻게 정리될지 보여주기만
+async function previewSPFolderMigration() {
+  if(!confirm("📂 SP 폴더 구조 분석 시작\n\n현재 영업활동 폴더 구조를 분석해서\n새 구조(고객사/프로젝트코드)로 어떻게 정리될지 미리 보여드립니다.\n\n※ 실제 이동은 하지 않습니다 (드라이런)\n※ 분석에 1-2분 소요될 수 있습니다\n\n계속할까요?")) return;
+
+  const plan = [];  // {from, to, files, year, oldFolder, newCompany, newPjcode}
+  const errors = [];
+  let folderCount = 0;
+
+  try {
+    await getIds();
+    // 1. YYYY년 폴더들 찾기
+    const baseEnc = SL_SP_BASE.split("/").map(encodeURIComponent).join("/");
+    const yearListUrl = `/drives/${spDrive}/root:/${baseEnc}:/children?$top=200`;
+    const yearRes = await gGet(yearListUrl);
+    const yearFolders = (yearRes.value||[]).filter(f => f.folder && /^\d{4}년$/.test(f.name));
+
+    for(const yf of yearFolders) {
+      // 2. 각 연도 폴더 안의 프로젝트 폴더들
+      const yfPath = SL_SP_BASE + "/" + yf.name;
+      const yfEnc = yfPath.split("/").map(encodeURIComponent).join("/");
+      const projListUrl = `/drives/${spDrive}/root:/${yfEnc}:/children?$top=200`;
+      const projRes = await gGet(projListUrl);
+      const projFolders = (projRes.value||[]).filter(f => f.folder);
+
+      for(const pf of projFolders) {
+        folderCount++;
+        // 폴더명 파싱: "프로젝트코드 YYMMDD 고객사" 또는 이미 새 구조의 "고객사" 폴더
+        const name = pf.name;
+        let pjcode = "", date = "", company = "";
+
+        // 패턴 1: "프로젝트코드 YYMMDD 고객사" (예: BM25999-M012 260511 희성피엠텍)
+        const m1 = name.match(/^([\w\-가-힣]+)\s+(\d{6})\s+(.+)$/);
+        // 패턴 2: "신규1차 YYMMDD 고객사"
+        const m2 = name.match(/^(신규\d*차?)\s+(\d{6})\s+(.+)$/);
+        // 패턴 3: "Quohspt_*_숫자 (NAME) YYMMDD 고객사" 같은 복잡한 패턴
+        const m3 = name.match(/^(.+?)\s+(\d{6})\s+(.+)$/);
+
+        if(m1 || m2) {
+          const m = m1 || m2;
+          pjcode = m[1];
+          date = m[2];
+          company = m[3];
+        } else if(m3) {
+          pjcode = m3[1];
+          date = m3[2];
+          company = m3[3];
+        } else {
+          // 새 구조 후보 - 이미 고객사 폴더면 skip
+          // 안에 프로젝트코드 서브폴더가 있는지 확인
+          plan.push({
+            from: pf.name,
+            to: "[유지: 이미 새 구조 또는 분석 불가]",
+            year: yf.name,
+            skip: true,
+            reason: "폴더명 파싱 불가",
+          });
+          continue;
+        }
+
+        // 새 경로: YYYY년/고객사/프로젝트코드
+        plan.push({
+          from: `${yf.name}/${pf.name}`,
+          to: `${yf.name}/${slSanitize(company)}/${slSanitize(pjcode)}`,
+          year: yf.name,
+          oldFolder: pf.name,
+          newCompany: company,
+          newPjcode: pjcode,
+          parsedDate: date,
+          folderId: pf.id,
+        });
+      }
+    }
+  } catch(e) {
+    errors.push(e.message);
+    console.error("SP 폴더 분석 실패:", e);
+  }
+
+  // 결과 요약
+  const moves = plan.filter(p => !p.skip);
+  const skips = plan.filter(p => p.skip);
+
+  // 같은 (회사, 프로젝트) 묶음 집계 - 합쳐질 폴더들
+  const mergeGroups = {};
+  for(const p of moves) {
+    const key = p.year + "|" + slSanitize(p.newCompany) + "|" + slSanitize(p.newPjcode);
+    if(!mergeGroups[key]) mergeGroups[key] = [];
+    mergeGroups[key].push(p);
+  }
+  const willMerge = Object.entries(mergeGroups).filter(([k,v]) => v.length > 1);
+
+  // 결과 모달 표시
+  let html = `<div style="padding:20px;max-height:80vh;overflow-y:auto;font-family:var(--s)">
+    <h2 style="margin:0 0 12px 0">📂 SP 폴더 마이그레이션 분석 결과</h2>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:14px">
+      <div style="font-weight:700;color:#1e40af;margin-bottom:4px">📊 요약</div>
+      <div style="font-size:13px;color:#1e40af">
+        ・분석 폴더: <b>${folderCount}개</b><br>
+        ・이동 대상: <b>${moves.length}개</b> 폴더<br>
+        ・건너뜀: <b>${skips.length}개</b> (이미 새 구조 또는 파싱 불가)<br>
+        ・통합될 그룹: <b>${willMerge.length}개</b> (여러 폴더 → 1개로 합쳐짐)
+      </div>
+    </div>`;
+
+  if(willMerge.length > 0) {
+    html += `<div style="margin-bottom:14px">
+      <div style="font-weight:700;color:#dc2626;margin-bottom:6px">⚠️ 통합될 폴더 (${willMerge.length}그룹)</div>`;
+    for(const [key, group] of willMerge) {
+      const sample = group[0];
+      html += `<div style="background:#fef9c3;border:1px solid #facc15;border-radius:6px;padding:8px 12px;margin-bottom:6px">
+        <div style="font-weight:700;font-size:13px">${sample.year}/${slSanitize(sample.newCompany)}/${slSanitize(sample.newPjcode)} ⬅️ ${group.length}개 폴더 통합</div>
+        ${group.map(g => `<div style="font-size:11px;color:var(--t3);margin-top:2px">📁 ${g.from}</div>`).join("")}
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `<div style="margin-bottom:14px">
+      <div style="font-weight:700;margin-bottom:6px">📋 전체 이동 계획 (처음 30개)</div>
+      <div style="font-size:11px;font-family:var(--m);max-height:300px;overflow-y:auto;background:#f9fafb;padding:10px;border-radius:6px;border:1px solid var(--border)">
+        ${moves.slice(0,30).map(p => `<div style="margin-bottom:3px"><span style="color:#dc2626">▶ ${p.from}</span><br>&nbsp;&nbsp;<span style="color:#10b981">→ ${p.to}</span></div>`).join("")}
+        ${moves.length > 30 ? `<div style="color:var(--t3);margin-top:8px">...외 ${moves.length-30}개 더</div>` : ""}
+      </div>
+    </div>`;
+
+  if(errors.length) {
+    html += `<div style="background:#fee2e2;border:1px solid #fca5a5;padding:10px;border-radius:6px;margin-bottom:14px">
+      <div style="font-weight:700;color:#991b1b">❌ 오류 ${errors.length}개</div>
+      ${errors.map(e=>`<div style="font-size:12px;color:#991b1b">${e}</div>`).join("")}
+    </div>`;
+  }
+
+  // 데이터를 전역에 저장 (실행 시 재사용)
+  window._spMigrationPlan = plan;
+
+  html += `<div style="display:flex;gap:8px;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--border)">
+      <button onclick="document.getElementById('spMigModal').remove()" style="padding:9px 16px;border-radius:7px;border:1px solid var(--border2);background:#fff;cursor:pointer;font-family:var(--s);font-size:13px">취소</button>
+      <button onclick="executeSPFolderMigration()" style="padding:9px 18px;border-radius:7px;border:none;background:#dc2626;color:#fff;font-weight:700;cursor:pointer;font-family:var(--s);font-size:13px">🚀 실제 마이그레이션 실행</button>
+    </div></div>`;
+
+  const modal = document.createElement("div");
+  modal.id = "spMigModal";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.7);z-index:10500;display:flex;align-items:center;justify-content:center";
+  modal.innerHTML = `<div style="background:#fff;border-radius:14px;width:780px;max-width:96vw;max-height:90vh;overflow:hidden">${html}</div>`;
+  document.body.appendChild(modal);
+}
+
+// 2단계: 실제 마이그레이션 실행 (드라이런 결과 기반)
+async function executeSPFolderMigration() {
+  if(!Array.isArray(window._spMigrationPlan)) {
+    alert("먼저 분석을 실행해주세요.");
+    return;
+  }
+  if(!confirm("⚠️ 실제 SP 폴더 이동을 시작합니다.\n\n이 작업은 되돌리기 어려울 수 있습니다.\n작업 중 새로고침/창 닫기 하지 마세요.\n\n계속할까요?")) return;
+  if(!confirm("🚨 마지막 확인\n\nSharePoint의 폴더 구조가 변경됩니다.\n앞으로 진행하시겠습니까?")) return;
+
+  const modal = document.getElementById("spMigModal");
+  if(modal) modal.remove();
+
+  const plan = window._spMigrationPlan.filter(p => !p.skip);
+  const total = plan.length;
+  let done = 0, failed = 0;
+  const moveLog = [];  // 이동 기록 (롤백용)
+
+  // 진행률 표시
+  const progress = document.createElement("div");
+  progress.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:24px 36px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);z-index:10600;min-width:360px;text-align:center;font-family:var(--s)";
+  progress.innerHTML = `<div style="font-size:18px;font-weight:700;margin-bottom:8px">📂 SP 폴더 마이그레이션 진행 중</div>
+    <div id="spMigStatus" style="font-size:14px;color:var(--t2);margin-bottom:12px">시작 중...</div>
+    <div style="background:var(--bg3);height:8px;border-radius:4px;overflow:hidden">
+      <div id="spMigBar" style="height:100%;background:linear-gradient(90deg,#10b981,#34d399);width:0%;transition:width .3s"></div>
+    </div>
+    <div id="spMigCount" style="font-size:12px;color:var(--t3);margin-top:6px">0 / ${total}</div>`;
+  document.body.appendChild(progress);
+
+  const updateProgress = (msg) => {
+    document.getElementById("spMigStatus").textContent = msg;
+    const pct = total ? Math.round(done/total*100) : 0;
+    document.getElementById("spMigBar").style.width = pct + "%";
+    document.getElementById("spMigCount").textContent = `${done} / ${total} (실패: ${failed})`;
+  };
+
+  try {
+    const t = await getToken();
+    for(const p of plan) {
+      try {
+        updateProgress(`이동: ${p.from.substring(0,40)}...`);
+        const oldPath = `${SL_SP_BASE}/${p.from}`;
+        const newPath = `${SL_SP_BASE}/${p.to}`;
+        const oldEnc = oldPath.split("/").map(encodeURIComponent).join("/");
+        // 새 부모 폴더 ID 찾기 (없으면 생성)
+        const newParentPath = newPath.substring(0, newPath.lastIndexOf("/"));
+        const newParentEnc = newParentPath.split("/").map(encodeURIComponent).join("/");
+        // 부모 폴더 보장 - PUT으로 생성 시도 (이미 있으면 무시)
+        try {
+          await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${newParentEnc}:/children`, {
+            method: "POST",
+            headers: {"Content-Type":"application/json","Authorization":"Bearer "+t},
+            body: JSON.stringify({name: newPath.split("/").pop(), folder:{}, "@microsoft.graph.conflictBehavior":"replace"})
+          });
+        } catch(_){}
+
+        // 이동: PATCH parentReference
+        const moveRes = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${oldEnc}:/`, {
+          method: "PATCH",
+          headers: {"Content-Type":"application/json","Authorization":"Bearer "+t},
+          body: JSON.stringify({
+            parentReference: {path: `/drives/${spDrive}/root:/${newParentEnc}`},
+            name: newPath.split("/").pop(),
+          })
+        });
+        if(!moveRes.ok) {
+          const errText = await moveRes.text();
+          throw new Error(`HTTP ${moveRes.status}: ${errText.substring(0,100)}`);
+        }
+        moveLog.push({from: oldPath, to: newPath, success: true, ts: new Date().toISOString()});
+        done++;
+      } catch(e) {
+        failed++;
+        moveLog.push({from: `${SL_SP_BASE}/${p.from}`, to: `${SL_SP_BASE}/${p.to}`, success: false, error: e.message, ts: new Date().toISOString()});
+        console.warn(`이동 실패: ${p.from}`, e.message);
+      }
+      updateProgress(`완료: ${done}/${total}`);
+    }
+  } catch(e) {
+    console.error("마이그레이션 치명적 오류:", e);
+  }
+
+  // 로그를 SP에 저장 (롤백 가능하도록)
+  try {
+    const logPath = `📦영업/99.Dashboard(real-time)/sp-migration-log-${Date.now()}.json`;
+    await safeSaveDB(`sp_mig_${Date.now()}`, logPath, moveLog);
+  } catch(_){}
+
+  // 결과 표시
+  progress.remove();
+  alert(`✅ SP 폴더 마이그레이션 완료!\n\n성공: ${done}건\n실패: ${failed}건\n\n※ 영업활동/DB 데이터의 fileUrl은 자동으로 새 위치를 반영합니다.\n※ 페이지를 새로고침하면 새 폴더 구조로 표시됩니다.`);
+
+  // 자동 새로고침 권유
+  if(confirm("페이지를 새로고침하시겠습니까?\n(새 폴더 구조와 변경된 fileUrl 반영)")) {
+    location.reload();
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function autoLinkDBsToActivities(silent) {
+  if(!Array.isArray(slData) || slData.length === 0) {
+    if(!silent) alert("영업활동 데이터가 없어 매칭할 수 없습니다.");
+    return;
+  }
+  const counts = { quote:0, order:0, contract:0, delivery:0, tax:0, confirm:0, proposal:0 };
+  // 매칭 함수: actId 없는 항목 → 회사+프로젝트코드 일치 영업활동 찾기
+  function tryLinkArray(arr, label) {
+    if(!Array.isArray(arr)) return 0;
+    let c = 0;
+    for(const item of arr) {
+      if(item.actId) continue;  // 이미 연결됨
+      if(!item.company) continue;
+      // 1차: 회사명 + 프로젝트코드 일치
+      let match = null;
+      if(item.pjcode) {
+        match = slData.find(a => a.company === item.company && a.pjcode === item.pjcode);
+      }
+      // 2차: 회사명만 일치 (단, 영업활동이 그 회사에 1개만 있을 때만)
+      if(!match) {
+        const candidates = slData.filter(a => a.company === item.company);
+        if(candidates.length === 1) {
+          match = candidates[0];
+        }
+      }
+      if(match) {
+        item.actId = match.id;
+        c++;
+      }
+    }
+    return c;
+  }
+  if(Array.isArray(window.quoteDB)) counts.quote = tryLinkArray(quoteDB, "견적서");
+  if(Array.isArray(window._ordData)) counts.order = tryLinkArray(_ordData, "발주서");
+  if(Array.isArray(window._ctrData)) counts.contract = tryLinkArray(_ctrData, "계약서");
+  if(Array.isArray(window._dlvData)) counts.delivery = tryLinkArray(_dlvData, "거래명세서");
+  if(Array.isArray(window._taxData)) counts.tax = tryLinkArray(_taxData, "세금계산서");
+  if(Array.isArray(window._cfmData)) counts.confirm = tryLinkArray(_cfmData, "납품확인서");
+  if(Array.isArray(window._pdbData)) counts.proposal = tryLinkArray(_pdbData, "자료");
+
+  const total = Object.values(counts).reduce((a,b)=>a+b, 0);
+  if(total === 0) {
+    if(!silent) alert("자동 매칭할 항목이 없습니다.\n모든 항목이 이미 연결되었거나 매칭되는 영업활동이 없습니다.");
+    return;
+  }
+
+  // 변경분 SP 저장
+  const promises = [];
+  if(counts.quote > 0) promises.push(saveQuoteDB());
+  if(counts.order > 0) promises.push(saveOrderToSP());
+  if(counts.contract > 0) promises.push(saveContractToSP());
+  if(counts.delivery > 0) promises.push(saveDeliveryToSP());
+  if(counts.tax > 0) promises.push(saveTaxToSP());
+  if(counts.confirm > 0) promises.push(saveConfirmToSP());
+  if(counts.proposal > 0) promises.push(saveProposalToSP());
+
+  try { await Promise.all(promises); } catch(e) { console.warn("일부 저장 실패:", e.message); }
+
+  // UI 갱신
+  if(typeof renderQDB === "function") renderQDB();
+  if(typeof renderOrderDB === "function") renderOrderDB();
+  if(typeof renderContractDB === "function") renderContractDB();
+  if(typeof renderDeliveryDB === "function") renderDeliveryDB();
+  if(typeof renderTaxDB === "function") renderTaxDB();
+  if(typeof renderConfirmDB === "function") renderConfirmDB();
+  if(typeof renderProposalDB === "function") renderProposalDB();
+
+  console.log(`🔗 actId 자동 매칭 완료: 총 ${total}건`);
+  if(!silent) {
+    alert(
+      `✅ 영업활동 자동 연결 완료!\n\n총 ${total}건 연결:\n` +
+      `  📄 견적서: ${counts.quote}건\n` +
+      `  📦 발주서: ${counts.order}건\n` +
+      `  📑 계약서: ${counts.contract}건\n` +
+      `  🚚 거래명세서: ${counts.delivery}건\n` +
+      `  🧾 세금계산서: ${counts.tax}건\n` +
+      `  ✅ 납품확인서: ${counts.confirm}건\n` +
+      `  📂 자료: ${counts.proposal}건`
+    );
+  }
+}
+
 async function migrateSLFilesToDBs() {
   if(!Array.isArray(slData) || slData.length === 0) {
     alert("영업활동 데이터가 없습니다.");
@@ -10460,6 +10843,7 @@ async function migrateSLFilesToDBs() {
           fileName: fname,
           fileUrl: url,
           source: "영업활동 마이그레이션",
+          actId: act.id,
           createdAt: f.uploadedAt || new Date().toISOString(),
         });
         counts.estimate++;
@@ -10477,6 +10861,7 @@ async function migrateSLFilesToDBs() {
           date: date, company: co, pjcode: pj,
           po: "", item: (f.name||"").replace(/\.[^.]+$/,""), qty: "", amount: 0,
           status: "수신", note: "영업활동 마이그레이션",
+          actId: act.id,
           fileUrl: url, createdAt: f.uploadedAt || new Date().toISOString(),
         });
         counts.order++;
@@ -10494,6 +10879,7 @@ async function migrateSLFilesToDBs() {
           date: date, company: co, pjcode: pj,
           item: (f.name||"").replace(/\.[^.]+$/,""), amount: 0,
           status: "계약체결", note: "영업활동 마이그레이션",
+          actId: act.id,
           fileUrl: url, createdAt: f.uploadedAt || new Date().toISOString(),
         });
         counts.contract++;
@@ -10512,6 +10898,7 @@ async function migrateSLFilesToDBs() {
           item: (f.name||"").replace(/\.[^.]+$/,""), qty:"",
           supply: 0, tax: 0, total: 0, po: "",
           note: "영업활동 마이그레이션",
+          actId: act.id,
           fileUrl: url, createdAt: f.uploadedAt || new Date().toISOString(),
         });
         counts.delivery++;
@@ -10531,6 +10918,7 @@ async function migrateSLFilesToDBs() {
           supply: 0, vat: 0, total: 0,
           approval: "", mgmt: pj,
           note: "영업활동 마이그레이션",
+          actId: act.id,
           fileUrl: url, createdAt: f.uploadedAt || new Date().toISOString(),
         });
         counts.tax++;
@@ -10549,6 +10937,7 @@ async function migrateSLFilesToDBs() {
           item: (f.name||"").replace(/\.[^.]+$/,""), qty:"", amount: 0,
           po: "", status: "납품완료",
           note: "영업활동 마이그레이션",
+          actId: act.id,
           fileUrl: url, createdAt: f.uploadedAt || new Date().toISOString(),
         });
         counts.confirm++;
@@ -10573,6 +10962,7 @@ async function migrateSLFilesToDBs() {
           custMgr: act.custMgr || "",
           salesMgr: act.salesMgr || "",
           note: "영업활동 마이그레이션",
+          actId: act.id,
           fileUrl: url,
           createdAt: f.uploadedAt || new Date().toISOString(),
         });
@@ -15261,6 +15651,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
               fileName: fileName,
               fileUrl: fileUrl,
               source: "영업활동 자동등록",
+              actId: act.id,
               createdAt: new Date().toISOString(),
             });
             await saveQuoteDB();
@@ -15296,6 +15687,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
               date: today, company: co, pjcode: pj,
               item: fileName.replace(/\.[^.]+$/,""), amount: 0,
               status: "계약체결", note: "영업활동 자동등록",
+              actId: act.id,
               fileUrl: fileUrl, createdAt: new Date().toISOString(),
             });
             await saveContractToSP();
@@ -15327,6 +15719,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
               supply: 0, vat: 0, total: 0,
               approval: "", mgmt: pj,
               note: "영업활동 자동등록",
+              actId: act.id,
               fileUrl: fileUrl, createdAt: new Date().toISOString(),
             });
             await saveTaxToSP();
@@ -15342,6 +15735,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
               item: fileName.replace(/\.[^.]+$/,""), qty:"", amount: 0,
               po: "", status: "납품완료",
               note: "영업활동 자동등록",
+              actId: act.id,
               fileUrl: fileUrl, createdAt: new Date().toISOString(),
             });
             await saveConfirmToSP();
@@ -15359,6 +15753,7 @@ async function uploadSLFile(actId, fileType, subFolderOverride) {
               custMgr: act.custMgr || "",
               salesMgr: act.salesMgr || "",
               note: "영업활동 자동등록",
+              actId: act.id,
               fileUrl: fileUrl, createdAt: new Date().toISOString(),
             });
             await saveProposalToSP();
@@ -15711,6 +16106,12 @@ async function saveQuoteDB() {
     alert("⚠️ 견적서 DB 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
     return false;
   }
+  // 저장 시각 기록 + 표시
+  if(result && result.sp !== false) {
+    if(!window._dbLastSaved) window._dbLastSaved = {};
+    window._dbLastSaved["quote"] = new Date().toLocaleTimeString("ko-KR");
+    if(typeof updateDBSavedDisplay === "function") updateDBSavedDisplay("quote");
+  }
   return true;
 }
 
@@ -15775,9 +16176,15 @@ function renderQDB(data) {
     const amt = q.amount ? (q.amount/1e8).toFixed(2)+"억" : "-";
     const isLinked = !!q.actId;
     const linkedAct = isLinked ? slData.find(x=>x.id===q.actId) : null;
+    // 자동 매칭 시도: 회사명 같은 영업활동이 있으면 미연결 대신 "자동매칭" 안내
+    const autoMatch = !isLinked && q.company && Array.isArray(slData)
+      ? slData.find(a => a.company === q.company && (!q.pjcode || a.pjcode === q.pjcode))
+      : null;
     const linkBadge = isLinked
       ? `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#166534;font-weight:600">🔗 ${linkedAct?.company||"연결됨"}</span>`
-      : `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#fef9c3;color:#854d0e;font-weight:600;cursor:pointer" onclick="event.stopPropagation();linkQDBToActivity('${q.id}')" title="영업활동 연결">⚠️ 미연결</span>`;
+      : autoMatch
+        ? `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#dbeafe;color:#1e40af;font-weight:600;cursor:pointer" onclick="event.stopPropagation();linkQDBToActivity('${q.id}')" title="클릭하여 ${autoMatch.company}에 연결">🔗 매칭됨 (클릭 연결)</span>`
+        : `<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:#fef9c3;color:#854d0e;font-weight:600;cursor:pointer" onclick="event.stopPropagation();linkQDBToActivity('${q.id}')" title="영업활동에 등록되지 않은 견적서입니다. 클릭해서 연결할 수 있어요">⚠️ 영업활동 없음</span>`;
     return `<tr ondblclick="editQDBEntry('${q.id}')" style="cursor:pointer" title="더블클릭하여 편집">
       <td>${_pjcodeCell(q.pjcode)}</td>
       <td style="font-size:14px;font-weight:600">${q.company||"<span style='color:var(--t3);font-style:italic'>미확정</span>"}${_revBadge(revs[q.id])}</td>
@@ -15861,14 +16268,283 @@ async function deleteQDBEntry(id) {
 
 // 수정 (상태 + 비고)
 async function editQDBEntry(id) {
-  const q = quoteDB.find(x=>x.id===id);
-  if(!q) return;
-  const note = prompt(`견적서 ${q.docNo} 비고 수정:`, q.note||"");
-  if(note===null) return;
-  q.note = note;
-  q.updatedAt = new Date().toISOString();
-  await saveQuoteDB();
-  renderQDB();
+  // 빠른 편집 모달 호출 (견적서)
+  openQuickEdit("quote", id);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ⚡ 공용 빠른 편집 모달 - 모든 DB에서 재사용
+// 사용: openQuickEdit("quote"|"order"|"contract"|"delivery"|"tax"|"confirm"|"proposal"|"mtg", id)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// DB별 필드 정의 (label, key, type, options, fullWidth)
+const QUICK_EDIT_CONFIGS = {
+  quote: {
+    title: "📄 견적서 빠른 편집",
+    color: "linear-gradient(135deg,#7c3aed,#a78bfa)",
+    dataVar: "quoteDB",
+    saveFn: "saveQuoteDB",
+    renderFn: "renderQDB",
+    fullModalFn: "openQuoteModal",
+    fields: [
+      {key:"pjcode", label:"🔖 프로젝트코드", type:"text"},
+      {key:"company", label:"🏭 고객사", type:"text"},
+      {key:"custMgr", label:"👤 고객담당자", type:"text"},
+      {key:"date", label:"📅 견적일자", type:"date"},
+      {key:"docNo", label:"📋 견적NO", type:"text"},
+      {key:"items", label:"📦 품목명", type:"text"},
+      {key:"amount", label:"💰 견적금액 (원)", type:"number"},
+      {key:"manager", label:"👨‍💼 영업담당", type:"text"},
+      {key:"status", label:"🔄 상태", type:"select", options:["견적중","수주","실패","보류"]},
+      {key:"note", label:"📝 비고", type:"textarea", fullWidth:true},
+    ],
+  },
+  order: {
+    title: "📦 발주서 빠른 편집",
+    color: "linear-gradient(135deg,#7c3aed,#a78bfa)",
+    dataVar: "_ordData",
+    saveFn: "saveOrderToSP",
+    renderFn: "renderOrderDB",
+    fullModalFn: "openOrderModal",
+    fields: [
+      {key:"pjcode", label:"🔖 프로젝트코드", type:"text"},
+      {key:"company", label:"🏭 발주처", type:"text"},
+      {key:"custMgr", label:"👤 고객담당자", type:"text"},
+      {key:"date", label:"📅 발주일", type:"date"},
+      {key:"po", label:"📋 PO번호", type:"text"},
+      {key:"item", label:"📦 품목", type:"text"},
+      {key:"amount", label:"💰 발주금액 (원)", type:"number"},
+      {key:"duedate", label:"📅 납기요청일", type:"date"},
+      {key:"status", label:"🔄 상태", type:"select", options:["수신","검토중","납품준비","납품완료"]},
+      {key:"note", label:"📝 비고", type:"textarea", fullWidth:true},
+    ],
+  },
+  contract: {
+    title: "📑 계약서 빠른 편집",
+    color: "linear-gradient(135deg,#0369a1,#0ea5e9)",
+    dataVar: "_ctrData",
+    saveFn: "saveContractToSP",
+    renderFn: "renderContractDB",
+    fullModalFn: "openContractModal",
+    fields: [
+      {key:"pjcode", label:"🔖 프로젝트코드", type:"text"},
+      {key:"company", label:"🏭 거래처", type:"text"},
+      {key:"custMgr", label:"👤 고객담당자", type:"text"},
+      {key:"date", label:"📅 계약일", type:"date"},
+      {key:"item", label:"📦 품목/내용", type:"text"},
+      {key:"amount", label:"💰 계약금액 (원)", type:"number"},
+      {key:"duedate", label:"📅 납기일", type:"date"},
+      {key:"status", label:"🔄 상태", type:"select", options:["계약체결","진행중","완료","파기"]},
+      {key:"note", label:"📝 비고", type:"textarea", fullWidth:true},
+    ],
+  },
+  delivery: {
+    title: "🚚 거래명세서 빠른 편집",
+    color: "linear-gradient(135deg,#ea580c,#f59e0b)",
+    dataVar: "_dlvData",
+    saveFn: "saveDeliveryToSP",
+    renderFn: "renderDeliveryDB",
+    fullModalFn: "openDeliveryModal",
+    fields: [
+      {key:"pjcode", label:"🔖 프로젝트코드", type:"text"},
+      {key:"company", label:"🏭 거래처", type:"text"},
+      {key:"custMgr", label:"👤 고객담당자", type:"text"},
+      {key:"date", label:"📅 거래일", type:"date"},
+      {key:"po", label:"📋 PO번호", type:"text"},
+      {key:"item", label:"📦 품목", type:"text"},
+      {key:"supply", label:"💰 공급가액 (원)", type:"number"},
+      {key:"tax", label:"💸 세액 (원)", type:"number"},
+      {key:"total", label:"💵 합계금액 (원)", type:"number"},
+      {key:"note", label:"📝 비고", type:"textarea", fullWidth:true},
+    ],
+  },
+  tax: {
+    title: "🧾 세금계산서 빠른 편집",
+    color: "linear-gradient(135deg,#dc2626,#f87171)",
+    dataVar: "_taxData",
+    saveFn: "saveTaxToSP",
+    renderFn: "renderTaxDB",
+    fullModalFn: "openTaxModal",
+    fields: [
+      {key:"pjcode", label:"🔖 프로젝트코드", type:"text"},
+      {key:"company", label:"🏭 공급받는자", type:"text"},
+      {key:"custMgr", label:"👤 고객담당자", type:"text"},
+      {key:"date", label:"📅 작성일", type:"date"},
+      {key:"approval", label:"📋 승인번호", type:"text"},
+      {key:"mgmt", label:"📋 관리번호", type:"text"},
+      {key:"item", label:"📦 품목", type:"text"},
+      {key:"supply", label:"💰 공급가액 (원)", type:"number"},
+      {key:"vat", label:"💸 세액 (원)", type:"number"},
+      {key:"total", label:"💵 합계금액 (원)", type:"number"},
+      {key:"note", label:"📝 비고", type:"textarea", fullWidth:true},
+    ],
+  },
+  confirm: {
+    title: "✅ 납품확인서 빠른 편집",
+    color: "linear-gradient(135deg,#059669,#10b981)",
+    dataVar: "_cfmData",
+    saveFn: "saveConfirmToSP",
+    renderFn: "renderConfirmDB",
+    fullModalFn: "openConfirmModal",
+    fields: [
+      {key:"pjcode", label:"🔖 프로젝트코드", type:"text"},
+      {key:"company", label:"🏭 거래처", type:"text"},
+      {key:"custMgr", label:"👤 고객담당자", type:"text"},
+      {key:"date", label:"📅 납품일", type:"date"},
+      {key:"po", label:"📋 PO번호", type:"text"},
+      {key:"item", label:"📦 품목", type:"text"},
+      {key:"amount", label:"💰 납품금액 (원)", type:"number"},
+      {key:"status", label:"🔄 상태", type:"select", options:["납품완료","검수중","승인","반품"]},
+      {key:"note", label:"📝 비고", type:"textarea", fullWidth:true},
+    ],
+  },
+  proposal: {
+    title: "📂 자료 빠른 편집",
+    color: "linear-gradient(135deg,#7c3aed,#a78bfa)",
+    dataVar: "_pdbData",
+    saveFn: "saveProposalToSP",
+    renderFn: "renderProposalDB",
+    fullModalFn: "openProposalModal",
+    fields: [
+      {key:"pjcode", label:"🔖 프로젝트코드", type:"text"},
+      {key:"company", label:"🏭 거래처", type:"text"},
+      {key:"custMgr", label:"👤 고객담당자", type:"text"},
+      {key:"date", label:"📅 등록일", type:"date"},
+      {key:"folder", label:"📁 폴더(자료구분)", type:"text"},
+      {key:"filename", label:"📄 파일명", type:"text"},
+      {key:"salesMgr", label:"👨‍💼 영업담당", type:"text"},
+      {key:"note", label:"📝 비고", type:"textarea", fullWidth:true},
+    ],
+  },
+  mtg: {
+    title: "📝 회의록 빠른 편집",
+    color: "linear-gradient(135deg,#0369a1,#0ea5e9)",
+    dataVar: "_mtgLogs",
+    saveFn: "saveMtgLogsToSP",
+    renderFn: "renderMtgLog",
+    fullModalFn: null,  // 별도 편집 모달 없음
+    fields: [
+      {key:"pjcode", label:"🔖 프로젝트코드", type:"text"},
+      {key:"company", label:"🏭 고객사", type:"text"},
+      {key:"date", label:"📅 일시", type:"date"},
+      {key:"place", label:"📍 장소", type:"text"},
+      {key:"attendees", label:"👥 고객사 참석자", type:"text"},
+      {key:"salesMgr", label:"👨‍💼 영업담당자", type:"text"},
+      {key:"type", label:"📋 유형", type:"select", options:["영업미팅","기술미팅","계약협상","납품협의","기타"]},
+    ],
+  },
+};
+
+window._quickEditCtx = null;  // {dbType, id}
+
+function openQuickEdit(dbType, id) {
+  const cfg = QUICK_EDIT_CONFIGS[dbType];
+  if(!cfg) { alert("지원하지 않는 DB 타입: " + dbType); return; }
+  // 데이터 배열에서 찾기
+  const dataArr = window[cfg.dataVar];
+  if(!Array.isArray(dataArr)) { alert("데이터 로드 안 됨"); return; }
+  const item = dataArr.find(x => x.id === id);
+  if(!item) { alert("항목을 찾을 수 없습니다."); return; }
+
+  window._quickEditCtx = { dbType, id, fields: cfg.fields };
+
+  // 헤더
+  const header = document.getElementById("quickEditHeader");
+  if(header) header.style.background = cfg.color;
+  document.getElementById("quickEditTitle").textContent = cfg.title;
+
+  // 정식 편집 버튼 표시 여부
+  const fullBtn = document.getElementById("quickEditFullBtn");
+  if(fullBtn) {
+    if(cfg.fullModalFn && typeof window[cfg.fullModalFn] === "function") {
+      fullBtn.style.display = "inline-flex";
+    } else {
+      fullBtn.style.display = "none";
+    }
+  }
+
+  // 필드 동적 생성
+  const fieldsContainer = document.getElementById("quickEditFields");
+  fieldsContainer.innerHTML = cfg.fields.map(f => {
+    const val = item[f.key] !== undefined && item[f.key] !== null ? item[f.key] : "";
+    const isFullWidth = f.fullWidth || f.type === "textarea";
+    const gridStyle = isFullWidth ? "grid-column:1 / -1" : "";
+    let inputHtml = "";
+    if(f.type === "select") {
+      inputHtml = `<select class="si" id="qe-${f.key}" style="width:100%;font-size:14px">
+        <option value="">선택...</option>
+        ${(f.options||[]).map(o => `<option value="${o}"${o===val?' selected':''}>${o}</option>`).join("")}
+      </select>`;
+    } else if(f.type === "textarea") {
+      inputHtml = `<textarea class="si" id="qe-${f.key}" rows="2" style="width:100%;font-size:14px;font-family:var(--s);resize:vertical">${String(val).replace(/</g,"&lt;")}</textarea>`;
+    } else if(f.type === "number") {
+      inputHtml = `<input class="si" type="number" id="qe-${f.key}" value="${val||0}" style="width:100%;font-size:14px">`;
+    } else {
+      inputHtml = `<input class="si" type="${f.type}" id="qe-${f.key}" value="${String(val).replace(/"/g,'&quot;')}" style="width:100%;font-size:14px">`;
+    }
+    // 빈값이면 강조
+    const labelColor = (!val || val === "" || val === 0) ? "var(--r)" : "var(--t2)";
+    const emptyHint = (!val || val === "" || val === 0) ? '<span style="font-size:10px;color:var(--r);margin-left:4px">비어있음</span>' : '';
+    return `<div style="${gridStyle}">
+      <label style="font-size:12px;font-weight:700;color:${labelColor};display:block;margin-bottom:4px">${f.label}${emptyHint}</label>
+      ${inputHtml}
+    </div>`;
+  }).join("");
+
+  document.getElementById("quickEditModal").style.display = "flex";
+}
+
+function closeQuickEdit() {
+  document.getElementById("quickEditModal").style.display = "none";
+  window._quickEditCtx = null;
+}
+
+function quickEditOpenFullModal() {
+  if(!window._quickEditCtx) return;
+  const cfg = QUICK_EDIT_CONFIGS[window._quickEditCtx.dbType];
+  const id = window._quickEditCtx.id;
+  closeQuickEdit();
+  if(cfg.fullModalFn && typeof window[cfg.fullModalFn] === "function") {
+    window[cfg.fullModalFn](id);
+  }
+}
+
+async function saveQuickEdit() {
+  if(!window._quickEditCtx) return;
+  const { dbType, id, fields } = window._quickEditCtx;
+  const cfg = QUICK_EDIT_CONFIGS[dbType];
+  const dataArr = window[cfg.dataVar];
+  const idx = dataArr.findIndex(x => x.id === id);
+  if(idx < 0) { alert("항목을 찾을 수 없습니다."); return; }
+
+  // 필드 값 수집
+  for(const f of fields) {
+    const el = document.getElementById("qe-" + f.key);
+    if(!el) continue;
+    let val = el.value;
+    if(f.type === "number") val = parseFloat(val) || 0;
+    dataArr[idx][f.key] = val;
+  }
+  dataArr[idx].updatedAt = new Date().toISOString();
+
+  // 저장
+  try {
+    if(typeof window[cfg.saveFn] === "function") {
+      await window[cfg.saveFn]();
+    }
+    if(typeof window[cfg.renderFn] === "function") {
+      window[cfg.renderFn]();
+    }
+    closeQuickEdit();
+    // 저장 확인 표시
+    const toast = document.createElement("div");
+    toast.textContent = "✅ 저장 완료";
+    toast.style.cssText = "position:fixed;top:20px;right:20px;background:#10b981;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;z-index:10600;box-shadow:0 4px 12px rgba(0,0,0,.2)";
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+  } catch(e) {
+    alert("저장 실패: " + e.message);
+  }
 }
 
 // ━━ 영업활동 견적서 업로드 모달에서 DB 검색 연결 ━━
@@ -16470,7 +17146,7 @@ function renderMtgLog(logs) {
       aiSummaryCell = `<span style="font-size:11px;color:var(--t3);cursor:pointer" onclick="event.stopPropagation();viewMtgContent('${m.id}')" title="회의 내용 보기">-</span>`;
     }
     
-    return `<tr ondblclick="viewMtgContent('${m.id}')" style="cursor:pointer" title="더블클릭하여 내용 보기">
+    return `<tr ondblclick="openQuickEdit('mtg','${m.id}')" style="cursor:pointer" title="더블클릭하여 내용 보기">
       <td>${_pjcodeCell(m.pjcode)}</td>
       <td style="font-size:14px;font-weight:600">${m.company||`<span style="color:var(--t3);font-style:italic">미확정</span>`}${_revBadge(revs[m.id])}</td>
       <td style="font-size:13px;color:var(--t2)">${Array.isArray(m.attendees)?m.attendees.join(", "):(m.attendees||"-")}</td>
@@ -18213,7 +18889,7 @@ function go(id, el) {
     loadTodoFromPlanner();
   }
   if(id==="quote-db") {
-    loadQuoteDB();
+    loadQuoteDB().then(()=>autoLinkDBsToActivities(true));
   }
   if(id==="exh-prep-db") {
     renderExhFileDB("prep");
@@ -18270,12 +18946,12 @@ function go(id, el) {
       } catch(e) { console.warn("프로젝트코드 요청 로드 실패:", e); }
     })();
   }
-  if(id==="delivery-db") { loadDeliveryDB(); }
-  if(id==="tax-db") { loadTaxDB(); }
-  if(id==="order-db") { loadOrderDB(); }
-  if(id==="proposal-db") { loadProposalDB(); }
-  if(id==="confirm-db") { loadConfirmDB(); }
-  if(id==="contract-db") { loadContractDB(); }
+  if(id==="delivery-db") { loadDeliveryDB().then(()=>autoLinkDBsToActivities(true)); }
+  if(id==="tax-db") { loadTaxDB().then(()=>autoLinkDBsToActivities(true)); }
+  if(id==="order-db") { loadOrderDB().then(()=>autoLinkDBsToActivities(true)); }
+  if(id==="proposal-db") { loadProposalDB().then(()=>autoLinkDBsToActivities(true)); }
+  if(id==="confirm-db") { loadConfirmDB().then(()=>autoLinkDBsToActivities(true)); }
+  if(id==="contract-db") { loadContractDB().then(()=>autoLinkDBsToActivities(true)); }
   // 고객사 관리 탭
   if(id==="customer") {
     if(exhData.length === 0) loadCustContactsFromSP();
@@ -18530,6 +19206,12 @@ async function saveOrderToSP() {
   } else if(!result.sp) {
     console.warn("⚠️ SP 저장 실패 - 로컬 백업만 됨. 네트워크 복구 후 다시 저장 권장.");
   }
+  // 저장 시각 기록 + 표시
+  if(result && result.sp !== false) {
+    if(!window._dbLastSaved) window._dbLastSaved = {};
+    window._dbLastSaved["order"] = new Date().toLocaleTimeString("ko-KR");
+    if(typeof updateDBSavedDisplay === "function") updateDBSavedDisplay("order");
+  }
   return result;
 }
 
@@ -18566,7 +19248,7 @@ function renderOrderDB() {
     body.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="ei">📦</div><div class="et">발주서 없음</div></div></td></tr>`;
   } else {
     const revs = computeDBRevisions(filtered, ["company","pjcode"], "date");
-    body.innerHTML = filtered.map(d => `<tr ondblclick="openOrderModal('${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
+    body.innerHTML = filtered.map(d => `<tr ondblclick="openQuickEdit('order','${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
       <td>${_pjcodeCell(d.pjcode)}</td>
       <td style="font-size:14px;font-weight:600">${d.company||"-"}${_revBadge(revs[d.id])}</td>
       <td>${_custMgrCell(d)}</td>
@@ -18593,6 +19275,7 @@ function renderOrderDB() {
   const sorted = [..._ordData].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
   $("ord-last-date", sorted[0]?.date||"-");
   $("ord-cnt", `총 ${filtered.length}건`);
+  $("badge-ord", _ordData.length);
 }
 
 function openOrderModal(id) {
@@ -18967,6 +19650,12 @@ async function saveDeliveryToSP() {
   const result = await safeSaveDB("dlv_data", DLV_SP_PATH, _dlvData);
   $("badge-dlv", _dlvData.length);
   if(!result.sp && !result.local) alert("⚠️ 거래명세서 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+    // 저장 시각 기록 + 표시
+  if(result && result.sp !== false) {
+    if(!window._dbLastSaved) window._dbLastSaved = {};
+    window._dbLastSaved["delivery"] = new Date().toLocaleTimeString("ko-KR");
+    if(typeof updateDBSavedDisplay === "function") updateDBSavedDisplay("delivery");
+  }
   return result;
 }
 async function loadDeliveryDB() {
@@ -18991,6 +19680,12 @@ async function saveTaxToSP() {
   const result = await safeSaveDB("tax_data", TAX_SP_PATH, _taxData);
   $("badge-tax", _taxData.length);
   if(!result.sp && !result.local) alert("⚠️ 세금계산서 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+    // 저장 시각 기록 + 표시
+  if(result && result.sp !== false) {
+    if(!window._dbLastSaved) window._dbLastSaved = {};
+    window._dbLastSaved["tax"] = new Date().toLocaleTimeString("ko-KR");
+    if(typeof updateDBSavedDisplay === "function") updateDBSavedDisplay("tax");
+  }
   return result;
 }
 async function loadTaxDB() {
@@ -19023,7 +19718,7 @@ function renderDeliveryDB() {
     body.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="ei">🚚</div><div class="et">거래명세서 없음</div></div></td></tr>`;
   } else {
     const revs = computeDBRevisions(filtered, ["company","pjcode"], "date");
-    body.innerHTML = filtered.map(d => `<tr ondblclick="openDeliveryModal('${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
+    body.innerHTML = filtered.map(d => `<tr ondblclick="openQuickEdit('delivery','${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
       <td>${_pjcodeCell(d.pjcode)}</td>
       <td style="font-size:14px;font-weight:600">${d.company||"-"}${_revBadge(revs[d.id])}</td>
       <td>${_custMgrCell(d)}</td>
@@ -19051,6 +19746,7 @@ function renderDeliveryDB() {
   const sorted = [..._dlvData].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
   $("dlv-last-date", sorted[0]?.date||"-");
   $("dlv-cnt", `총 ${filtered.length}건`);
+  $("badge-dlv", _dlvData.length);
 }
 
 function renderTaxDB() {
@@ -19064,7 +19760,7 @@ function renderTaxDB() {
     body.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="ei">🧾</div><div class="et">세금계산서 없음</div></div></td></tr>`;
   } else {
     const revs = computeDBRevisions(filtered, ["company","mgmt"], "date");
-    body.innerHTML = filtered.map(d => `<tr ondblclick="openTaxModal('${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
+    body.innerHTML = filtered.map(d => `<tr ondblclick="openQuickEdit('tax','${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
       <td>${_pjcodeCell(d.pjcode||d.mgmt)}</td>
       <td style="font-size:14px;font-weight:600">${d.company||"-"}${_revBadge(revs[d.id])}</td>
       <td>${_custMgrCell(d)}</td>
@@ -19091,6 +19787,7 @@ function renderTaxDB() {
   const sorted2 = [..._taxData].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
   $("tax-last-date", sorted2[0]?.date||"-");
   $("tax-cnt", `총 ${filtered.length}건`);
+  $("badge-tax", _taxData.length);
 }
 
 function calcDlvTotal() {
@@ -19804,6 +20501,12 @@ async function saveConfirmToSP() {
   const result = await safeSaveDB("cfm_data", CFM_SP_PATH, _cfmData);
   $("badge-cfm", _cfmData.length);
   if(!result.sp && !result.local) alert("⚠️ 납품확인서 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+    // 저장 시각 기록 + 표시
+  if(result && result.sp !== false) {
+    if(!window._dbLastSaved) window._dbLastSaved = {};
+    window._dbLastSaved["confirm"] = new Date().toLocaleTimeString("ko-KR");
+    if(typeof updateDBSavedDisplay === "function") updateDBSavedDisplay("confirm");
+  }
   return result;
 }
 
@@ -19846,7 +20549,7 @@ function renderConfirmDB() {
   if(!body) return;
   if(!sorted.length) { body.innerHTML='<tr><td colspan="11"><div class="empty"><div class="ei">✅</div><div class="et">납품확인서 없음</div></div></td></tr>'; return; }
   const revs = computeDBRevisions(sorted, ["company","pjcode"], "date");
-  body.innerHTML = sorted.map(d => `<tr ondblclick="openConfirmModal('${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
+  body.innerHTML = sorted.map(d => `<tr ondblclick="openQuickEdit('confirm','${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
     <td>${_pjcodeCell(d.pjcode)}</td>
     <td style="font-size:13px;font-weight:700">${d.company||""}${_revBadge(revs[d.id])}</td>
     <td>${_custMgrCell(d)}</td>
@@ -19863,6 +20566,7 @@ function renderConfirmDB() {
     </td>
   </tr>`).join("");
   $("cfm-cnt", filtered.length+"건");
+  $("badge-cfm", _cfmData.length);
 }
 
 function openConfirmModal(id) {
@@ -20027,6 +20731,12 @@ async function saveContractToSP() {
   const result = await safeSaveDB("ctr_data", CTR_SP_PATH, _ctrData);
   $("badge-ctr", _ctrData.length);
   if(!result.sp && !result.local) alert("⚠️ 계약서 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+    // 저장 시각 기록 + 표시
+  if(result && result.sp !== false) {
+    if(!window._dbLastSaved) window._dbLastSaved = {};
+    window._dbLastSaved["contract"] = new Date().toLocaleTimeString("ko-KR");
+    if(typeof updateDBSavedDisplay === "function") updateDBSavedDisplay("contract");
+  }
   return result;
 }
 
@@ -20070,7 +20780,7 @@ function renderContractDB() {
   if(!filtered.length) { body.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">📑</div><div class="et">계약서 없음</div></div></td></tr>'; return; }
   const _ctrSorted = [...filtered].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   const revs = computeDBRevisions(_ctrSorted, ["company","pjcode"], "date");
-  body.innerHTML = _ctrSorted.map(d => `<tr ondblclick="openContractModal('${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
+  body.innerHTML = _ctrSorted.map(d => `<tr ondblclick="openQuickEdit('contract','${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
     <td>${_pjcodeCell(d.pjcode)}</td>
     <td style="font-size:13px;font-weight:700">${d.company||""}${_revBadge(revs[d.id])}</td>
     <td>${_custMgrCell(d)}</td>
@@ -20086,6 +20796,7 @@ function renderContractDB() {
     </td>
   </tr>`).join("");
   $("ctr-cnt", filtered.length+"건");
+  $("badge-ctr", _ctrData.length);
 }
 
 function openContractModal(id) {
@@ -20246,6 +20957,12 @@ async function saveProposalToSP() {
   const result = await safeSaveDB("pdb_data", PDB_SP_PATH, _pdbData);
   $("badge-pdb", _pdbData.length);
   if(!result.sp && !result.local) alert("⚠️ 자료 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
+    // 저장 시각 기록 + 표시
+  if(result && result.sp !== false) {
+    if(!window._dbLastSaved) window._dbLastSaved = {};
+    window._dbLastSaved["proposal"] = new Date().toLocaleTimeString("ko-KR");
+    if(typeof updateDBSavedDisplay === "function") updateDBSavedDisplay("proposal");
+  }
   return result;
 }
 
@@ -20290,7 +21007,7 @@ function renderProposalDB() {
   if(!filtered.length) { body.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📂</div><div class="et">자료 없음</div></div></td></tr>'; return; }
   const _pdbSorted = [...filtered].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   const revs = computeDBRevisions(_pdbSorted, ["company","pjcode","folder"], "date");
-  body.innerHTML = _pdbSorted.map(d => `<tr ondblclick="openProposalModal('${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
+  body.innerHTML = _pdbSorted.map(d => `<tr ondblclick="openQuickEdit('proposal','${d.id}')" style="cursor:pointer" title="더블클릭하여 편집">
     <td>${_pjcodeCell(d.pjcode)}</td>
     <td style="font-size:13px;font-weight:700">${d.company||""}${_revBadge(revs[d.id])}</td>
     <td>${_custMgrCell(d)}</td>
@@ -20305,6 +21022,7 @@ function renderProposalDB() {
     </td>
   </tr>`).join("");
   $("pdb-cnt", filtered.length+"건");
+  $("badge-pdb", _pdbData.length);
 }
 
 function openProposalModal(id) {
@@ -21436,5 +22154,34 @@ function deleteTax(id){
         </div><!-- /grid 2단 -->
       </div>
     </div>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- 🔧 공용 빠른 편집 모달 (모든 DB에서 재사용) -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <div id="quickEditModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:10500;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div style="background:#fff;border-radius:14px;width:720px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative">
+        <div id="quickEditHeader" style="padding:14px 18px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;color:#fff;background:linear-gradient(135deg,#7c3aed,#a78bfa)">
+          <div style="font-size:16px;font-weight:900" id="quickEditTitle">⚡ 빠른 편집</div>
+          <button onclick="closeQuickEdit()" style="border:none;background:transparent;color:#fff;font-size:22px;cursor:pointer">✕</button>
+        </div>
+        <div style="padding:16px 20px">
+          <!-- 안내 -->
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:12px;padding:8px 12px;border-radius:7px;margin-bottom:14px">
+            💡 빈 필드만 빠르게 채워서 저장할 수 있어요. 전체 편집은 모달의 ✏️ 정식 편집 버튼을 이용하세요.
+          </div>
+          <!-- 동적 필드 영역 -->
+          <div id="quickEditFields" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 14px"></div>
+          <!-- 액션 -->
+          <div style="display:flex;justify-content:space-between;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+            <button onclick="quickEditOpenFullModal()" id="quickEditFullBtn" style="padding:9px 16px;border-radius:8px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--s)">✏️ 정식 편집 (전체 필드)</button>
+            <div style="display:flex;gap:8px">
+              <button onclick="closeQuickEdit()" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;font-family:var(--s)">취소</button>
+              <button onclick="saveQuickEdit()" style="padding:9px 22px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)">💾 저장</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
 </body>
 </html>
