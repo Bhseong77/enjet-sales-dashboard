@@ -16595,6 +16595,11 @@ function openQuickEdit(dbType, id) {
       console.error("quickEditModal element 없음");
       return;
     }
+    // 🛡️ 안전망: 모달이 body 직속이 아니면 body로 이동 (부모의 overflow:hidden 등 영향 방지)
+    if(modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+      console.log("📦 모달을 body 직속으로 이동");
+    }
     // 헤더
     const header = document.getElementById("quickEditHeader");
     if(header) header.style.background = cfg.color;
