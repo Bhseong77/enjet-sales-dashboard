@@ -6186,8 +6186,18 @@ function updateDBSavedDisplay(key) {
 async function forceDBSave(key) {
   const cfg = DB_SAVED_DISPLAY_MAP[key];
   if(!cfg) return;
-  const fn = window[cfg.saveFn];
-  if(typeof fn !== "function") { alert("저장 함수 없음: " + cfg.saveFn); return; }
+  // 직접 호출 (let 함수도 안전하게)
+  const SAVE_FNS = {
+    saveQuoteDB: () => typeof saveQuoteDB === "function" ? saveQuoteDB() : null,
+    saveOrderToSP: () => typeof saveOrderToSP === "function" ? saveOrderToSP() : null,
+    saveDeliveryToSP: () => typeof saveDeliveryToSP === "function" ? saveDeliveryToSP() : null,
+    saveTaxToSP: () => typeof saveTaxToSP === "function" ? saveTaxToSP() : null,
+    saveConfirmToSP: () => typeof saveConfirmToSP === "function" ? saveConfirmToSP() : null,
+    saveContractToSP: () => typeof saveContractToSP === "function" ? saveContractToSP() : null,
+    saveProposalToSP: () => typeof saveProposalToSP === "function" ? saveProposalToSP() : null,
+  };
+  const fn = SAVE_FNS[cfg.saveFn];
+  if(!fn) { alert("저장 함수 없음: " + cfg.saveFn); return; }
   await fn();
   // 토스트
   const toast = document.createElement("div");
@@ -16551,13 +16561,24 @@ window._quickEditCtx = null;  // {dbType, id}
 function openQuickEdit(dbType, id) {
   const cfg = QUICK_EDIT_CONFIGS[dbType];
   if(!cfg) { alert("지원하지 않는 DB 타입: " + dbType); return; }
-  // 데이터 배열에서 찾기
-  const dataArr = window[cfg.dataVar];
-  if(!Array.isArray(dataArr)) { alert("데이터 로드 안 됨"); return; }
+  // 데이터 배열 직접 접근 (let 변수는 window[]로 접근 안 됨)
+  const DATA_GETTERS = {
+    quoteDB: () => typeof quoteDB !== "undefined" ? quoteDB : null,
+    _ordData: () => typeof _ordData !== "undefined" ? _ordData : null,
+    _dlvData: () => typeof _dlvData !== "undefined" ? _dlvData : null,
+    _taxData: () => typeof _taxData !== "undefined" ? _taxData : null,
+    _cfmData: () => typeof _cfmData !== "undefined" ? _cfmData : null,
+    _ctrData: () => typeof _ctrData !== "undefined" ? _ctrData : null,
+    _pdbData: () => typeof _pdbData !== "undefined" ? _pdbData : null,
+    _mtgLogs: () => (typeof window._mtgLogs !== "undefined" ? window._mtgLogs : null),
+  };
+  const getter = DATA_GETTERS[cfg.dataVar];
+  const dataArr = getter ? getter() : (window[cfg.dataVar]);
+  if(!Array.isArray(dataArr)) { alert(`데이터 로드 안 됨 (${cfg.dataVar})\n해당 DB 탭을 한 번 열어주세요.`); return; }
   const item = dataArr.find(x => x.id === id);
   if(!item) { alert("항목을 찾을 수 없습니다."); return; }
 
-  window._quickEditCtx = { dbType, id, fields: cfg.fields };
+  window._quickEditCtx = { dbType, id, fields: cfg.fields, dataArr };
 
   // 헤더
   const header = document.getElementById("quickEditHeader");
@@ -16615,16 +16636,26 @@ function quickEditOpenFullModal() {
   const cfg = QUICK_EDIT_CONFIGS[window._quickEditCtx.dbType];
   const id = window._quickEditCtx.id;
   closeQuickEdit();
-  if(cfg.fullModalFn && typeof window[cfg.fullModalFn] === "function") {
-    window[cfg.fullModalFn](id);
-  }
+  // 직접 함수 호출 (let 함수도 안전하게)
+  const FULL_MODAL_FNS = {
+    openQuoteModal: (id) => typeof openQuoteModal === "function" ? openQuoteModal(id) : null,
+    openOrderModal: (id) => typeof openOrderModal === "function" ? openOrderModal(id) : null,
+    openContractModal: (id) => typeof openContractModal === "function" ? openContractModal(id) : null,
+    openDeliveryModal: (id) => typeof openDeliveryModal === "function" ? openDeliveryModal(id) : null,
+    openTaxModal: (id) => typeof openTaxModal === "function" ? openTaxModal(id) : null,
+    openConfirmModal: (id) => typeof openConfirmModal === "function" ? openConfirmModal(id) : null,
+    openProposalModal: (id) => typeof openProposalModal === "function" ? openProposalModal(id) : null,
+  };
+  const fn = FULL_MODAL_FNS[cfg.fullModalFn];
+  if(fn) fn(id);
+  else alert("정식 편집 모달을 찾을 수 없습니다: " + cfg.fullModalFn);
 }
 
 async function saveQuickEdit() {
   if(!window._quickEditCtx) return;
-  const { dbType, id, fields } = window._quickEditCtx;
+  const { dbType, id, fields, dataArr } = window._quickEditCtx;
   const cfg = QUICK_EDIT_CONFIGS[dbType];
-  const dataArr = window[cfg.dataVar];
+  if(!Array.isArray(dataArr)) { alert("데이터 없음"); return; }
   const idx = dataArr.findIndex(x => x.id === id);
   if(idx < 0) { alert("항목을 찾을 수 없습니다."); return; }
 
@@ -16638,14 +16669,33 @@ async function saveQuickEdit() {
   }
   dataArr[idx].updatedAt = new Date().toISOString();
 
+  // 저장 함수 직접 호출 (let 함수도 안전하게)
+  const SAVE_FNS = {
+    saveQuoteDB: () => typeof saveQuoteDB === "function" ? saveQuoteDB() : null,
+    saveOrderToSP: () => typeof saveOrderToSP === "function" ? saveOrderToSP() : null,
+    saveContractToSP: () => typeof saveContractToSP === "function" ? saveContractToSP() : null,
+    saveDeliveryToSP: () => typeof saveDeliveryToSP === "function" ? saveDeliveryToSP() : null,
+    saveTaxToSP: () => typeof saveTaxToSP === "function" ? saveTaxToSP() : null,
+    saveConfirmToSP: () => typeof saveConfirmToSP === "function" ? saveConfirmToSP() : null,
+    saveProposalToSP: () => typeof saveProposalToSP === "function" ? saveProposalToSP() : null,
+    saveMtgLogsToSP: () => typeof saveMtgLogsToSP === "function" ? saveMtgLogsToSP() : null,
+  };
+  const RENDER_FNS = {
+    renderQDB: () => typeof renderQDB === "function" ? renderQDB() : null,
+    renderOrderDB: () => typeof renderOrderDB === "function" ? renderOrderDB() : null,
+    renderContractDB: () => typeof renderContractDB === "function" ? renderContractDB() : null,
+    renderDeliveryDB: () => typeof renderDeliveryDB === "function" ? renderDeliveryDB() : null,
+    renderTaxDB: () => typeof renderTaxDB === "function" ? renderTaxDB() : null,
+    renderConfirmDB: () => typeof renderConfirmDB === "function" ? renderConfirmDB() : null,
+    renderProposalDB: () => typeof renderProposalDB === "function" ? renderProposalDB() : null,
+    renderMtgLog: () => typeof renderMtgLog === "function" ? renderMtgLog() : null,
+  };
   // 저장
   try {
-    if(typeof window[cfg.saveFn] === "function") {
-      await window[cfg.saveFn]();
-    }
-    if(typeof window[cfg.renderFn] === "function") {
-      window[cfg.renderFn]();
-    }
+    const saveFn = SAVE_FNS[cfg.saveFn];
+    if(saveFn) await saveFn();
+    const renderFn = RENDER_FNS[cfg.renderFn];
+    if(renderFn) renderFn();
     closeQuickEdit();
     // 저장 확인 표시
     const toast = document.createElement("div");
