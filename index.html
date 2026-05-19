@@ -671,6 +671,10 @@
           <div class="ct"><div class="ci c1">🔄</div>프로젝트 조회 <span id="pl-lbl" style="font-size:14px;color:var(--t3);font-weight:400;margin-left:4px">SharePoint 연동 대기</span></div>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:14px;color:var(--t3)" id="pl-upd">-</span>
+            <!-- 변경사항 저장 버튼 (변경 시에만 표시) -->
+            <button id="plSaveBtn" onclick="plSaveChanges()"
+              style="display:none;align-items:center;padding:6px 14px;border-radius:7px;border:none;background:#ef4444;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s);box-shadow:0 2px 6px rgba(239,68,68,.4)"
+              title="변경된 진행상태/거래처를 SharePoint에 영구 저장">💾 변경 저장</button>
             <button onclick="openSLModal(null)" style="padding:5px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s)" title="신규 영업활동 추가 → 자동으로 파이프라인에 신규 프로젝트로 등록">+ 신규</button>
           </div>
         </div>
@@ -698,9 +702,30 @@
             <button class="qb" onclick="qf('국책과제',this)">🏛️국책 <span id="ql-국">-</span></button>
             <button class="qb" onclick="qf('중단',this)">중단 <span id="ql-중">-</span></button>
           </div>
+          <!-- 일괄 변경 바 (체크박스 선택 시에만 표시) -->
+          <div id="plBulkBar" style="display:none;align-items:center;gap:10px;padding:8px 12px;margin:8px 0;background:linear-gradient(90deg,#dbeafe,#e0e7ff);border:1.5px solid var(--p);border-radius:8px">
+            <span style="font-size:13px;font-weight:700;color:var(--p)" id="plBulkCount">0개 선택</span>
+            <span style="font-size:12px;color:var(--t3)">→ 상태 일괄 변경:</span>
+            <select onchange="if(this.value){plBulkUpdateStatus(this.value);this.value=''}"
+              style="padding:4px 8px;border:1px solid var(--p);border-radius:6px;font-size:13px;font-family:var(--s);cursor:pointer;font-weight:700;background:#fff">
+              <option value="">상태 선택...</option>
+              <option value="신규">🆕 신규</option>
+              <option value="진행">🔄 진행</option>
+              <option value="잔금">💰 잔금</option>
+              <option value="완료">🏁 완료</option>
+              <option value="개발">🔬 개발</option>
+              <option value="국책과제">🏛️ 국책과제</option>
+              <option value="중단">⛔ 중단</option>
+            </select>
+            <button onclick="window._plSelectedRows.clear();plToggleAll(false);"
+              style="padding:4px 10px;border:1px solid var(--border2);background:#fff;border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--s);margin-left:auto">선택 해제</button>
+          </div>
           <div class="tw"><table class="tbl">
-            <thead><tr><th>번호</th><th>프로젝트명</th><th>거래처</th><th>유형</th><th class="r">공급가액</th><th class="r">입금</th><th class="r">잔금</th><th>상태</th><th>계약일</th><th style="text-align:center">📄 견적</th><th style="text-align:center">📦 발주</th><th style="text-align:center">🚚 거래명세</th><th style="text-align:center">🧾 세금</th><th style="text-align:center">✅ 납품</th><th style="text-align:center">📁 기타</th></tr></thead>
-            <tbody id="plTb"><tr><td colspan="15"><div class="sw"><div class="spr"></div></div></td></tr></tbody>
+            <thead><tr>
+              <th style="width:30px;text-align:center"><input type="checkbox" id="plCheckAll" onchange="plToggleAll(this.checked)" title="전체 선택" style="cursor:pointer"></th>
+              <th>번호</th><th>프로젝트명</th><th>거래처</th><th>유형</th><th class="r">공급가액</th><th class="r">입금</th><th class="r">잔금</th><th>상태</th><th>계약일</th><th style="text-align:center">📄 견적</th><th style="text-align:center">📦 발주</th><th style="text-align:center">🚚 거래명세</th><th style="text-align:center">🧾 세금</th><th style="text-align:center">✅ 납품</th><th style="text-align:center">📁 기타</th>
+            </tr></thead>
+            <tbody id="plTb"><tr><td colspan="16"><div class="sw"><div class="spr"></div></div></td></tr></tbody>
           </table></div>
           <div style="font-size:14px;color:var(--t3);margin-top:7px;text-align:right" id="pl-cnt2"></div>
         </div>
@@ -898,6 +923,7 @@
             <span id="slSyncBadge" style="font-size:14px;padding:1px 6px;border-radius:4px;background:var(--pd);color:var(--p);margin-left:6px;font-family:var(--m)">Outlook 그룹</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--t3);font-weight:600;margin-right:4px" title="아래 영업활동 목록은 일정 뷰와 무관하게 전체가 표시됩니다.">💡 일정만 적용</span>
             <div style="display:flex;gap:3px">
               <button class="pp on" id="sl-view-w" onclick="setSLView('week',this)" style="padding:3px 10px;font-size:15px">주간</button>
               <button class="pp" id="sl-view-m" onclick="setSLView('month',this)" style="padding:3px 10px;font-size:15px">월간</button>
@@ -930,8 +956,16 @@
       <!-- 영업활동 목록 -->
       <div class="card">
         <div class="ch">
-          <div class="ct"><div class="ci c2">📋</div>영업활동 목록</div>
+          <div class="ct">
+            <div class="ci c2">📋</div>
+            영업활동 목록
+            <span id="slCntBadge" style="font-size:12px;color:var(--p);margin-left:8px;font-weight:700;background:var(--pd);padding:2px 8px;border-radius:8px">전체</span>
+          </div>
           <div style="display:flex;gap:6px;align-items:center">
+            <!-- 저장 버튼 (변경 시에만 표시) -->
+            <button id="slSaveBtn" onclick="slSaveChanges()"
+              style="display:none;align-items:center;padding:6px 14px;border-radius:7px;border:none;background:#ef4444;color:#fff;font-size:14px;cursor:pointer;font-weight:700;font-family:var(--s);box-shadow:0 2px 6px rgba(239,68,68,.4)"
+              title="변경된 영업활동을 SharePoint에 즉시 저장">💾 변경 저장</button>
             <input class="si" type="text" id="slSrch" placeholder="🔍 고객사/프로젝트코드..." oninput="filterSL()" style="width:180px">
             <select class="ss" id="slStatusFilter" onchange="filterSL()" style="font-size:15px">
               <option value="">전체 상태</option>
@@ -3085,6 +3119,9 @@ async function syncAll() {
     } catch(e) { console.warn("영업활동 로드 실패:", e.message); }
     // 두 데이터 모두 로드된 후 신규 동기화
     syncPipelineFromSL();
+    // 🛡️ 파이프라인 사용자 변경분(진행상태/거래처 등) SP에서 로드 → PD에 적용
+    await loadPLOverridesFromSP();
+    if(typeof filterPL === "function") { try { filterPL(); updPlKPI(); } catch(_){} }
     // OpenAI 키 SP 로드 (팀 공유) - 백그라운드로
     loadOpenAIKeyFromSP().catch(()=>{});
     // DB 작업 이력 SP 로드 (팀 공유)
@@ -3873,11 +3910,170 @@ const PL_STATUS_ICON  = {신규:"🆕",진행:"🔄",잔금:"💰",완료:"🏁"
 const PL_STATUS_COLOR = {new:"#f59e0b",warn:"var(--a)",up:"var(--g)",info:"var(--p)",dev:"#7c3aed",gov:"#0369a1",dn:"var(--r)",gray:"var(--t3)"};
 const PL_STATUS_BGMAP = {warn:"var(--yd)",up:"var(--gd)",info:"var(--pd)",dn:"var(--rd)"};
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📌 파이프라인 Overrides: 사용자가 변경한 진행구분/거래처 등을 SP에 영구 저장
+// 매출자료(엑셀)는 master이고, 여기에 사용자 override를 덮어쓰는 방식
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const PL_OVERRIDES_SP_PATH = "📦영업/99.Dashboard(real-time)/pipeline-overrides.json";
+// 메모리 데이터 구조: { "프로젝트번호": { "진행구분": "진행", "거래처": "삼성전자", ...updated: "ISO" }, ... }
+window._plOverrides = window._plOverrides || {};
+window._plPendingChanges = 0;  // 미저장 변경 카운터
+window._plSelectedRows = new Set();  // 다중 선택 (프로젝트번호)
+
+// 로드 (SP → 메모리)
+async function loadPLOverridesFromSP() {
+  try {
+    await getIds();
+    const enc = PL_OVERRIDES_SP_PATH.split("/").map(encodeURIComponent).join("/");
+    const fd = await gGet("/drives/"+spDrive+"/root:/"+enc);
+    const res = await fetch(fd["@microsoft.graph.downloadUrl"]);
+    const data = await res.json();
+    if(data && typeof data === "object") {
+      window._plOverrides = data;
+      console.log(`✅ PL Overrides 로드: ${Object.keys(data).length}개 프로젝트`);
+      // PD에 override 적용
+      applyPLOverridesToPD();
+    }
+  } catch(e) {
+    window._plOverrides = {};
+    console.log("ℹ️ PL Overrides 없음 (처음 사용)");
+  }
+}
+
+// 저장 (메모리 → SP)
+async function savePLOverridesToSP() {
+  try {
+    await getIds();
+    const t = await getToken();
+    const enc = PL_OVERRIDES_SP_PATH.split("/").map(encodeURIComponent).join("/");
+    const r = await fetch("https://graph.microsoft.com/v1.0/drives/"+spDrive+"/root:/"+enc+":/content", {
+      method:"PUT",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+t},
+      body: JSON.stringify(window._plOverrides, null, 2)
+    });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    console.log(`💾 PL Overrides SP 저장: ${Object.keys(window._plOverrides).length}개`);
+    window._plPendingChanges = 0;
+    updatePLSaveBadge();
+    return true;
+  } catch(e) {
+    console.warn("⚠️ PL Overrides 저장 실패:", e.message);
+    return false;
+  }
+}
+
+// PD에 override 머지
+function applyPLOverridesToPD() {
+  if(typeof PD === "undefined" || !Array.isArray(PD)) return;
+  for(const pjNo of Object.keys(window._plOverrides)) {
+    const proj = PD.find(r => r.프로젝트번호 === pjNo);
+    if(!proj) continue;
+    const ov = window._plOverrides[pjNo];
+    for(const [field, value] of Object.entries(ov)) {
+      if(field === "updated") continue;
+      proj[field] = value;
+      if(field === "진행구분") proj._overrideStatus = value;
+    }
+  }
+}
+
+// 저장 버튼 뱃지 업데이트
+function updatePLSaveBadge() {
+  const btn = document.getElementById("plSaveBtn");
+  if(!btn) return;
+  if(window._plPendingChanges > 0) {
+    btn.style.display = "inline-flex";
+    btn.innerHTML = `💾 변경 저장 <span style="background:#fff;color:#ef4444;border-radius:10px;padding:1px 7px;margin-left:5px;font-size:11px;font-weight:800">${window._plPendingChanges}</span>`;
+    btn.style.background = "#ef4444";
+    btn.style.animation = "pulse 1.5s ease-in-out infinite";
+  } else {
+    btn.style.display = "none";
+    btn.style.animation = "";
+  }
+}
+
+// 저장 버튼 클릭 핸들러
+async function plSaveChanges() {
+  const btn = document.getElementById("plSaveBtn");
+  if(btn) { btn.disabled = true; btn.innerHTML = "💾 저장 중..."; }
+  const ok = await savePLOverridesToSP();
+  if(btn) btn.disabled = false;
+  if(ok) {
+    alert("✅ 파이프라인 변경사항 저장 완료!");
+    // 매출현황/현금흐름 갱신
+    if(typeof updateSalesAll === "function") updateSalesAll();
+    if(typeof renderCashflow === "function") renderCashflow();
+  } else {
+    alert("⚠️ 저장 실패! 네트워크 확인 후 다시 시도해주세요.");
+    if(btn) updatePLSaveBadge();
+  }
+}
+
+// 일괄 변경: 선택된 행들의 진행구분을 한 번에 변경
+function plBulkUpdateStatus(newStatus) {
+  if(window._plSelectedRows.size === 0) {
+    alert("변경할 항목을 체크박스로 선택해주세요.");
+    return;
+  }
+  if(!confirm(`선택된 ${window._plSelectedRows.size}개 프로젝트의 상태를\n"${PL_STATUS_ICON[newStatus]||""} ${newStatus}"(으)로 변경할까요?`)) return;
+  let cnt = 0;
+  for(const pjNo of window._plSelectedRows) {
+    const proj = PD.find(r => r.프로젝트번호 === pjNo);
+    if(!proj) continue;
+    proj.진행구분 = newStatus;
+    proj._overrideStatus = newStatus;
+    if(!window._plOverrides[pjNo]) window._plOverrides[pjNo] = {};
+    window._plOverrides[pjNo].진행구분 = newStatus;
+    window._plOverrides[pjNo].updated = new Date().toISOString();
+    cnt++;
+  }
+  window._plPendingChanges += cnt;
+  window._plSelectedRows.clear();
+  updatePLSaveBadge();
+  if(typeof filterPL === "function") filterPL(); else if(typeof renderPL === "function") renderPL(PD);
+  updPlKPI();
+  if(typeof updateSalesAll === "function" && SD?.length > 0) updateSalesAll();
+  alert(`✅ ${cnt}개 프로젝트 상태 변경 (저장 버튼을 눌러 SP에 영구 저장하세요)`);
+}
+
+// 행 체크박스 토글
+function plToggleRow(pjNo, checked) {
+  if(checked) window._plSelectedRows.add(pjNo);
+  else window._plSelectedRows.delete(pjNo);
+  updatePLBulkBar();
+}
+
+// 전체 선택/해제
+function plToggleAll(checked) {
+  document.querySelectorAll(".pl-row-check").forEach(cb => {
+    cb.checked = checked;
+    const pjNo = cb.dataset.pj;
+    if(pjNo) {
+      if(checked) window._plSelectedRows.add(pjNo);
+      else window._plSelectedRows.delete(pjNo);
+    }
+  });
+  updatePLBulkBar();
+}
+
+// 일괄 변경 바 표시 업데이트
+function updatePLBulkBar() {
+  const bar = document.getElementById("plBulkBar");
+  if(!bar) return;
+  if(window._plSelectedRows.size > 0) {
+    bar.style.display = "flex";
+    const cntEl = document.getElementById("plBulkCount");
+    if(cntEl) cntEl.textContent = window._plSelectedRows.size + "개 선택";
+  } else {
+    bar.style.display = "none";
+  }
+}
+
 function renderPL(data) {
   const tb=document.getElementById("plTb");
   if(!tb) return;
   if(!data||!data.length){
-    tb.innerHTML=`<tr><td colspan="15"><div class="empty"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div></div></div></td></tr>`;
+    tb.innerHTML=`<tr><td colspan="16"><div class="empty"><div class="ei">🔍</div><div class="et">검색 결과 없음</div></div></div></div></td></tr>`;
     return;
   }
   tb.innerHTML=data.slice(0,300).filter(r=>r&&r.프로젝트번호).map(r=>{
@@ -3886,6 +4082,14 @@ function renderPL(data) {
     const dt   = r.계약일&&r.계약일!==""?String(r.계약일).substring(0,10):"-";
     const sc   = PL_STATUS_SC[r.진행구분]||"gray";
     const color= PL_STATUS_COLOR[sc];
+
+    // 체크박스 (다중 선택)
+    const isSelected = window._plSelectedRows?.has(pjNo);
+    const checkCell = `<td style="text-align:center">
+      <input type="checkbox" class="pl-row-check" data-pj="${pjNo}" ${isSelected?"checked":""}
+        onclick="event.stopPropagation();plToggleRow('${pjNo}',this.checked)"
+        style="cursor:pointer">
+    </td>`;
 
     // 상태 편집 드롭다운
     const statusOpts = PL_STATUS_OPTS.map(o=>
@@ -3939,6 +4143,7 @@ function renderPL(data) {
     };
 
     return `<tr>
+      ${checkCell}
       <td><span class="tm" style="font-size:13px">${pjNo}</span>${r.연도?`<span style="font-size:11px;color:var(--t3);margin-left:3px">'${String(r.연도).slice(2)}</span>`:""}</td>
       <td><span class="tn" style="font-size:14px" title="${r.프로젝트명||""}">${nm}</span></td>
       ${custCell}
@@ -4025,18 +4230,26 @@ function mergePLLinks() {
 function updatePLField(pjNo, field, value) {
   const p = PD.find(r=>r.프로젝트번호===pjNo);
   if(!p) return;
+  const oldValue = p[field];
   p[field] = field==="원화금액" ? (parseFloat(value)||0) : value;
   if(field==="진행구분") {
     p._overrideStatus = value;
-    // 파이프라인 상태 변경 시 → 매출현황 KPI도 갱신
+  }
+  // 🛡️ 메모리 override에도 기록 (저장 버튼 누르면 SP에 영구 저장)
+  if(!window._plOverrides) window._plOverrides = {};
+  if(!window._plOverrides[pjNo]) window._plOverrides[pjNo] = {};
+  window._plOverrides[pjNo][field] = p[field];
+  window._plOverrides[pjNo].updated = new Date().toISOString();
+  window._plPendingChanges = (window._plPendingChanges || 0) + 1;
+  updatePLSaveBadge();
+  // 매출현황/현금흐름 자동 갱신
+  if(field === "진행구분") {
     if(typeof SD !== "undefined" && SD.length > 0) {
-      updateSalesAll();
-    } else {
-      updPlKPI();
+      if(typeof updateSalesAll === "function") updateSalesAll();
     }
   }
   updPlKPI();
-  console.log(`✅ PL 편집: ${pjNo} → ${field}=${value}`);
+  console.log(`✅ PL 편집: ${pjNo} → ${field}=${value} (저장 대기)`);
 }
 
 // ━━ 연락처 로드 ━━
@@ -7632,6 +7845,12 @@ async function saveSLToSP() {
     alert("⚠️ 영업활동 저장 실패!\n네트워크/권한 문제. 다시 시도해주세요.");
   } else if(!result.sp) {
     console.warn("⚠️ 영업활동 SP 저장 실패 - 로컬 백업만 됨");
+  } else {
+    // SP 저장 성공 → 변경 카운터 리셋 + 저장 시각 표시
+    window._slPendingChanges = 0;
+    if(typeof updateSLSaveBadge === "function") updateSLSaveBadge();
+    const upd = document.getElementById("slUpd");
+    if(upd) upd.textContent = "✅ 저장: " + new Date().toLocaleTimeString("ko-KR");
   }
   return result;
 }
@@ -10019,7 +10238,57 @@ async function updateSLStatus(id, newStatus) {
   if(!act.history) act.history = [];
   act.history.unshift({ date:today, action:"진행상태 변경: "+oldStatus+" → "+newStatus, type:"status", user: _meName() });
   renderSLAll();
-  await saveSLToSP();
+  // 변경 카운터 증가 + 저장 버튼 표시
+  window._slPendingChanges = (window._slPendingChanges || 0) + 1;
+  updateSLSaveBadge();
+  // 백그라운드 자동 저장 시도 (실패해도 사용자가 저장 버튼으로 재시도 가능)
+  try {
+    await saveSLToSP();
+    // 성공 시 카운터 감소
+    window._slPendingChanges = Math.max(0, window._slPendingChanges - 1);
+    updateSLSaveBadge();
+  } catch(e) {
+    console.warn("⚠️ 영업활동 자동 저장 실패:", e.message);
+    // 버튼은 계속 표시되어 사용자 수동 저장 유도
+  }
+}
+
+// SL 변경 카운터 + 저장 버튼 상태 갱신
+window._slPendingChanges = window._slPendingChanges || 0;
+function updateSLSaveBadge() {
+  const btn = document.getElementById("slSaveBtn");
+  if(!btn) return;
+  if(window._slPendingChanges > 0) {
+    btn.style.display = "inline-flex";
+    btn.innerHTML = `💾 저장 <span style="background:#fff;color:#ef4444;border-radius:10px;padding:1px 7px;margin-left:5px;font-size:11px;font-weight:800">${window._slPendingChanges}</span>`;
+  } else {
+    btn.style.display = "none";
+  }
+}
+
+// SL 저장 버튼 클릭 - 수동 저장 (자동 저장 실패 시 사용자 재시도)
+async function slSaveChanges() {
+  const btn = document.getElementById("slSaveBtn");
+  if(btn) { btn.disabled = true; btn.innerHTML = "💾 저장 중..."; }
+  try {
+    const result = await saveSLToSP();
+    // result가 {sp, local} 객체로 올 수도 있고 undefined일 수도 있음
+    const ok = !result || result.sp !== false;
+    if(ok) {
+      window._slPendingChanges = 0;
+      updateSLSaveBadge();
+      $("slUpd","✅ 저장 완료: "+new Date().toLocaleTimeString("ko-KR"));
+      // 매출현황/현금흐름 자동 갱신
+      if(typeof updateSalesAll === "function") updateSalesAll();
+      alert("✅ 영업활동 변경사항 저장 완료!");
+    } else {
+      alert("⚠️ SP 저장 실패! 로컬 백업은 됐습니다.\n네트워크 확인 후 다시 시도해주세요.");
+      if(btn) { btn.disabled = false; updateSLSaveBadge(); }
+    }
+  } catch(e) {
+    alert("⚠️ 저장 실패: " + e.message);
+    if(btn) { btn.disabled = false; updateSLSaveBadge(); }
+  }
 }
 
 // ━━ 파일 업로드 시 자동 상태 전환 ━━
@@ -10406,7 +10675,21 @@ function filterSL() {
   if(q) d=d.filter(r=>[r.company,r.pjcode,r.custMgr,r.salesMgr].some(v=>String(v||"").toLowerCase().includes(q)));
   if(st) d=d.filter(r=>r.status===st);
   renderSLTable(d);
-  $("slCnt",d.length+"건"+(d.length!==slData.length?" (필터됨)":""));
+  const cntText = d.length+"건"+(d.length!==slData.length?" (필터됨)":"");
+  $("slCnt",cntText);
+  // 헤더의 카운트 뱃지도 갱신
+  const badge = document.getElementById("slCntBadge");
+  if(badge) {
+    if(d.length === slData.length) {
+      badge.textContent = `전체 ${d.length}건`;
+      badge.style.background = "var(--pd)";
+      badge.style.color = "var(--p)";
+    } else {
+      badge.textContent = `필터 ${d.length} / 전체 ${slData.length}건`;
+      badge.style.background = "var(--ad)";
+      badge.style.color = "var(--a)";
+    }
+  }
 }
 
 // ━━ 모바일 카드 스와이프 제스처 ━━
@@ -16543,13 +16826,36 @@ async function openMtgFile(fileId, webUrl, name) {
       });
       if(!res.ok) throw new Error(`Graph API ${res.status}`);
       const buf = await res.arrayBuffer();
-      // UTF-8 디코딩 (한글 깨짐 방지)
       text = new TextDecoder("utf-8").decode(buf);
     } else if(webUrl) {
-      // fallback: webUrl (같은 도메인이면 동작할 수 있음)
-      const res = await fetch(webUrl, {credentials:"include"});
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      text = await res.text();
+      // 🛡️ webUrl에서 SP 경로 추출 → Graph API path-based로 fetch (CORS 회피)
+      // 예: https://enjetco.sharepoint.com/sites/06.BackOffice/Shared%20Documents/📦영업/.../file.txt
+      //  → /drives/{driveId}/root:/📦영업/.../file.txt:/content
+      const token = (await msal_.acquireTokenSilent({scopes:SCOPES, account:acct})).accessToken;
+      try {
+        // Shared Documents 다음 경로만 추출
+        const m = webUrl.match(/Shared%20Documents\/(.+)$/) || webUrl.match(/Shared Documents\/(.+)$/);
+        if(m && m[1]) {
+          // URL 디코드 후 다시 Graph용 인코딩 (각 segment별)
+          const decoded = decodeURIComponent(m[1]);
+          const enc = decoded.split("/").map(encodeURIComponent).join("/");
+          const apiUrl = `https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${enc}:/content`;
+          const res = await fetch(apiUrl, { headers: { Authorization: `Bearer ${token}` } });
+          if(res.ok) {
+            const buf = await res.arrayBuffer();
+            text = new TextDecoder("utf-8").decode(buf);
+          } else {
+            throw new Error(`Graph path ${res.status}`);
+          }
+        } else {
+          // 경로 추출 실패 → 마지막 시도: 직접 fetch (보통 CORS로 실패)
+          const res = await fetch(webUrl, {credentials:"include"});
+          if(!res.ok) throw new Error(`HTTP ${res.status}`);
+          text = await res.text();
+        }
+      } catch(pathErr) {
+        throw new Error(pathErr.message || "파일 fetch 실패");
+      }
     } else {
       throw new Error("파일 ID 또는 URL이 없습니다");
     }
@@ -17630,6 +17936,22 @@ function setSS(t,txt) {
 }
 setInterval(()=>{const n=new Date();$("clock",[n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,"0")).join(":"));},1000);
 
+// 🛡️ 페이지 떠나기 전 - 미저장 변경분 경고 (파이프라인 + 영업활동)
+window.addEventListener("beforeunload", (e) => {
+  const plPending = window._plPendingChanges || 0;
+  const slPending = window._slPendingChanges || 0;
+  const total = plPending + slPending;
+  if(total > 0) {
+    const parts = [];
+    if(plPending > 0) parts.push(`파이프라인 ${plPending}개`);
+    if(slPending > 0) parts.push(`영업활동 ${slPending}개`);
+    const msg = `⚠️ 저장하지 않은 변경사항이 있습니다 (${parts.join(", ")}).\n페이지를 떠나면 변경사항이 사라질 수 있습니다.`;
+    e.preventDefault();
+    e.returnValue = msg;
+    return msg;
+  }
+});
+
 window.addEventListener("DOMContentLoaded",()=>{
   // XLSX 라이브러리 로드 확인
   if(typeof XLSX !== "undefined" && XLSX.version) {
@@ -17710,7 +18032,7 @@ function renderMtgLogTable(data){
     <td style="font-size:13px;color:var(--t3)">${m.pjcode||"-"}</td>
     <td style="font-size:13px">${m.location||"-"}</td>
     <td style="font-size:13px">${m.attendees||"-"}</td>
-    <td style="text-align:center">${m.spPath?`<button onclick="openMtgFile('https://enjetco.sharepoint.com/sites/06.BackOffice/Shared%20Documents/${m.spPath.split('/').map(encodeURIComponent).join('/')}','${(m.spPath.split('/').pop()||'회의록').replace(/'/g,"\\'")}');event.stopPropagation()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--s)">📝 열기</button>`:"-"}</td>
+    <td style="text-align:center">${m.spPath?`<button onclick="openMtgFile('','https://enjetco.sharepoint.com/sites/06.BackOffice/Shared%20Documents/${m.spPath.split('/').map(encodeURIComponent).join('/')}','${(m.spPath.split('/').pop()||'회의록').replace(/'/g,"\\'")}');event.stopPropagation()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--p);background:var(--pd);color:var(--p);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--s)">📝 열기</button>`:"-"}</td>
     <td><span class="badge info" style="font-size:12px">${m.type||"영업미팅"}</span></td>
   </tr>`).join("");
 }
