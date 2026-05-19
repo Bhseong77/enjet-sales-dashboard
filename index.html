@@ -16559,71 +16559,95 @@ const QUICK_EDIT_CONFIGS = {
 window._quickEditCtx = null;  // {dbType, id}
 
 function openQuickEdit(dbType, id) {
-  const cfg = QUICK_EDIT_CONFIGS[dbType];
-  if(!cfg) { alert("지원하지 않는 DB 타입: " + dbType); return; }
-  // 데이터 배열 직접 접근 (let 변수는 window[]로 접근 안 됨)
-  const DATA_GETTERS = {
-    quoteDB: () => typeof quoteDB !== "undefined" ? quoteDB : null,
-    _ordData: () => typeof _ordData !== "undefined" ? _ordData : null,
-    _dlvData: () => typeof _dlvData !== "undefined" ? _dlvData : null,
-    _taxData: () => typeof _taxData !== "undefined" ? _taxData : null,
-    _cfmData: () => typeof _cfmData !== "undefined" ? _cfmData : null,
-    _ctrData: () => typeof _ctrData !== "undefined" ? _ctrData : null,
-    _pdbData: () => typeof _pdbData !== "undefined" ? _pdbData : null,
-    _mtgLogs: () => (typeof window._mtgLogs !== "undefined" ? window._mtgLogs : null),
-  };
-  const getter = DATA_GETTERS[cfg.dataVar];
-  const dataArr = getter ? getter() : (window[cfg.dataVar]);
-  if(!Array.isArray(dataArr)) { alert(`데이터 로드 안 됨 (${cfg.dataVar})\n해당 DB 탭을 한 번 열어주세요.`); return; }
-  const item = dataArr.find(x => x.id === id);
-  if(!item) { alert("항목을 찾을 수 없습니다."); return; }
-
-  window._quickEditCtx = { dbType, id, fields: cfg.fields, dataArr };
-
-  // 헤더
-  const header = document.getElementById("quickEditHeader");
-  if(header) header.style.background = cfg.color;
-  document.getElementById("quickEditTitle").textContent = cfg.title;
-
-  // 정식 편집 버튼 표시 여부
-  const fullBtn = document.getElementById("quickEditFullBtn");
-  if(fullBtn) {
-    if(cfg.fullModalFn && typeof window[cfg.fullModalFn] === "function") {
-      fullBtn.style.display = "inline-flex";
-    } else {
-      fullBtn.style.display = "none";
+  console.log("🔧 openQuickEdit 호출:", dbType, id);
+  try {
+    const cfg = QUICK_EDIT_CONFIGS[dbType];
+    if(!cfg) { alert("지원하지 않는 DB 타입: " + dbType); return; }
+    console.log("🔧 cfg:", cfg);
+    // 데이터 배열 직접 접근 (let 변수는 window[]로 접근 안 됨)
+    const DATA_GETTERS = {
+      quoteDB: () => typeof quoteDB !== "undefined" ? quoteDB : null,
+      _ordData: () => typeof _ordData !== "undefined" ? _ordData : null,
+      _dlvData: () => typeof _dlvData !== "undefined" ? _dlvData : null,
+      _taxData: () => typeof _taxData !== "undefined" ? _taxData : null,
+      _cfmData: () => typeof _cfmData !== "undefined" ? _cfmData : null,
+      _ctrData: () => typeof _ctrData !== "undefined" ? _ctrData : null,
+      _pdbData: () => typeof _pdbData !== "undefined" ? _pdbData : null,
+      _mtgLogs: () => (typeof window._mtgLogs !== "undefined" ? window._mtgLogs : null),
+    };
+    const getter = DATA_GETTERS[cfg.dataVar];
+    const dataArr = getter ? getter() : (window[cfg.dataVar]);
+    console.log("🔧 dataArr:", dataArr?.length, "items");
+    if(!Array.isArray(dataArr)) {
+      alert(`데이터 로드 안 됨 (${cfg.dataVar})\n해당 DB 탭을 한 번 열어주세요.`);
+      return;
     }
+    const item = dataArr.find(x => x.id === id);
+    console.log("🔧 찾은 item:", item);
+    if(!item) { alert(`항목을 찾을 수 없습니다.\nID: ${id}\nDB: ${cfg.dataVar} (${dataArr.length}개)`); return; }
+
+    window._quickEditCtx = { dbType, id, fields: cfg.fields, dataArr };
+
+    // 모달 존재 확인
+    const modal = document.getElementById("quickEditModal");
+    if(!modal) {
+      alert("⚠️ 빠른 편집 모달 HTML이 없습니다.\n페이지 새로고침(Ctrl+Shift+R) 해주세요.");
+      console.error("quickEditModal element 없음");
+      return;
+    }
+    // 헤더
+    const header = document.getElementById("quickEditHeader");
+    if(header) header.style.background = cfg.color;
+    const titleEl = document.getElementById("quickEditTitle");
+    if(titleEl) titleEl.textContent = cfg.title;
+
+    // 정식 편집 버튼 표시 여부
+    const fullBtn = document.getElementById("quickEditFullBtn");
+    if(fullBtn) {
+      if(cfg.fullModalFn) {
+        fullBtn.style.display = "inline-flex";
+      } else {
+        fullBtn.style.display = "none";
+      }
+    }
+
+    // 필드 동적 생성
+    const fieldsContainer = document.getElementById("quickEditFields");
+    if(!fieldsContainer) {
+      alert("⚠️ 빠른 편집 필드 컨테이너가 없습니다.");
+      return;
+    }
+    fieldsContainer.innerHTML = cfg.fields.map(f => {
+      const val = item[f.key] !== undefined && item[f.key] !== null ? item[f.key] : "";
+      const isFullWidth = f.fullWidth || f.type === "textarea";
+      const gridStyle = isFullWidth ? "grid-column:1 / -1" : "";
+      let inputHtml = "";
+      if(f.type === "select") {
+        inputHtml = `<select class="si" id="qe-${f.key}" style="width:100%;font-size:14px">
+          <option value="">선택...</option>
+          ${(f.options||[]).map(o => `<option value="${o}"${o===val?' selected':''}>${o}</option>`).join("")}
+        </select>`;
+      } else if(f.type === "textarea") {
+        inputHtml = `<textarea class="si" id="qe-${f.key}" rows="2" style="width:100%;font-size:14px;font-family:var(--s);resize:vertical">${String(val).replace(/</g,"&lt;")}</textarea>`;
+      } else if(f.type === "number") {
+        inputHtml = `<input class="si" type="number" id="qe-${f.key}" value="${val||0}" style="width:100%;font-size:14px">`;
+      } else {
+        inputHtml = `<input class="si" type="${f.type}" id="qe-${f.key}" value="${String(val).replace(/"/g,'&quot;')}" style="width:100%;font-size:14px">`;
+      }
+      const labelColor = (!val || val === "" || val === 0) ? "var(--r)" : "var(--t2)";
+      const emptyHint = (!val || val === "" || val === 0) ? '<span style="font-size:10px;color:var(--r);margin-left:4px">비어있음</span>' : '';
+      return `<div style="${gridStyle}">
+        <label style="font-size:12px;font-weight:700;color:${labelColor};display:block;margin-bottom:4px">${f.label}${emptyHint}</label>
+        ${inputHtml}
+      </div>`;
+    }).join("");
+
+    modal.style.display = "flex";
+    console.log("✅ 빠른 편집 모달 표시 완료");
+  } catch(err) {
+    console.error("❌ openQuickEdit 에러:", err);
+    alert("빠른 편집 모달 열기 실패: " + err.message + "\n\n콘솔(F12)을 확인해주세요.");
   }
-
-  // 필드 동적 생성
-  const fieldsContainer = document.getElementById("quickEditFields");
-  fieldsContainer.innerHTML = cfg.fields.map(f => {
-    const val = item[f.key] !== undefined && item[f.key] !== null ? item[f.key] : "";
-    const isFullWidth = f.fullWidth || f.type === "textarea";
-    const gridStyle = isFullWidth ? "grid-column:1 / -1" : "";
-    let inputHtml = "";
-    if(f.type === "select") {
-      inputHtml = `<select class="si" id="qe-${f.key}" style="width:100%;font-size:14px">
-        <option value="">선택...</option>
-        ${(f.options||[]).map(o => `<option value="${o}"${o===val?' selected':''}>${o}</option>`).join("")}
-      </select>`;
-    } else if(f.type === "textarea") {
-      inputHtml = `<textarea class="si" id="qe-${f.key}" rows="2" style="width:100%;font-size:14px;font-family:var(--s);resize:vertical">${String(val).replace(/</g,"&lt;")}</textarea>`;
-    } else if(f.type === "number") {
-      inputHtml = `<input class="si" type="number" id="qe-${f.key}" value="${val||0}" style="width:100%;font-size:14px">`;
-    } else {
-      inputHtml = `<input class="si" type="${f.type}" id="qe-${f.key}" value="${String(val).replace(/"/g,'&quot;')}" style="width:100%;font-size:14px">`;
-    }
-    // 빈값이면 강조
-    const labelColor = (!val || val === "" || val === 0) ? "var(--r)" : "var(--t2)";
-    const emptyHint = (!val || val === "" || val === 0) ? '<span style="font-size:10px;color:var(--r);margin-left:4px">비어있음</span>' : '';
-    return `<div style="${gridStyle}">
-      <label style="font-size:12px;font-weight:700;color:${labelColor};display:block;margin-bottom:4px">${f.label}${emptyHint}</label>
-      ${inputHtml}
-    </div>`;
-  }).join("");
-
-  document.getElementById("quickEditModal").style.display = "flex";
 }
 
 function closeQuickEdit() {
