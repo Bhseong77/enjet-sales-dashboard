@@ -7,6 +7,15 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="version" content="v25-20260513">
+
+<!-- 📱 PWA / Mobile -->
+<meta name="theme-color" content="#1a6fd4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ENJET 영업">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"%3E%3Crect width="192" height="192" rx="36" fill="%231a6fd4"/%3E%3Ctext x="96" y="135" text-anchor="middle" fill="%23fff" font-size="100" font-weight="900" font-family="sans-serif"%3E영업%3C/text%3E%3C/svg%3E'>
+
 <title>ENJET | 영업 대시보드</title>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.10.0/lib/msal-browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -425,6 +434,7 @@
       <div class="tb-t" id="ptitle">📊 매출 현황</div><div class="tbs"></div>
       <button class="bsm p" id="btnRefresh" onclick="syncAll()">🔄 새로고침</button>
       <button class="bsm" id="btnUpdate" onclick="updateData()" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:6px 14px;border-radius:7px;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">📥 업데이트</button>
+      <button class="bsm" id="btnAlerts" onclick="showSalesAlerts()" style="position:relative;padding:6px 14px;border-radius:7px;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s);border:1px solid var(--p);background:var(--pd);color:var(--p)" title="ES 알림 및 세금계산서 발행 요청">🔔 <span id="alertBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;border-radius:99px;padding:1px 6px;font-size:10px;font-weight:900">0</span></button>
       <!-- 모바일: 아이콘만 -->
       <button onclick="syncAll()" style="display:none" id="btnRefreshMob"
         class="mob-topbtn">🔄</button>
@@ -1768,7 +1778,7 @@
           </div>
           <div id="qdbPickerBody" style="max-height:60vh;overflow-y:auto"></div>
           <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-            <button onclick="openQuoteModal(document.getElementById('qdbPickerModal')._actId);closeQDBPicker()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 새 견적서 작성</button>
+            <button onclick="openQuoteBranch(document.getElementById('qdbPickerModal')._actId);closeQDBPicker()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 새 견적서 작성</button>
             <button onclick="closeQDBPicker()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:transparent;font-size:13px;cursor:pointer;font-family:var(--s)">취소</button>
           </div>
         </div>
@@ -2417,7 +2427,7 @@
             <div class="ct"><div class="ci c1">📄</div>견적서 목록</div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
               <span style="font-size:14px;color:var(--t3)" id="qdb-upd">-</span>
-              <button onclick="showDBHistoryModal('quote','📜 견적서 이력')" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--p);background:#fff;color:var(--p);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s);margin-right:6px" title="이 DB의 모든 작업 이력 조회">📜 이력조회</button><button onclick="console.log('🔘 견적서DB 신규작성 클릭');try{openQuoteModal(null)}catch(e){console.error('❌ 견적서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button>
+              <button onclick="showDBHistoryModal('quote','📜 견적서 이력')" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--p);background:#fff;color:var(--p);font-size:13px;cursor:pointer;font-weight:700;font-family:var(--s);margin-right:6px" title="이 DB의 모든 작업 이력 조회">📜 이력조회</button><button onclick="console.log('🔘 견적서DB 신규작성 클릭');try{openQuoteBranch(null)}catch(e){console.error('❌ 견적서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:4px 12px;border-radius:7px;border:none;background:var(--p);color:#fff;font-size:15px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button>
             </div>
           </div>
           <div class="cb" style="padding:8px 12px">
@@ -3021,6 +3031,11 @@ function onOK() {
   document.getElementById("aus").className="aus ok"; {const _e1=document.getElementById("aus");if(_e1) _e1.textContent="● "+(acct.name||acct.username);}
   document.getElementById("btnLogout").style.display="inline-block"; document.getElementById("btnRefresh").style.display="inline-block";
   initCharts(); syncAll();
+  
+  // 🔧 ES 모듈 폴링 시작 (5분 주기) - Phase 4
+  if (typeof startESPolling === "function") {
+    try { startESPolling(); } catch(e) { console.warn("ES 폴링 시작 실패:", e); }
+  }
   // PD_STATIC 즉시 렌더 (SP 로딩 대기 없이)
   setTimeout(()=>{
     if(typeof PD_STATIC !== "undefined" && PD.length > 0) {
@@ -11729,6 +11744,13 @@ function renderSLCards(data, container, FILE_TYPES) {
       }
       // 견적서: 파일 있으면 목록, 없으면 ✏️작성 + ⬆업로드 버튼 둘 다
       if(ft.key==="estimate") {
+        // 🔧 ES 견적 요청 진행중 표시
+        if(r.esQuoteRequested && r.esQuoteRequestId) {
+          return `<div style="display:flex;gap:3px;flex-shrink:0;align-items:center">
+            <span title="ES사업부 진행중: ${r.esQuoteRequestId}" style="padding:3px 8px;border-radius:6px;background:#ede9fe;color:#7c3aed;font-size:11px;font-weight:700;border:1px solid #c4b5fd">🔧 ES 진행중</span>
+            <button onclick="openQuoteBranch('${r.id}')" class="sl-card-btn" style="color:var(--a);border-color:var(--a)" title="견적 재작성/직접작성">✏️</button>
+          </div>`;
+        }
         if(cnt>0) {
           return `<div style="display:flex;gap:3px;flex-shrink:0">
             <button onclick="openSLFileModal('${r.id}','estimate')" class="sl-card-btn" style="background:var(--gd);color:var(--g);border-color:var(--g)">${ft.label} ${cnt}개</button>
@@ -11736,7 +11758,7 @@ function renderSLCards(data, container, FILE_TYPES) {
           </div>`;
         }
         return `<div style="display:flex;gap:3px;flex-shrink:0">
-          <button onclick="openQuoteModal('${r.id}')" class="sl-card-btn" style="background:var(--ad);color:var(--a);border-color:var(--a);font-weight:800">✏️ 작성</button>
+          <button onclick="openQuoteBranch('${r.id}')" class="sl-card-btn" style="background:var(--ad);color:var(--a);border-color:var(--a);font-weight:800">✏️ 작성</button>
           <button onclick="uploadSLFile('${r.id}','estimate')" class="sl-card-btn" style="color:var(--t3);border-color:var(--border2)">⬆</button>
         </div>`;
       }
@@ -14498,6 +14520,498 @@ function renderQuoteFileList() {
     el.innerHTML = `<div style="font-size:12px;color:var(--t3);padding:6px 0">업로드된 파일 없음</div>`;
     return;
   }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Phase 4: 영업 ↔ ES 통합 워크플로
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const _ES_QUOTE_REQUESTS_PATH = "🔧 ES사업부/99.Dashboard(real-time)/es-quote-requests.json";
+const _ES_DOCS_SYNC_PATH = "🔧 ES사업부/99.Dashboard(real-time)/es-docs-sync.json";
+const _BOM_READY_PATH = "📦영업/99.Dashboard(real-time)/bom-ready-for-quote.json";
+
+// ⭐ 견적서 작성 방식 선택 다이얼로그
+function openQuoteBranch(actId) {
+  const existing = document.getElementById("quoteBranchModal");
+  if (existing) existing.remove();
+  
+  const html = `
+    <div id="quoteBranchModal" style="position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px)">
+      <div style="background:#fff;border-radius:16px;padding:30px;max-width:560px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);font-family:var(--s)">
+        <div style="font-size:20px;font-weight:900;margin-bottom:8px">💰 견적서 작성 방식</div>
+        <div style="font-size:13px;color:var(--t3);margin-bottom:20px">어떤 방식으로 견적을 작성하시겠어요?</div>
+        <div style="display:grid;gap:12px">
+          <button onclick="closeQuoteBranch();openQuoteModal(${actId ? `'${actId}'` : 'null'})" 
+            style="padding:18px;border:2px solid var(--p);background:linear-gradient(135deg,#e7f0fb,#fff);border-radius:12px;cursor:pointer;text-align:left;font-family:var(--s);transition:all .2s"
+            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-size:24px">📝</span><strong style="font-size:15px;color:var(--p)">직접 작성 (기존 방식)</strong></div>
+            <div style="font-size:12px;color:var(--t2);line-height:1.5">영업팀이 BOM과 단가를 직접 입력합니다.<br>표준 제품이나 빠른 견적이 필요할 때.</div>
+          </button>
+          <button onclick="closeQuoteBranch();checkBomReady(${actId ? `'${actId}'` : 'null'})" 
+            style="padding:18px;border:2px solid #1a6fd4;background:linear-gradient(135deg,#e0f2fe,#fff);border-radius:12px;cursor:pointer;text-align:left;font-family:var(--s);transition:all .2s"
+            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-size:24px">🛒</span><strong style="font-size:15px;color:#1a6fd4">구매 모듈 BOM 사용</strong></div>
+            <div style="font-size:12px;color:var(--t2);line-height:1.5">구매팀에서 작성한 BOM(원가)을 가져와<br>영업 마진만 추가하여 견적 작성.</div>
+          </button>
+          <button onclick="closeQuoteBranch();requestESQuote(${actId ? `'${actId}'` : 'null'})" 
+            style="padding:18px;border:2px solid #7c3aed;background:linear-gradient(135deg,#ede9fe,#fff);border-radius:12px;cursor:pointer;text-align:left;font-family:var(--s);transition:all .2s"
+            onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-size:24px">🔧</span><strong style="font-size:15px;color:#7c3aed">ES사업부에 견적 요청</strong></div>
+            <div style="font-size:12px;color:var(--t2);line-height:1.5">ES사업부가 BOM 작성 → 구매 단가 → 영업 전달<br><span style="color:#7c3aed;font-weight:600">정확한 원가 산출 필요 시 추천</span></div>
+          </button>
+        </div>
+        <div style="margin-top:18px;text-align:right">
+          <button onclick="closeQuoteBranch()" style="padding:8px 18px;background:transparent;border:1px solid var(--t3);border-radius:8px;cursor:pointer;font-size:13px;color:var(--t2);font-family:var(--s)">취소</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function closeQuoteBranch() {
+  const m = document.getElementById("quoteBranchModal");
+  if (m) m.remove();
+}
+
+// ES사업부에 견적 요청
+async function requestESQuote(actId) {
+  if (!actId) { alert("영업활동에서 견적 작성을 시작하세요."); return; }
+  const act = slData.find(x => x.id === actId);
+  if (!act) { alert("영업활동을 찾을 수 없습니다."); return; }
+  
+  const code = act.projectCode || act.pjcode;
+  if (!code) { alert("프로젝트 코드가 없습니다.\n먼저 프로젝트 코드를 발급받으세요."); return; }
+  
+  if (!confirm(`ES사업부에 견적을 요청하시겠습니까?\n\n프로젝트: ${code}\n고객사: ${act.company}\n\nES → BOM 작성 → 구매 단가 → 영업 전달 흐름으로 진행됩니다.`)) return;
+  
+  try {
+    let requests = [];
+    try {
+      const t = await getToken();
+      const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${encodeURIComponent(_ES_QUOTE_REQUESTS_PATH)}:/content`, 
+        { headers: { Authorization: `Bearer ${t}` }});
+      if (r.ok) {
+        const existing = await r.json();
+        requests = existing?.requests || [];
+      }
+    } catch (e) {}
+    
+    const existingReq = requests.find(r => r.projectCode === code && r.status === "pending");
+    if (existingReq) {
+      alert(`이미 ES사업부에 요청 중입니다.\n요청 ID: ${existingReq.id}`);
+      return;
+    }
+    
+    const request = {
+      id: `REQ-${Date.now()}`,
+      salesActivityId: actId,
+      projectCode: code,
+      company: act.company || "",
+      customer: act.company || "",
+      projectName: act.projectName || act.subject || code,
+      salesperson: _meName ? _meName() : "",
+      salesEmail: (msal_?.getAllAccounts()?.[0]?.username) || "",
+      requestedAt: new Date().toISOString(),
+      status: "pending",
+      requestType: "quote_request"
+    };
+    
+    requests.unshift(request);
+    
+    // SharePoint에 저장
+    const t = await getToken();
+    await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${encodeURIComponent(_ES_QUOTE_REQUESTS_PATH)}:/content`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ requests, lastUpdate: new Date().toISOString() })
+    });
+    
+    // 영업활동 히스토리에 기록
+    if (!act.history) act.history = [];
+    act.history.unshift({
+      date: new Date().toISOString().split("T")[0],
+      action: `ES사업부에 견적 요청 발송 (${request.id})`,
+      type: "es_quote_request",
+      user: _meName ? _meName() : ""
+    });
+    act.esQuoteRequested = true;
+    act.esQuoteRequestId = request.id;
+    
+    await saveSLToSP();
+    
+    alert(`✅ ES사업부에 견적 요청 완료\n\n요청 ID: ${request.id}\n프로젝트: ${code}\n\nES사업부가 BOM 작성 후 영업에 전달합니다.`);
+    
+    renderSLAll();
+  } catch (e) {
+    console.error("ES 견적 요청 실패:", e);
+    alert("ES 견적 요청 실패: " + e.message);
+  }
+}
+
+// 구매 BOM 확인 후 견적 모달 열기
+async function checkBomReady(actId) {
+  if (!actId) { openQuoteModal(null); return; }
+  
+  const act = slData.find(x => x.id === actId);
+  const code = act?.projectCode || act?.pjcode;
+  if (!code) {
+    alert("프로젝트 코드가 없습니다. 기존 방식으로 작성합니다.");
+    openQuoteModal(actId);
+    return;
+  }
+  
+  try {
+    const t = await getToken();
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${encodeURIComponent(_BOM_READY_PATH)}:/content`, 
+      { headers: { Authorization: `Bearer ${t}` }});
+    
+    if (!r.ok) {
+      alert(`구매 모듈에서 이 프로젝트(${code})의 BOM이 아직 전달되지 않았습니다.`);
+      openQuoteModal(actId);
+      return;
+    }
+    
+    const bomReady = await r.json();
+    const items = bomReady?.items || [];
+    const match = items.find(i => i.projectCode === code && !i.consumed);
+    
+    if (!match) {
+      alert(`구매 모듈에서 이 프로젝트(${code})의 BOM이 아직 전달되지 않았습니다.`);
+      openQuoteModal(actId);
+      return;
+    }
+    
+    const items_count = (match.bom || []).length;
+    const total = match.bom.reduce((s, b) => s + (b.totalAmount || 0), 0);
+    
+    if (!confirm(`구매 모듈에서 BOM이 발견되었습니다!\n\n품목 수: ${items_count}건\n원가 합계: ${total.toLocaleString()}원\n\n견적 모달에 자동 입력하시겠습니까?\n(영업 마진은 본인이 추가)`)) {
+      openQuoteModal(actId);
+      return;
+    }
+    
+    openQuoteModal(actId);
+    
+    setTimeout(() => {
+      _quoteItems = match.bom.map(b => ({
+        name: b.name || "",
+        unitPrice: b.unitPrice || 0,
+        qty: b.qty || 1,
+        unit: b.unit || "EA",
+        note: `[구매BOM] ${b.partNo || ""}`,
+        isDiscount: false,
+        sourceFromPurchase: true
+      }));
+      if (typeof renderQuoteItemsForm === "function") renderQuoteItemsForm();
+      if (typeof updateQuotePreview === "function") updateQuotePreview();
+    }, 500);
+    
+    // 소비 표시
+    match.consumed = true;
+    match.consumedBy = _meName ? _meName() : "";
+    match.consumedAt = new Date().toISOString();
+    await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${encodeURIComponent(_BOM_READY_PATH)}:/content`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+      body: JSON.stringify(bomReady)
+    });
+    
+  } catch (e) {
+    console.error("구매 BOM 조회 실패:", e);
+    alert("구매 BOM 조회 실패. 기존 방식으로 작성합니다.");
+    openQuoteModal(actId);
+  }
+}
+
+// ━━ 발주서 결제 Term 처리 ━━
+function recalcOrderPayment() {
+  const d = parseInt(document.getElementById('order-deposit-pct')?.value || 0);
+  const i = parseInt(document.getElementById('order-interim-pct')?.value || 0);
+  const b = parseInt(document.getElementById('order-balance-pct')?.value || 0);
+  const total = d + i + b;
+  const amountStr = document.getElementById('order-total-amount')?.value || "0";
+  const amount = parseInt(String(amountStr).replace(/[^0-9]/g, '') || 0);
+  
+  const summary = document.getElementById('order-payment-summary');
+  if (!summary) return;
+  
+  if (total === 100) {
+    summary.style.background = "#d1fae5";
+    summary.style.color = "#065f46";
+    summary.innerHTML = `✅ 합계 100% 정상<br><small>계약금 <strong>${(amount * d / 100).toLocaleString()}원</strong> · 중도금 <strong>${(amount * i / 100).toLocaleString()}원</strong> · 잔금 <strong>${(amount * b / 100).toLocaleString()}원</strong></small>`;
+  } else {
+    summary.style.background = "#fee2e2";
+    summary.style.color = "#991b1b";
+    summary.innerHTML = `⚠️ 합계 ${total}% (100%이 되어야 합니다)`;
+  }
+}
+
+function setupPaymentTerm(orderData) {
+  const pt = orderData?.paymentTerm || {};
+  const d = document.getElementById('order-deposit-pct');
+  const i = document.getElementById('order-interim-pct');
+  const b = document.getElementById('order-balance-pct');
+  if (d) d.value = pt.deposit?.pct ?? 30;
+  if (i) i.value = pt.interim?.pct ?? 40;
+  if (b) b.value = pt.balance?.pct ?? 30;
+  
+  const dd = document.getElementById('order-deposit-date');
+  const it = document.getElementById('order-interim-trigger');
+  const bt = document.getElementById('order-balance-trigger');
+  if (dd) dd.value = pt.deposit?.date || "";
+  if (it) it.value = pt.interim?.trigger || "출하시";
+  if (bt) bt.value = pt.balance?.trigger || "FAT후";
+  
+  setTimeout(recalcOrderPayment, 100);
+}
+
+function getPaymentTermData() {
+  return {
+    deposit: { 
+      pct: parseInt(document.getElementById('order-deposit-pct')?.value || 30), 
+      date: document.getElementById('order-deposit-date')?.value || "" 
+    },
+    interim: { 
+      pct: parseInt(document.getElementById('order-interim-pct')?.value || 40), 
+      trigger: document.getElementById('order-interim-trigger')?.value || "출하시" 
+    },
+    balance: { 
+      pct: parseInt(document.getElementById('order-balance-pct')?.value || 30), 
+      trigger: document.getElementById('order-balance-trigger')?.value || "FAT후" 
+    }
+  };
+}
+
+// ━━ ES 자료 자동 폴링 (5분 주기) ━━
+let _esPollingInterval = null;
+
+function startESPolling() {
+  if (_esPollingInterval) clearInterval(_esPollingInterval);
+  setTimeout(pollESUpdates, 3000);  // 3초 후 첫 실행
+  _esPollingInterval = setInterval(pollESUpdates, 5 * 60 * 1000);
+  console.log("[Sales] ES 폴링 시작 (5분 주기)");
+}
+
+async function pollESUpdates() {  try {
+    const t = await getToken();
+    const r = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${encodeURIComponent(_ES_DOCS_SYNC_PATH)}:/content`,
+      { headers: { Authorization: `Bearer ${t}` }});
+    
+    if (r.ok) {
+      const docsSync = await r.json();
+      if (docsSync.items) {
+        let updated = 0;
+        for (const doc of docsSync.items) {
+          if (doc.consumed) continue;
+          const act = slData.find(a => (a.projectCode || a.pjcode) === doc.projectCode);
+          if (act) {
+            if (!act.customerFiles) act.customerFiles = [];
+            if (!act.customerFiles.find(f => f.id === doc.id)) {
+              act.customerFiles.push({
+                id: doc.id, name: doc.name, category: doc.category,
+                source: "es_module", uploadedBy: doc.uploadedBy,
+                uploadedAt: doc.uploadedAt, path: doc.path
+              });
+              updated++;
+            }
+            doc.consumed = true;
+          }
+        }
+        
+        if (updated > 0) {
+          await saveSLToSP();
+          await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${encodeURIComponent(_ES_DOCS_SYNC_PATH)}:/content`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+            body: JSON.stringify(docsSync)
+          });
+          console.log(`[Sales] ES 자료 ${updated}건 동기화됨`);
+        }
+      }
+    }
+    
+    // 💰 세금계산서 발행 트리거 확인 (ES의 SAT/FAT 합격 알림)
+    try {
+      const triggerPath = "📦영업/99.Dashboard(real-time)/invoice-triggers.json";
+      const tr = await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${encodeURIComponent(triggerPath)}:/content`,
+        { headers: { Authorization: `Bearer ${t}` }});
+      
+      if (tr.ok) {
+        const tdata = await tr.json();
+        const pending = (tdata?.triggers || []).filter(t => !t.processed);
+        
+        if (pending.length > 0) {
+          // 영업활동에 트리거 추가
+          for (const trg of pending) {
+            const act = slData.find(a => (a.projectCode || a.pjcode) === trg.projectCode);
+            if (act) {
+              if (!act.invoiceAlerts) act.invoiceAlerts = [];
+              if (!act.invoiceAlerts.find(a => a.id === trg.id)) {
+                act.invoiceAlerts.push({
+                  id: trg.id,
+                  type: trg.triggerType,  // deposit/interim/balance
+                  message: trg.message,
+                  triggeredAt: trg.triggeredAt,
+                  acknowledged: false
+                });
+              }
+              trg.processed = true;
+            }
+          }
+          
+          await saveSLToSP();
+          await fetch(`https://graph.microsoft.com/v1.0/drives/${spDrive}/root:/${encodeURIComponent(triggerPath)}:/content`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+            body: JSON.stringify(tdata)
+          });
+          
+          // 사용자에게 알림
+          if (typeof showToast === "function") {
+            showToast(`💰 세금계산서 발행 알림 ${pending.length}건 도착`, "warning");
+          } else {
+            console.log(`💰 세금계산서 발행 알림 ${pending.length}건`);
+          }
+        }
+      }
+    } catch (e) { console.warn("세금계산서 트리거 폴링:", e); }
+    
+    // 알림 배지 업데이트
+    updateAlertBadge();
+    
+  } catch (e) {
+    console.warn("[Sales] ES 폴링 에러:", e);
+  }
+}
+
+// 알림 배지 업데이트
+function updateAlertBadge() {
+  let count = 0;
+  
+  // 미확인 invoiceAlerts
+  slData.forEach(act => {
+    (act.invoiceAlerts || []).forEach(a => {
+      if (!a.acknowledged) count++;
+    });
+  });
+  
+  // ES 견적 요청 진행중
+  const inProgress = slData.filter(a => a.esQuoteRequested && !a.esQuoteCompleted).length;
+  count += inProgress;
+  
+  const badge = document.getElementById("alertBadge");
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count > 99 ? "99+" : count;
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
+    }
+  }
+}
+
+// 영업 알림 패널
+function showSalesAlerts() {
+  const invoiceAlerts = [];
+  const esRequests = [];
+  
+  slData.forEach(act => {
+    (act.invoiceAlerts || []).forEach(a => {
+      if (!a.acknowledged) {
+        invoiceAlerts.push({
+          ...a,
+          company: act.company,
+          projectCode: act.projectCode || act.pjcode,
+          activityId: act.id
+        });
+      }
+    });
+    if (act.esQuoteRequested && !act.esQuoteCompleted) {
+      esRequests.push({
+        id: act.esQuoteRequestId,
+        company: act.company,
+        projectCode: act.projectCode || act.pjcode,
+        projectName: act.projectName || act.subject,
+        activityId: act.id,
+        requestedAt: (act.history || []).find(h => h.type === "es_quote_request")?.date
+      });
+    }
+  });
+  
+  const existing = document.getElementById("salesAlertsPanel");
+  if (existing) existing.remove();
+  
+  const panel = document.createElement("div");
+  panel.id = "salesAlertsPanel";
+  panel.style.cssText = "position:fixed;top:60px;right:20px;width:420px;max-height:75vh;background:#fff;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.2);z-index:9999;overflow:hidden;display:flex;flex-direction:column;font-family:var(--s)";
+  
+  let html = `
+    <div style="padding:14px 18px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:15px;font-weight:800">🔔 영업 알림 센터</div>
+      <button onclick="document.getElementById('salesAlertsPanel').remove()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px">×</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:14px">`;
+  
+  // 세금계산서 발행 요청 (가장 중요)
+  if (invoiceAlerts.length > 0) {
+    html += `<div style="margin-bottom:18px">
+      <div style="font-size:13px;font-weight:800;color:#dc2626;margin-bottom:8px">💰 세금계산서 발행 요청 (${invoiceAlerts.length}건)</div>`;
+    invoiceAlerts.forEach(a => {
+      const typeLabel = a.type === "deposit" ? "📥 계약금" : a.type === "interim" ? "📦 중도금" : "💰 잔금";
+      html += `
+        <div style="padding:12px;background:#fff7ed;border-left:4px solid #f59e0b;border-radius:6px;margin-bottom:6px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:4px">${typeLabel} - ${a.company || ""}</div>
+          <div style="font-size:11px;color:var(--t3);font-family:monospace">${a.projectCode}</div>
+          <div style="font-size:11px;color:var(--t2);margin-top:4px">${a.message || ""}</div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button onclick="acknowledgeAlert('${a.activityId}','${a.id}')" style="padding:5px 10px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);font-size:11px;cursor:pointer;font-weight:700">✓ 확인</button>
+            <button onclick="openSLModal('${a.activityId}');document.getElementById('salesAlertsPanel').remove()" style="padding:5px 10px;border-radius:5px;border:none;background:var(--p);color:#fff;font-size:11px;cursor:pointer;font-weight:700">→ 영업활동 이동</button>
+          </div>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+  
+  // ES 견적 요청 진행중
+  if (esRequests.length > 0) {
+    html += `<div style="margin-bottom:18px">
+      <div style="font-size:13px;font-weight:800;color:#7c3aed;margin-bottom:8px">🔧 ES 견적 요청 진행중 (${esRequests.length}건)</div>`;
+    esRequests.forEach(r => {
+      html += `
+        <div style="padding:12px;background:#ede9fe;border-left:4px solid #7c3aed;border-radius:6px;margin-bottom:6px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:4px">${r.projectName || r.company}</div>
+          <div style="font-size:11px;color:var(--t3);font-family:monospace">${r.projectCode} · ${r.id || ''}</div>
+          <div style="font-size:11px;color:var(--t2);margin-top:4px">요청일: ${r.requestedAt || '-'}</div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button onclick="window.open('https://bhseong77.github.io/enjet-es-dashboard/','_blank')" style="padding:5px 10px;border-radius:5px;border:1px solid #7c3aed;background:#fff;color:#7c3aed;font-size:11px;cursor:pointer;font-weight:700">→ ES 모듈 확인</button>
+            <button onclick="openSLModal('${r.activityId}');document.getElementById('salesAlertsPanel').remove()" style="padding:5px 10px;border-radius:5px;border:none;background:var(--p);color:#fff;font-size:11px;cursor:pointer;font-weight:700">→ 영업활동</button>
+          </div>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+  
+  if (invoiceAlerts.length === 0 && esRequests.length === 0) {
+    html += `<div style="text-align:center;color:var(--t3);padding:40px"><div style="font-size:32px;margin-bottom:8px;opacity:0.4">🔔</div>새로운 알림이 없습니다</div>`;
+  }
+  
+  html += `</div>`;
+  panel.innerHTML = html;
+  document.body.appendChild(panel);
+}
+
+async function acknowledgeAlert(activityId, alertId) {
+  const act = slData.find(a => a.id === activityId);
+  if (!act || !act.invoiceAlerts) return;
+  
+  const alert = act.invoiceAlerts.find(a => a.id === alertId);
+  if (alert) {
+    alert.acknowledged = true;
+    alert.acknowledgedAt = new Date().toISOString();
+    await saveSLToSP();
+    updateAlertBadge();
+    showSalesAlerts();  // 패널 새로고침
+  }
+}
   el.innerHTML = files.map((f, i)=>{
     const ext = (f.name||"").split(".").pop().toLowerCase();
     const icons = {pdf:"📄",xlsx:"📊",xls:"📊",doc:"📝",docx:"📝",hwp:"📝",jpg:"🖼️",jpeg:"🖼️",png:"🖼️"};
@@ -16281,7 +16795,7 @@ function renderQDB(data) {
   const body = document.getElementById("qdbBody");
   if(!body) return;
   if(!list.length) {
-    body.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="ei">📄</div><div class="et">견적서 없음</div><div style="margin-top:10px"><button onclick="console.log('🔘 견적서DB 신규작성 클릭');try{openQuoteModal(null)}catch(e){console.error('❌ 견적서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button></div></div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="11"><div class="empty"><div class="ei">📄</div><div class="et">견적서 없음</div><div style="margin-top:10px"><button onclick="console.log('🔘 견적서DB 신규작성 클릭');try{openQuoteBranch(null)}catch(e){console.error('❌ 견적서DB 모달 에러:',e);alert('모달 열기 실패: '+e.message)}" style="padding:7px 18px;border-radius:8px;border:none;background:var(--p);color:#fff;font-size:16px;cursor:pointer;font-weight:700;font-family:var(--s)">+ 신규 작성</button></div></div></td></tr>`;
     return;
   }
   const STATUS_STYLE = {
@@ -19591,6 +20105,9 @@ function openOrderModal(id) {
   }
   modal.style.display = "flex";
 
+  // 💳 결제 Term 초기화 (PATCH-2)
+  setupPaymentTerm(id ? _ordData.find(x => x.id === id) : null);
+
   // 🛡️ 자동저장 + 복원 (신규 모드에서만)
   const ORDER_FIELDS = ["order-date","order-company","order-po","order-pjcode","order-duedate","order-status","order-note","order-total-amount"];
   if(!id) {
@@ -19868,6 +20385,7 @@ async function saveOrderEntry() {
     status:document.getElementById("order-status")?.value||"수신",
     note:document.getElementById("order-note")?.value||"",
     fileUrl:document.getElementById("order-file-url")?.value||"",
+    paymentTerm: getPaymentTermData(),  // 💳 결제 Term (PATCH-2)
     createdAt:new Date().toISOString(),
   };
   if(editId){const idx=_ordData.findIndex(x=>x.id===editId);if(idx>=0)_ordData[idx]=entry;else _ordData.unshift(entry);}
@@ -21966,6 +22484,48 @@ function deleteTax(id){
             </div>
             <div><label style="font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:3px">📝 비고</label><input class="si" type="text" id="order-note" placeholder="메모" style="width:100%;font-size:13px"></div>
           </div>
+          
+          <!-- 💳 결제 Term (PATCH-2) -->
+          <div style="background:linear-gradient(135deg,#fef3c7,#fff);padding:14px;border-radius:12px;margin:14px 0;border:2px solid #f59e0b">
+            <div style="font-size:14px;font-weight:800;color:#92400e;margin-bottom:10px">💳 결제 조건 (계약금 / 중도금 / 잔금)</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:3px">📥 계약금 (%)</label>
+                <input type="number" id="order-deposit-pct" value="30" min="0" max="100" oninput="recalcOrderPayment()"
+                  style="width:100%;padding:6px;border:1px solid #fbbf24;border-radius:6px;font-family:var(--m);font-size:13px;text-align:right;font-weight:700;background:#fff">
+                <label style="font-size:10px;color:var(--t3);display:block;margin-top:3px">수금 예정일</label>
+                <input type="date" id="order-deposit-date" style="width:100%;padding:4px;border:1px solid #fbbf24;border-radius:6px;font-size:11px;background:#fff">
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:3px">📦 중도금 (%)</label>
+                <input type="number" id="order-interim-pct" value="40" min="0" max="100" oninput="recalcOrderPayment()"
+                  style="width:100%;padding:6px;border:1px solid #fbbf24;border-radius:6px;font-family:var(--m);font-size:13px;text-align:right;font-weight:700;background:#fff">
+                <label style="font-size:10px;color:var(--t3);display:block;margin-top:3px">수금 조건</label>
+                <select id="order-interim-trigger" style="width:100%;padding:4px;border:1px solid #fbbf24;border-radius:6px;font-size:11px;background:#fff">
+                  <option value="출하시">출하시</option>
+                  <option value="입고시">입고시</option>
+                  <option value="제작완료시">제작완료시</option>
+                  <option value="중간검수후">중간검수 후</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:3px">💰 잔금 (%)</label>
+                <input type="number" id="order-balance-pct" value="30" min="0" max="100" oninput="recalcOrderPayment()"
+                  style="width:100%;padding:6px;border:1px solid #fbbf24;border-radius:6px;font-family:var(--m);font-size:13px;text-align:right;font-weight:700;background:#fff">
+                <label style="font-size:10px;color:var(--t3);display:block;margin-top:3px">수금 조건</label>
+                <select id="order-balance-trigger" style="width:100%;padding:4px;border:1px solid #fbbf24;border-radius:6px;font-size:11px;background:#fff">
+                  <option value="FAT후">FAT 완료 후</option>
+                  <option value="납품확인후">납품확인 후</option>
+                  <option value="SAT후">SAT 완료 후</option>
+                  <option value="설치완료후">설치 완료 후</option>
+                </select>
+              </div>
+            </div>
+            <div id="order-payment-summary" style="margin-top:10px;padding:8px;background:#d1fae5;color:#065f46;border-radius:8px;font-size:12px;font-weight:600;text-align:center">
+              ✅ 합계 100% 정상
+            </div>
+          </div>
+          
           <!-- 숨김 필드 (기존 호환) -->
           <input type="hidden" id="order-item">
           <input type="hidden" id="order-qty">
