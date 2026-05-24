@@ -26,6 +26,8 @@
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--s);background:var(--bg);color:var(--t);font-size:16px}
 .layout{display:flex;min-height:100vh}
 .sb{width:196px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0}
+.mob-hamburger{display:none}
+.sb-backdrop-mob{display:none}
 .sb-logo{padding:16px 16px 12px;border-bottom:1px solid var(--border)}
 .sb-mark{font-size:20px;font-weight:900;color:var(--p);letter-spacing:3px;font-family:var(--m)}
 .sb-sub{font-size:14px;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
@@ -154,8 +156,54 @@
 @media(max-width:768px){
   /* ── 레이아웃 ── */
   .layout{flex-direction:column}
-  .sb{display:none !important}
-  .main{padding-bottom:68px}
+  
+  /* 모바일에서 사이드바 - 햄버거 클릭 시 슬라이드 인 */
+  .sb{
+    position:fixed !important;
+    left:-240px;
+    top:0;
+    height:100vh !important;
+    width:240px !important;
+    z-index:1000;
+    transition:left 0.25s ease;
+    overflow-y:auto;
+    box-shadow:none;
+    display:flex !important;
+  }
+  .sb.show{
+    left:0;
+    box-shadow:4px 0 16px rgba(0,0,0,0.2);
+  }
+  .sb-backdrop-mob{
+    display:none;
+    position:fixed;
+    top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.4);
+    z-index:999;
+  }
+  .sb-backdrop-mob.show{display:block}
+  
+  /* 햄버거 버튼 - 모바일에서만 표시 */
+  .mob-hamburger{
+    display:flex !important;
+    position:fixed;
+    top:10px;
+    left:10px;
+    z-index:998;
+    width:40px;
+    height:40px;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:8px;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  }
+  .mob-hamburger:active{background:var(--bg3)}
+  
+  .main{padding-bottom:68px;padding-top:54px}
   .content{padding:8px 10px}
 
   /* DB 모달의 PDF 미리보기 grid: 모바일에서 1단으로 (미리보기는 상단 축소 표시) */
@@ -388,7 +436,12 @@
 </div>
 
 <div class="layout" id="ml" style="display:none;">
-  <aside class="sb">
+  <!-- 모바일 햄버거 버튼 (768px 이하만 표시) -->
+  <button class="mob-hamburger" id="mobHamburger" onclick="toggleSidebarMob()" aria-label="메뉴 열기">☰</button>
+  <!-- 모바일 사이드바 백드롭 -->
+  <div class="sb-backdrop-mob" id="sbBackdropMob" onclick="closeSidebarMob()"></div>
+  
+  <aside class="sb" id="sidebar">
     <div class="sb-logo"><div class="sb-mark">ENJET</div><div class="sb-sub">Sales Dashboard</div></div>
     <div class="sb-sync"><span class="dot" id="sd"></span><span id="ss" style="font-size:14px">연결 중...</span></div>
     <nav class="sb-nav">
@@ -19619,6 +19672,8 @@ function go(id, el) {
   if(fab) fab.style.display = (id==="sales-log") ? "flex" : "none";
   // 더보기 패널 닫기
   closeMobMore();
+  // 모바일 사이드바 자동 닫기
+  if (window.innerWidth <= 768) closeSidebarMob();
 
   if(!acct) return; // 로그인 전에는 자동로드 안함
 
@@ -19825,6 +19880,28 @@ function closeMobMore() {
   const mni = document.getElementById("mni-more");
   if(mni) mni.classList.remove("on");
 }
+
+// ━━━ 모바일 사이드바 토글 (햄버거) ━━━
+function toggleSidebarMob() {
+  const sb = document.getElementById("sidebar");
+  const bd = document.getElementById("sbBackdropMob");
+  if(!sb) return;
+  if(sb.classList.contains("show")) {
+    sb.classList.remove("show");
+    if(bd) bd.classList.remove("show");
+  } else {
+    sb.classList.add("show");
+    if(bd) bd.classList.add("show");
+  }
+}
+function closeSidebarMob() {
+  const sb = document.getElementById("sidebar");
+  const bd = document.getElementById("sbBackdropMob");
+  if(sb) sb.classList.remove("show");
+  if(bd) bd.classList.remove("show");
+}
+window.toggleSidebarMob = toggleSidebarMob;
+window.closeSidebarMob = closeSidebarMob;
 // 배지 갱신 (영업활동 개수)
 function updateMobBadges() {
   const slBadge = document.getElementById("mob-badge-sl");
