@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>ENJET 메일 대시보드</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231a6fd4'/%3E%3Cstop offset='1' stop-color='%230f4c81'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='44' font-family='Arial,sans-serif' font-size='30' font-weight='bold' fill='white' text-anchor='middle'%3EEN%3C/text%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
@@ -360,9 +363,20 @@ table.grid input:hover,table.grid select:hover{background:#fff;border-color:var(
   .main.reading .list{display:none}
   .main.reading .reader{display:block;width:100%;min-height:calc(100vh - 60px)}
   body.reading-mail .toolbar{display:none}
-  .mobile-back{display:flex;align-items:center;gap:6px;padding:12px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:14px;font-weight:700;color:var(--p);cursor:pointer;position:sticky;top:0;z-index:5}
+  .mobile-back{display:flex;align-items:center;gap:6px;padding:14px 16px;background:var(--p);color:#fff;border-bottom:none;font-size:15px;font-weight:800;cursor:pointer;position:sticky;top:0;z-index:10}
   .mailrow{padding:13px 14px}
   .mr-subj{font-size:14px}
+  /* 메일 본문 제목·헤더 여백 축소 (모바일) */
+  .rd-subj{font-size:15px!important;line-height:1.3!important;margin:0 0 8px!important;font-weight:700!important}
+  .rd-head{padding:13px 16px}
+  .rd-meta{font-size:12px;gap:3px 10px}
+  .rd-actions{padding:10px 12px;gap:6px;flex-wrap:wrap}
+  .rd-actions .btn{padding:8px 10px;font-size:12.5px}
+  .rd-body pre{padding:16px 16px;font-size:13.5px;line-height:1.7}
+  /* 본문 전체 펼침 — 내부 스크롤 없이 페이지 전체가 스크롤 */
+  .reader{overflow:visible!important}
+  .rd-body{flex:none!important;min-height:0}
+  .rd-body iframe{height:auto;min-height:300px}
   .doc-layout{flex-direction:column;gap:10px}
   .doc-tree{width:100%!important;max-width:none!important;max-height:38vh}
   .doc-files,.doc-analysis{width:100%;min-height:40vh}
@@ -386,8 +400,13 @@ table.grid input:hover,table.grid select:hover{background:#fff;border-color:var(
   .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .grid{min-width:760px}
   .grid th,.grid td{white-space:nowrap}
-  .mbox{max-width:96vw;margin:0 8px}
+  .mbox{max-width:96vw;margin:0 8px;max-height:90vh;display:flex;flex-direction:column}
+  .mbox-b{overflow-y:auto;-webkit-overflow-scrolling:touch}
   .cbox{max-width:96vw}
+  .cbox #cBody{rows:6}
+  .cbox textarea{min-height:120px}
+  /* 모달 하단 버튼 줄: 잘 보이게 여백 */
+  .mbox .row{position:sticky;bottom:0;background:#fff;padding-top:10px;margin-top:4px}
   .ft-row{padding:9px 8px}
   .ft-children{margin-left:10px}
   .ctxmenu .ci{padding:11px 14px;font-size:13.5px}
@@ -420,10 +439,11 @@ table.grid input:hover,table.grid select:hover{background:#fff;border-color:var(
   <div class="hdr-row">
     <div>
       <div class="hdr-title">📧 ENJET 메일 대시보드</div>
-      <div class="hdr-sub">enjet_ed@enjet.co.kr · 실시간 연동</div>
+      <div class="hdr-sub">enjet_ed@enjet.co.kr · 실시간 연동 · <span style="opacity:.7">v10</span></div>
     </div>
     <div class="spacer"></div>
     <div class="hdr-sync" id="status"><span class="sync-dot"></span><span id="statusTxt">확인 중…</span></div>
+    <button class="btn-hdr" id="backToChatBtn" style="display:none" onclick="backToTeamsChat()">← 채팅으로</button>
     <button class="btn-hdr" onclick="openSettings()">⚙ 서버</button>
     <button class="btn-hdr" onclick="openCompose('new')">✏ 메일쓰기</button>
     <button class="btn-hdr primary" onclick="loadList()">↻ 새로고침</button>
@@ -638,6 +658,7 @@ const BASE_URL=location.href.split("?")[0].split("#")[0];
 function msalApp(){if(!_msalApp){_msalApp=new msal.PublicClientApplication({auth:{clientId:MSAL_CLIENT_ID,authority:"https://login.microsoftonline.com/"+MSAL_TENANT_ID,redirectUri:BASE_URL},cache:{cacheLocation:"localStorage"}});}return _msalApp;}
 
 // Teams 환경인지 초기화 시도
+let _teamsCtx=null;
 async function initTeams(){
   try{
     if(!window.microsoftTeams) return false;
@@ -645,8 +666,35 @@ async function initTeams(){
     _teamsReady=true;
     const ctx=await microsoftTeams.app.getContext();
     _inTeams=!!ctx;
+    _teamsCtx=ctx;
+    // Teams 안이면 '채팅으로' 버튼 표시
+    if(_inTeams){ const b=document.getElementById('backToChatBtn'); if(b) b.style.display='inline-block'; }
     return true;
   }catch(e){ return false; }
+}
+// Teams 채팅으로 돌아가기
+async function backToTeamsChat(){
+  try{
+    // 1순위: Teams 페이지 네비게이션 뒤로가기 (탭→채팅)
+    if(window.microsoftTeams && microsoftTeams.pages){
+      try{
+        if(microsoftTeams.pages.backStack && microsoftTeams.pages.backStack.navigateBack){
+          await microsoftTeams.pages.backStack.navigateBack(); return;
+        }
+      }catch(e){}
+      try{
+        if(microsoftTeams.pages.navigateBack){ await microsoftTeams.pages.navigateBack(); return; }
+      }catch(e){}
+    }
+    // 2순위: 채팅 딥링크
+    const ctx=_teamsCtx||{};
+    const chatId=ctx?.chat?.id;
+    if(chatId && window.microsoftTeams && microsoftTeams.app && microsoftTeams.app.openLink){
+      try{ await microsoftTeams.app.openLink(`https://teams.microsoft.com/l/chat/0/0?conversationId=${encodeURIComponent(chatId)}`); return; }catch(e){}
+    }
+    // 최후: 브라우저 뒤로
+    history.back();
+  }catch(e){ history.back(); }
 }
 
 // ───── 인증 팝업 모드 (?auth=1) : Teams가 이 페이지를 팝업으로 띄움 ─────
@@ -1684,8 +1732,15 @@ async function deleteSelected(){
 }
 function updateCount(shown){const total=MAILS.length;$('count').textContent=shown==null?`${total}통`:(shown===total?`${total}통`:`${shown} / ${total}통`);}
 function renderReaderEmpty(){document.querySelector('.main')?.classList.remove('reading');$('reader').innerHTML='<div class="rd-empty"><div class="big">✉️</div>메일을 선택하세요</div>';}
-async function openMail(uid){SELECTED=uid;renderList();document.querySelector('.main')?.classList.add('reading');document.body.classList.add('reading-mail');window.scrollTo(0,0);const m=MAILS.find(x=>x.uid===uid)||{};$('reader').innerHTML=`<div class="mobile-back" onclick="backToList()">← 목록으로</div><div class="rd-head"><h2 class="rd-subj">${esc(m.subject||'(제목 없음)')}</h2><div class="rd-meta"><b>보낸사람</b><span>${addrLine(m.from)}</span><b>받는사람</b><span>${addrLine(m.to)}</span>${m.cc&&m.cc.length?`<b>참조</b><span>${addrLine(m.cc)}</span>`:''}<b>날짜</b><span>${esc(m.date||'')}</span></div></div><div class="spin"></div>`;try{const r=await fetch(`${SERVER}/api/mail/body?folder=${FOLDER}&uid=${encodeURIComponent(uid)}`);const d=await r.json();if(SELECTED!==uid)return;if(!d.ok){const sp=document.querySelector('.spin');if(sp)sp.outerHTML=`<div class="err">본문 조회 실패: ${esc(d.error||'')}</div>`;return;}renderBody(m,d);}catch(e){const sp=document.querySelector('.spin');if(sp)sp.outerHTML=`<div class="err">본문 로드 실패: ${esc(e.message)}</div>`;}}
+async function openMail(uid){SELECTED=uid;renderList();document.querySelector('.main')?.classList.add('reading');document.body.classList.add('reading-mail');try{history.pushState({reading:true},'');}catch(e){}window.scrollTo(0,0);const m=MAILS.find(x=>x.uid===uid)||{};$('reader').innerHTML=`<div class="mobile-back" onclick="backToList()">← 목록으로</div><div class="rd-head"><h2 class="rd-subj">${esc(m.subject||'(제목 없음)')}</h2><div class="rd-meta"><b>보낸사람</b><span>${addrLine(m.from)}</span><b>받는사람</b><span>${addrLine(m.to)}</span>${m.cc&&m.cc.length?`<b>참조</b><span>${addrLine(m.cc)}</span>`:''}<b>날짜</b><span>${esc(m.date||'')}</span></div></div><div class="spin"></div>`;try{const r=await fetch(`${SERVER}/api/mail/body?folder=${FOLDER}&uid=${encodeURIComponent(uid)}`);const d=await r.json();if(SELECTED!==uid)return;if(!d.ok){const sp=document.querySelector('.spin');if(sp)sp.outerHTML=`<div class="err">본문 조회 실패: ${esc(d.error||'')}</div>`;return;}renderBody(m,d);}catch(e){const sp=document.querySelector('.spin');if(sp)sp.outerHTML=`<div class="err">본문 로드 실패: ${esc(e.message)}</div>`;}}
 function backToList(){ SELECTED=null; document.querySelector('.main')?.classList.remove('reading'); document.body.classList.remove('reading-mail'); renderList(); window.scrollTo(0,0); }
+function autoSizeIframe(ifr){
+  try{
+    const doc=ifr.contentDocument||ifr.contentWindow.document;
+    const h=Math.max(doc.body.scrollHeight,doc.documentElement.scrollHeight,300);
+    ifr.style.height=(h+20)+'px';
+  }catch(e){ ifr.style.height='600px'; }
+}
 function renderBody(m,d){
   CUR_BODY=d; CUR_MAIL=m;
   const atts=(d.attachments||[]);
@@ -1704,7 +1759,7 @@ function renderBody(m,d){
     </div>`;
   }
   let bodyHtml;
-  if(d.isHtml&&d.bodyHtml){const safe=esc(d.bodyHtml);bodyHtml=`<div class="rd-body"><iframe sandbox="allow-same-origin" srcdoc="${safe}"></iframe></div>`;}
+  if(d.isHtml&&d.bodyHtml){const safe=esc(d.bodyHtml);bodyHtml=`<div class="rd-body"><iframe sandbox="allow-same-origin" srcdoc="${safe}" onload="autoSizeIframe(this)"></iframe></div>`;}
   else{bodyHtml=`<div class="rd-body"><pre>${esc(d.body||'(본문 없음)')}</pre></div>`;}
   const head=$('reader').querySelector('.rd-head').outerHTML;
   const moveBtn=totalAtt?`<button class="btn sm primary" onclick="openMove()">📁 문서함 이송 (${totalAtt})</button>`:'';
@@ -1959,6 +2014,8 @@ function startApp(){
   // 안전장치: 로그인 직후 떠있을 수 있는 모든 모달 강제 닫기
   document.querySelectorAll('.modal').forEach(m=>m.classList.remove('on'));
   $('compose')?.classList.remove('on');
+  // Teams 환경이면 '채팅으로' 버튼 표시 (initTeams 못 돈 경우 대비)
+  initTeams().then(()=>{ if(_inTeams){ const b=document.getElementById('backToChatBtn'); if(b) b.style.display='inline-block'; } });
   // Teams 카드 링크: ?folder=inbox&uid=3 → 해당 메일 자동 열기
   try{
     const p=new URLSearchParams(location.search);
@@ -1976,6 +2033,10 @@ setInterval(async ()=>{ if(_account){ try{const r=await fetch(SERVER+'/api/mail/
 // 모달 배경(바깥) 탭하면 닫기 — 모바일 안전장치
 document.querySelectorAll('.modal').forEach(m=>{
   m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('on'); });
+});
+// 하드웨어/제스처 뒤로가기 → 메일 읽기 중이면 목록으로
+window.addEventListener('popstate',()=>{
+  if(document.body.classList.contains('reading-mail')){ backToList(); }
 });
 // ── 진입점: ?auth=1 또는 팝업 redirect 복귀 → 인증 팝업 모드 ──
 if(new URLSearchParams(location.search).get('auth')==='1' || sessionStorage.getItem('_authPopup')==='1'){
